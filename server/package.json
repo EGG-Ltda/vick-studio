@@ -1,5 +1,5 @@
 {
-  "name": "vic-estudio-server",
+  "name": "vick-studio-server",
   "version": "1.0.0",
   "description": "Vic server (REST)",
   "main": "app.js",

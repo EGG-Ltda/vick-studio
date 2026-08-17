@@ -1,1 +1,1 @@
-# Vic Estudio Server
+# Vick Studio Server

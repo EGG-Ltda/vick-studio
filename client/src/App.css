@@ -1,0 +1,90 @@
+:root {
+  font-family: Arial, sans-serif;
+  color: #222;
+  background: #fff;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+}
+
+button,
+input {
+  font: inherit;
+}
+
+button {
+  cursor: pointer;
+}
+
+.page {
+  min-height: 100vh;
+  padding: 24px;
+}
+
+.page-content {
+  width: min(100%, 480px);
+  margin: 0 auto;
+}
+
+.login-page {
+  display: grid;
+  place-items: center;
+}
+
+.login-page h1 {
+  margin: 0 0 24px;
+}
+
+.form {
+  display: grid;
+  gap: 8px;
+}
+
+.form label {
+  margin-top: 8px;
+}
+
+.form input {
+  width: 100%;
+  padding: 8px;
+  border: 1px solid #999;
+  border-radius: 2px;
+}
+
+.form button,
+.page-header button {
+  width: fit-content;
+  padding: 8px 16px;
+  border: 1px solid #222;
+  border-radius: 2px;
+  color: #fff;
+  background: #222;
+}
+
+.form button {
+  margin-top: 16px;
+}
+
+.page-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid #ddd;
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.home-page .page-content {
+  padding-top: 24px;
+}

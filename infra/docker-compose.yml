@@ -1,0 +1,38 @@
+services:
+  vick-db:
+    image: postgres:17
+    container_name: vick-db
+    restart: unless-stopped
+    env_file:
+      - ../db/.env
+    volumes:
+      - vick-db-data:/var/lib/postgresql/data
+      - ../db/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    networks:
+      - vick-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  vick-server:
+    build: ../server
+    container_name: vick-server
+    restart: unless-stopped
+    env_file:
+      - ../server/.env
+    depends_on:
+      vick-db:
+        condition: service_healthy
+    networks:
+      - vick-network
+    expose:
+      - "3000"
+
+volumes:
+  vick-db-data:
+
+networks:
+  vick-network:
+    driver: bridge

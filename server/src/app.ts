@@ -55,7 +55,7 @@ export const ENVIRONMENT: string = process.env.NODE_ENV
   })
 
   // Default error handler
-  app.setErrorHandler((error, req, res) => {
+  app.setErrorHandler((error: any, req, res) => {
     const status: number = error.statusCode ?? 500
     const message: string =
       status >= 500 ? 'Internal Server Error' : error.message

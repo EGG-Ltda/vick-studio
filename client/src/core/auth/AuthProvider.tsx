@@ -12,8 +12,26 @@ function AuthProvider({ children }: AuthProviderProps) {
   const value = useMemo(
     () => ({
       isAuthenticated,
-      signIn: (_email: string, _password: string) => setIsAuthenticated(true),
-      signOut: () => setIsAuthenticated(false),
+      signIn: async (_email: string, _password: string) => {
+        const response: Response = await fetch('/api/auth/signin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: _email, password: _password }),
+        })
+        if (response.ok) {
+          setIsAuthenticated(true) //Comentar esse if se não quiser deixar habilitado o login para testes
+        }
+      },
+      signOut: async () => {
+        const response: Response = await fetch('/api/auth/signout', {
+          method: 'POST',
+        })
+        if (response.ok) {
+          setIsAuthenticated(false)
+        }
+      },
     }),
     [isAuthenticated],
   )

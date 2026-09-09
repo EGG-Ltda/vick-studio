@@ -15,13 +15,13 @@ function LoginPage() {
   const [form, setForm] = useState<LoginForm>({ email: '', password: '' })
 
   if (isAuthenticated) {
-    return <Navigate to={routePaths.home} replace />
+    return <Navigate to={routePaths.dashboard} replace />
   }
 
   function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     signIn(form.email, form.password)
-    navigate(routePaths.home, { replace: true })
+    navigate(routePaths.dashboard, { replace: true })
   }
 
   return (

@@ -25,7 +25,6 @@ export class UserRepository implements IUserRepository {
     //   WHERE
     //     id = $1;
     // `
-
     // return this.dbService
     //   .getClient()
     //   .then((client) =>
@@ -34,26 +33,28 @@ export class UserRepository implements IUserRepository {
     //   .then((result) => result.rows[0])
   }
 
-  public async getByEmailWithPassword(email: string): Promise<any> {
-    // const query: string = `
-    //   SELECT
-    //     id,
-    //     email,
-    //     password,
-    //     is_active AS "isActive",
-    //     created_at AS "createdAt",
-    //     updated_at AS "updatedAt"
-    //   FROM app_users
-    //   WHERE
-    //     email = $1;
-    // `
+  public async getByLoginWithPassword(login: string): Promise<any> {
+    const query: string = `
+      SELECT
+        id,
+        login,
+        hash_password AS "hashPassword",
+        email,
+        is_active AS "isActive",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt",
+        removed_at AS "removedAt"
+      FROM app_users
+      WHERE
+        login = $1;
+    `
 
-    // return this.dbService
-    //   .getClient()
-    //   .then((client) =>
-    //     client.query(query, [email]).finally(() => client.release()),
-    //   )
-    //   .then((result) => result.rows[0])
+    return this.dbService
+      .getClient()
+      .then((client) =>
+        client.query(query, [login]).finally(() => client.release()),
+      )
+      .then((result) => result.rows[0])
   }
 
   public async create(
@@ -64,7 +65,6 @@ export class UserRepository implements IUserRepository {
     //   INSERT INTO app_users (email, password, is_active, created_at)
     //   VALUES ($1, $2, true, NOW()) RETURNING *;
     // `
-
     // return client
     //   .query(query, [user.email, user.password])
     //   .then((result) => result.rows[0])
@@ -91,7 +91,6 @@ export class UserRepository implements IUserRepository {
     //     id = $2
     //   RETURNING *;
     // `
-
     // return client
     //   .query(query, [email, id])
     //   .then((result) => result.rows[0])

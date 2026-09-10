@@ -4,11 +4,13 @@ import z from 'zod'
 
 export const AppUserSchema = z.object({
   id: z.number(),
+  login: z.string().min(1).max(255),
+  hashPassword: z.string().optional(),
   email: z.email(),
-  password: z.string().optional(),
   isActive: z.boolean(),
   createdAt: z.date(),
-  updatedAt: z.date().nullable()
+  updatedAt: z.date().nullable(),
+  removedAt: z.date().nullable(),
 })
 
 export const AppUserCreateSchema = z.object({
@@ -21,15 +23,19 @@ export type AppUser = z.infer<typeof AppUserSchema>
 
 export interface IUserRepository {
   getById(id: number): Promise<any>
-  getByEmailWithPassword(email: string): Promise<any>
+  getByLoginWithPassword(login: string): Promise<any>
   create(data: AppUserCreate, client: IGenericDatabaseClient): Promise<any>
-  update(id: number, email: string, client: IGenericDatabaseClient): Promise<any>
+  update(
+    id: number,
+    email: string,
+    client: IGenericDatabaseClient,
+  ): Promise<any>
   delete(id: number, client: IGenericDatabaseClient): Promise<void>
 }
 
 export interface IUserService {
   getById(id: number): Promise<AppUser>
-  getByEmailWithPassword(email: string): Promise<AppUser>
+  getByLoginWithPassword(login: string): Promise<AppUser>
   create(data: AppUserCreate): Promise<AppUser>
   update(id: number, email: string): Promise<AppUser>
   delete(id: number): Promise<void>

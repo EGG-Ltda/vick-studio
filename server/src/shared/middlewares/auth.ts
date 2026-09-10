@@ -22,7 +22,7 @@ export async function authHook(
       return fail(res, 'Missing access token', 401)
     }
 
-    const payload: JwtPayload = authService.verifyToken(token)
+    const payload: JwtPayload = authService.verifyAccessToken(token)
     if (!payload) {
       return fail(res, 'Invalid or expired token', 401)
     }

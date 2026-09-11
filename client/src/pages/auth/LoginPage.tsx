@@ -26,6 +26,11 @@ function LoginPage() {
 
   return (
     <main className="page login-page">
+      <header className="page-header">
+        <button type="button" onClick={() => navigate(routePaths.home)}>
+          Sair
+        </button>
+      </header>
       <section className="page-content" aria-labelledby="login-title">
         <h1 id="login-title">Login</h1>
         <form className="form" onSubmit={handleSubmit}>

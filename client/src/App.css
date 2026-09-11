@@ -36,8 +36,11 @@ button {
 }
 
 .login-page {
-  display: grid;
-  place-items: center;
+  display: block;
+}
+
+.login-page .page-content {
+  padding-top: clamp(72px, 14vh, 140px);
 }
 
 .login-page h1 {

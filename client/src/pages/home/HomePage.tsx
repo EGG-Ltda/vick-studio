@@ -1,62 +1,96 @@
 import { useNavigate } from 'react-router-dom'
+import vickFlorezLogo from '../../assets/vick-florez-logo.webp'
 import { routePaths } from '../../routes/routePaths'
 
 function HomePage() {
   const navigate = useNavigate()
 
+  function goToServices() {
+    document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' })
+  }
+
   return (
-    <main className="page public-home-page">
+    <main className="public-home-page">
+      <svg className="home-art" viewBox="0 0 1024 577" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="home-ribbon-wine" x1="0" y1="0" x2="0.72" y2="1">
+            <stop stopColor="#c32c4b" />
+            <stop offset="0.48" stopColor="#a1072b" />
+            <stop offset="1" stopColor="#67001b" />
+          </linearGradient>
+          <linearGradient id="home-ribbon-rose" x1="0" y1="0" x2="1" y2=".82">
+            <stop stopColor="#f0a7ad" />
+            <stop offset="1" stopColor="#d85068" />
+          </linearGradient>
+          <filter id="home-ribbon-shadow" x="-40%" y="-10%" width="190%" height="120%">
+            <feDropShadow dx="7" dy="8" stdDeviation="7" floodColor="#722d24" floodOpacity=".2" />
+          </filter>
+        </defs>
+        <path
+          d="M0 0H182C179 55 143 86 112 119C81 153 70 195 80 236C88 273 115 295 129 328C145 367 132 409 107 444C88 470 77 507 78 577H0Z"
+          fill="url(#home-ribbon-wine)"
+          filter="url(#home-ribbon-shadow)"
+        />
+        <path
+          d="M159 0C151 56 121 89 101 128C80 169 77 207 90 244C103 279 126 302 121 337C117 380 82 419 75 462C69 502 79 544 91 577H56C40 539 28 497 36 454C44 410 77 375 79 335C81 299 58 270 58 229C57 184 72 143 95 107C120 68 133 34 134 0Z"
+          fill="url(#home-ribbon-rose)"
+        />
+        <path
+          d="M180 0C171 61 132 94 104 132C79 167 67 208 73 246C81 294 108 318 106 356C104 409 62 453 45 508C39 529 37 551 37 577"
+          fill="none"
+          stroke="#e8b84a"
+          strokeLinecap="round"
+          strokeWidth="1.25"
+        />
+        <path
+          d="M159 0C151 55 117 91 95 130C72 171 70 216 86 255C100 290 119 315 114 352C109 393 77 429 67 468C58 507 66 544 78 577"
+          fill="none"
+          stroke="rgb(255 235 229 / 72%)"
+          strokeLinecap="round"
+          strokeWidth="2.8"
+        />
+      </svg>
+      <span className="home-dots" aria-hidden="true" />
+
       <header className="site-header">
-        <a className="brand" href={routePaths.home}>
-          Vick Studio
+        <a className="brand" href={routePaths.home} aria-label="Vick Florez - Início">
+          <img src={vickFlorezLogo} alt="Vick Florez" />
         </a>
-        <button
-          className="login-link"
-          type="button"
-          onClick={() => navigate(routePaths.login)}
-        >
-          Entrar
+        <nav className="home-navigation" aria-label="Navegação principal">
+          <a href="#servicos">Serviços</a>
+          <a href="#sobre">Sobre</a>
+          <a href="#contato">Contato</a>
+        </nav>
+        <button className="home-header-action" type="button" onClick={goToServices}>
+          Agendar Agora
         </button>
       </header>
 
       <section className="home-hero" aria-labelledby="home-title">
-        <p className="eyebrow">Test</p>
-        <h1 id="home-title">Test h1.</h1>
-        <p className="hero-description">Test description.</p>
-      </section>
-
-      <section className="ads-section" aria-labelledby="ads-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Anúncios</p>
-            <h2 id="ads-title">Anúncios h2</h2>
+        <div className="home-hero-content">
+          <h1 id="home-title">Seu momento de florescer.</h1>
+          <p className="hero-description">Cuidado, beleza e bem-estar pensados para você.</p>
+          <div className="home-hero-actions">
+            <button className="home-primary-action" type="button" onClick={goToServices}>
+              Agendar Agora <span aria-hidden="true">→</span>
+            </button>
+            <button
+              className="home-secondary-action"
+              type="button"
+              onClick={() => navigate(routePaths.login)}
+            >
+              Área do Salão <span aria-hidden="true">→</span>
+            </button>
           </div>
-          <span className="ads-count">número de anúncios</span>{' '}
-          {/*ajustar código para exibir o número real de anúncios conforme a variável adsCount */}
-        </div>
-
-        <div className="ads-grid">
-          <article className="ad-card ad-card-featured">
-            <span className="ad-label">Destaque</span>
-            {/*Substituir os anúncios das box para que ela possa criar sem alterar no código*/}
-            <h3>Título do anúncio</h3>
-            <p>Texto do anúncio</p>
-            <span className="ad-meta">Dia e hora</span>
-          </article>
-          <article className="ad-card">
-            <span className="ad-label">Serviço</span>
-            <h3>Título do anúncio</h3>
-            <p>Texto do anúncio</p>
-            <span className="ad-meta">Dia e hora</span>
-          </article>
-          <article className="ad-card">
-            <span className="ad-label">Oportunidade</span>
-            <h3>Título do anúncio</h3>
-            <p>Texto do anúncio</p>
-            <span className="ad-meta">Dia e hora</span>
-          </article>
         </div>
       </section>
+
+      <section className="home-services-intro" id="servicos" aria-labelledby="services-title">
+        <span aria-hidden="true" />
+        <p id="services-title">Nossos serviços</p>
+      </section>
+      <section className="home-anchor-section" id="sobre" aria-label="Sobre" />
+      <footer className="home-anchor-section" id="contato" aria-label="Contato" />
     </main>
   )
 }

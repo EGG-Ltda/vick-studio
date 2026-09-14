@@ -105,6 +105,16 @@ button {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+.login-brand {
+  position: absolute;
+  top: min(3vw, 45px);
+  left: 12%;
+  width: 76%;
+  height: min(7vw, 105px);
+  object-fit: cover;
+  object-position: center;
+}
+
 .login-form {
   display: block;
 }
@@ -296,6 +306,11 @@ button {
     width: min(83vw, 380px);
     padding: min(32vw, 124px) min(7vw, 28px) min(7vw, 28px);
     transform: translate(-50%, -50%);
+  }
+
+  .login-brand {
+    top: min(7vw, 32px);
+    height: min(19vw, 74px);
   }
 
   .login-field {

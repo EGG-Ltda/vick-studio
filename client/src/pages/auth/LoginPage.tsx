@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
+import vickFlorezLogo from '../../assets/vick-florez-logo.png'
 import { useAuth } from '../../core/auth/useAuth'
 import { routePaths } from '../../routes/routePaths'
 
@@ -90,6 +91,11 @@ function LoginPage() {
       <span className="login-dots" aria-hidden="true" />
 
       <section className="login-card" aria-labelledby="login-title">
+        <img
+          className="login-brand"
+          src={vickFlorezLogo}
+          alt="Vick Florez"
+        />
         <h1 id="login-title" className="visually-hidden">Acessar o sistema</h1>
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-field">

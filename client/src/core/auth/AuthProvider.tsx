@@ -12,45 +12,23 @@ function AuthProvider({ children }: AuthProviderProps) {
   const value = useMemo(
     () => ({
       isAuthenticated,
-      signIn: async (login: string, password: string) => {
-        try {
-          const response = await fetch('/api/auth/signin', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ login, password }),
-          })
-          const payload = await response.json().catch(() => null) as {
-            success?: boolean
-            message?: string
-          } | null
-
-          if (!response.ok || !payload?.success) {
-            return {
-              success: false,
-              message: payload?.message ?? 'Não foi possível entrar. Tente novamente.',
-            }
-          }
-
-          setIsAuthenticated(true)
-          return { success: true }
-        } catch {
-          return {
-            success: false,
-            message: 'Não foi possível conectar ao servidor. Tente novamente.',
-          }
+      signIn: async (_email: string, _password: string) => {
+        const response: Response = await fetch('/api/auth/signin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ email: _email, password: _password }),
+        })
+        if (response.ok) {
+          setIsAuthenticated(true) //Comentar esse if se não quiser deixar habilitado o login para testes
         }
       },
       signOut: async () => {
-        try {
-          const response = await fetch('/api/auth/signout', {
-            method: 'POST',
-          })
-          if (response.ok) {
-            setIsAuthenticated(false)
-          }
-        } catch {
+        const response: Response = await fetch('/api/auth/signout', {
+          method: 'POST',
+        })
+        if (response.ok) {
           setIsAuthenticated(false)
         }
       },

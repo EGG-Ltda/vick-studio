@@ -46,7 +46,7 @@ export class UserRepository implements IUserRepository {
         removed_at AS "removedAt"
       FROM app_users
       WHERE
-        login = $1;
+        login = $1 OR email = $1;
     `
 
     return this.dbService

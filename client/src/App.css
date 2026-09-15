@@ -93,8 +93,8 @@ button {
 .login-card {
   position: absolute;
   z-index: 2;
-  top: 19.4vh;
-  left: 33.5%;
+  top: 50%;
+  left: 50%;
   width: min(33vw, 500px);
   aspect-ratio: 0.766;
   padding: min(14vw, 210px) min(2.7vw, 41px) min(2.6vw, 38px);
@@ -103,6 +103,7 @@ button {
   background: #fbefe8;
   box-shadow: 0 12px 24px rgb(93 49 35 / 16%);
   font-family: Arial, Helvetica, sans-serif;
+  transform: translate(-50%, -50%);
 }
 
 .login-brand {
@@ -168,34 +169,40 @@ button {
   color: #b10842;
 }
 
-.login-icon-enter {
-  width: min(1.55vw, 22px);
-  font-family: Arial, sans-serif;
-  font-size: min(1.5vw, 1.25rem);
-  font-weight: 700;
-  line-height: 1;
+.login-icon-user {
+  position: relative;
+  width: min(1.35vw, 20px);
+  height: min(1.5vw, 22px);
+}
+
+.login-icon-user::before {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  width: min(0.54vw, 8px);
+  aspect-ratio: 1;
+  border: 1.5px solid currentcolor;
+  border-radius: 50%;
+  content: "";
+  transform: translateX(-50%);
+}
+
+.login-icon-user::after {
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  width: min(1.1vw, 16px);
+  height: min(0.62vw, 9px);
+  border: 1.5px solid currentcolor;
+  border-bottom: 0;
+  border-radius: 10px 10px 0 0;
+  content: "";
+  transform: translateX(-50%);
 }
 
 .login-icon-lock {
-  position: relative;
-  width: min(1.25vw, 18px);
-  height: min(1vw, 14px);
-  margin-left: min(0.15vw, 2px);
-  border: 1.5px solid currentcolor;
-  border-radius: 2px;
-}
-
-.login-icon-lock::before {
-  position: absolute;
-  bottom: calc(100% - 2px);
-  left: 50%;
-  width: 55%;
-  height: 66%;
-  border: 1.5px solid currentcolor;
-  border-bottom: 0;
-  border-radius: 8px 8px 0 0;
-  content: "";
-  transform: translateX(-50%);
+  width: min(1.4vw, 20px);
+  height: min(1.4vw, 20px);
 }
 
 .password-toggle {
@@ -331,14 +338,23 @@ button {
     font-size: 0.86rem;
   }
 
-  .login-icon-enter {
+  .login-icon-user {
     width: 18px;
-    font-size: 1.05rem;
+    height: 20px;
+  }
+
+  .login-icon-user::before {
+    width: 7px;
+  }
+
+  .login-icon-user::after {
+    width: 14px;
+    height: 8px;
   }
 
   .login-icon-lock {
-    width: 15px;
-    height: 12px;
+    width: 18px;
+    height: 18px;
   }
 
   .password-toggle {

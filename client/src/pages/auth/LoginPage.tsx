@@ -99,13 +99,14 @@ function LoginPage() {
         <h1 id="login-title" className="visually-hidden">Acessar o sistema</h1>
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-field">
-            <label htmlFor="login">Usuário</label>
+            <label htmlFor="login">E-mail</label>
             <div className="login-input">
-              <span className="login-icon login-icon-enter" aria-hidden="true">↪</span>
+              <span className="login-icon login-icon-user" aria-hidden="true" />
               <input
                 id="login"
                 type="text"
                 autoComplete="username"
+                placeholder="Digite seu e-mail"
                 value={form.login}
                 onChange={(event) =>
                   setForm({ ...form, login: event.target.value })
@@ -118,11 +119,25 @@ function LoginPage() {
           <div className="login-field login-password-field">
             <label htmlFor="password">Senha</label>
             <div className="login-input">
-              <span className="login-icon login-icon-lock" aria-hidden="true" />
+              <svg
+                className="login-icon login-icon-lock"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.8"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <rect x="4" y="10" width="16" height="10" rx="2" />
+                <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+                <path d="M12 14v2" />
+              </svg>
               <input
                 id="password"
                 type={isPasswordVisible ? 'text' : 'password'}
                 autoComplete="current-password"
+                placeholder="Digite sua senha"
                 value={form.password}
                 onChange={(event) =>
                   setForm({ ...form, password: event.target.value })

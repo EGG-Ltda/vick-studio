@@ -122,31 +122,23 @@ button {
 
 .login-field {
   display: grid;
-  gap: min(0.75vw, 11px);
+  place-items: center;
 }
 
-.login-password-field {
-  margin-top: min(5.2vw, 76px);
+.login-page h1 {
+  margin: 0 0 24px;
 }
 
-.login-field label {
-  color: #a1073b;
-  font-size: min(0.94vw, 0.84rem);
-  font-weight: 700;
-  line-height: 1;
+.form {
+  display: grid;
+  gap: 8px;
 }
 
-.login-input {
-  display: flex;
-  height: min(3.3vw, 49px);
-  align-items: center;
-  gap: min(0.55vw, 8px);
-  padding: 0 min(0.8vw, 12px);
-  border-radius: min(0.8vw, 11px);
-  background: #fff;
+.form label {
+  margin-top: 8px;
 }
 
-.login-input input {
+.form input {
   width: 100%;
   min-width: 0;
   height: 100%;

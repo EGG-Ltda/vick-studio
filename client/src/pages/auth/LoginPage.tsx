@@ -1,42 +1,27 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
-import vickFlorezLogo from '../../assets/vick-florez-logo.png'
 import { useAuth } from '../../core/auth/useAuth'
 import { routePaths } from '../../routes/routePaths'
 
 type LoginForm = {
-  login: string
+  email: string
   password: string
 }
 
 function LoginPage() {
   const navigate = useNavigate()
   const { isAuthenticated, signIn } = useAuth()
-  const [form, setForm] = useState<LoginForm>({ login: '', password: '' })
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false)
-  const [isSubmitting, setIsSubmitting] = useState(false)
-  const [feedback, setFeedback] = useState('')
+  const [form, setForm] = useState<LoginForm>({ email: '', password: '' })
 
   if (isAuthenticated) {
     return <Navigate to={routePaths.dashboard} replace />
   }
 
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    setFeedback('')
-    setIsSubmitting(true)
-
-    const result = await signIn(form.login, form.password)
-
-    setIsSubmitting(false)
-
-    if (result.success) {
-      navigate(routePaths.dashboard, { replace: true })
-      return
-    }
-
-    setFeedback(result.message ?? 'Não foi possível entrar. Tente novamente.')
+    signIn(form.email, form.password)
+    navigate(routePaths.dashboard, { replace: true })
   }
 
   return (

@@ -19,7 +19,7 @@ export class UserService implements IUserService {
     private readonly userRepo: IUserRepository,
     @inject(hashServiceId)
     private readonly hashService: IHashService,
-  ) { }
+  ) {}
 
   public async getById(id: number): Promise<AppUser> {
     return this.userRepo
@@ -27,10 +27,10 @@ export class UserService implements IUserService {
       .then((result) => AppUserSchema.parse(result))
   }
 
-  public async getByEmailWithPassword(email: string): Promise<AppUser> {
+  public async getByLoginWithPassword(login: string): Promise<AppUser> {
     return this.userRepo
-      .getByEmailWithPassword(email)
-      .then((result) => AppUserSchema.parse(result))
+      .getByLoginWithPassword(login)
+      .then((row) => AppUserSchema.parse(row))
   }
 
   public async create(data: AppUserCreate): Promise<AppUser> {

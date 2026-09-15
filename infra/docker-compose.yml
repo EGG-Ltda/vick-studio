@@ -3,6 +3,8 @@ services:
     image: postgres:17
     container_name: vick-db
     restart: unless-stopped
+    ports:
+      - '5432:5432'
     env_file:
       - ../db/.env
     volumes:
@@ -11,7 +13,7 @@ services:
     networks:
       - vick-network
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      test: ['CMD-SHELL', 'pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}']
       interval: 10s
       timeout: 5s
       retries: 5
@@ -27,8 +29,8 @@ services:
         condition: service_healthy
     networks:
       - vick-network
-    expose:
-      - "3000"
+    ports:
+      - '3000:3000'
 
 volumes:
   vick-db-data:

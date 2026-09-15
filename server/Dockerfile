@@ -13,8 +13,9 @@ WORKDIR /app
 
 COPY --from=builder /app/package*.json ./
 COPY --from=builder /app/dist ./dist
-COPY wwwroot /app/dist/wwwroot
 COPY --from=builder /app/node_modules ./node_modules
+
+RUN mkdir -p /app/dist/wwwroot
 
 EXPOSE 3000
 CMD ["npm", "run", "start"]

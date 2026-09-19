@@ -531,6 +531,128 @@ button {
   background: #fff;
 }
 
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.metric-grid article,
+.service-card {
+  padding: 18px;
+  border: 1px solid #d9ddd9;
+  background: #fafbf9;
+}
+
+.metric-grid span,
+.metric-grid small,
+.service-kicker {
+  display: block;
+  color: #657069;
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+}
+
+.metric-grid strong {
+  display: block;
+  margin: 12px 0 6px;
+  font-size: 1.8rem;
+  font-weight: 400;
+}
+
+.metric-positive {
+  color: #26834f;
+}
+.metric-negative {
+  color: #b24c3b;
+}
+
+.finance-form {
+  flex-wrap: wrap;
+}
+.finance-form label {
+  min-width: 150px;
+}
+.transaction-tag,
+.status-tag {
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+}
+.transaction-in,
+.status-active {
+  color: #216f45;
+  background: #dff4e7;
+}
+.transaction-out,
+.status-inactive {
+  color: #9a3d2d;
+  background: #f8e2dd;
+}
+
+.service-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.service-card {
+  display: flex;
+  min-height: 180px;
+  flex-direction: column;
+}
+
+.service-card h2 {
+  margin: 14px 0 18px;
+  font-size: 1.35rem;
+  font-weight: 400;
+}
+.service-card strong {
+  font-size: 1.45rem;
+  font-weight: 400;
+}
+.service-card p {
+  margin: 6px 0 auto;
+  color: #657069;
+  font-family: Arial, sans-serif;
+  font-size: 0.85rem;
+}
+.service-card button {
+  align-self: flex-start;
+  margin-top: 18px;
+  padding: 7px 10px;
+  border: 1px solid #c5cbc5;
+  border-radius: 3px;
+  background: #fff;
+}
+
+.catalog-selector {
+  display: grid;
+  gap: 6px;
+  min-width: 220px;
+  color: #657069;
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+}
+
+.catalog-selector select {
+  padding: 9px;
+  border: 1px solid #c5cbc5;
+  border-radius: 2px;
+  background: #fff;
+}
+
+.catalog-form button {
+  white-space: nowrap;
+}
+
+.catalog-error {
+  color: #a33a2b;
+  font-family: Arial, sans-serif;
+}
+
 @media (max-width: 760px) {
   .page {
     padding: 24px 20px;
@@ -574,5 +696,10 @@ button {
   .dashboard-view-header,
   .user-form {
     display: grid;
+  }
+
+  .metric-grid,
+  .service-grid {
+    grid-template-columns: 1fr;
   }
 }

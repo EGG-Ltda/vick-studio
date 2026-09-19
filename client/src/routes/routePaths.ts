@@ -4,4 +4,7 @@ export const routePaths = {
   dashboard: '/dashboard',
   schedule: '/dashboard/schedule',
   users: '/dashboard/usuarios',
+  finance: '/dashboard/financeiro',
+  employees: '/dashboard/funcionarios',
+  services: '/dashboard/servicos',
 } as const

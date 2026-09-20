@@ -91,10 +91,9 @@ CREATE TABLE IF NOT EXISTS "salon_treatments" (
 	"description" VARCHAR(1023) NOT NULL,
 	"price" NUMERIC(7,2) NOT NULL,
 	"duration_minutes" INTEGER NOT NULL,
+	"is_active" BOOLEAN NOT NULL,
 	"created_at" TIMESTAMP NOT NULL,
-	"updated_at" TIMESTAMP,
-	"removed_at" TIMESTAMP,
-	PRIMARY KEY("id")
+	"updated_at" TIMESTAMP
 );
 
 CREATE TABLE IF NOT EXISTS "salon_procedures" (

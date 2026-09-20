@@ -88,20 +88,21 @@ export class UserRepository implements IUserRepository {
     user: AppUserCreate,
     client: IGenericDatabaseClient,
   ): Promise<any> {
-    // const query: string = `
-    //   INSERT INTO app_users (email, password, is_active, created_at)
-    //   VALUES ($1, $2, true, NOW()) RETURNING *;
-    // `
-    // return client
-    //   .query(query, [user.email, user.password])
-    //   .then((result) => result.rows[0])
-    //   .then((row) => ({
-    //     id: row.id,
-    //     email: row.email,
-    //     isActive: row.is_active,
-    //     createdAt: row.created_at,
-    //     updatedAt: row.updated_at,
-    //   }))
+    const query: string = `
+      INSERT INTO app_users (login, email, password, is_active, created_at)
+      VALUES ($1, $2, $3, true, NOW())
+      RETURNING
+        id,
+        login,
+        email,
+        is_active AS "isActive",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt",
+        removed_at AS "removedAt";
+    `
+    return client
+      .query(query, [user.login, user.email, user.password])
+      .then((result) => result.rows[0])
   }
 
   public async update(

@@ -14,6 +14,7 @@ export const AppUserSchema = z.object({
 })
 
 export const AppUserCreateSchema = z.object({
+  login: z.string().min(1).max(255),
   email: z.email(),
   password: z.string(),
 })

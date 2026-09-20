@@ -1,4 +1,9 @@
-import { IUserService, AppUser, userServiceId } from '@/core/user'
+import {
+  AppUser,
+  AppUserCreateSchema,
+  IUserService,
+  userServiceId,
+} from '@/core/user'
 import container from '@/di/bindings'
 import { authHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
@@ -49,6 +54,23 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     const users: AppUser[] = await userService.getAll(page)
 
     return ok(res, users)
+  })
+
+  app.post<{
+    Body: {
+      login: string
+      email: string
+      password: string
+    }
+  }>('/users', { preHandler: authHook }, async (req, res) => {
+    const { success, data, error } = AppUserCreateSchema.safeParse(req.body)
+
+    if (!success) {
+      return fail(res, 'Invalid body', 400, error.message)
+    }
+
+    const user: AppUser = await userService.create(data)
+    return ok(res, user)
   })
 
   // Forget password

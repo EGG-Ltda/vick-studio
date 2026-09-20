@@ -159,6 +159,7 @@ CREATE TABLE IF NOT EXISTS "salon_transactions" (
 	"method_id" INTEGER NOT NULL,
 	"type_id" SMALLINT NOT NULL,
 	"is_debit" BOOLEAN NOT NULL,
+	"description" VARCHAR(1023) NOT NULL,
 	"value" NUMERIC(7,2) NOT NULL,
 	"created_at" TIMESTAMP NOT NULL,
 	"updated_at" TIMESTAMP,

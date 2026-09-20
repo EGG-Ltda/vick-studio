@@ -3,7 +3,7 @@ import {
   IDatabaseService,
   IGenericDatabaseClient,
 } from '@/core/db'
-import { IUserRepository, AppUserCreate } from '@/core/user'
+import { AppUserCreate, IUserRepository } from '@/core/user'
 import { inject, injectable } from 'inversify'
 
 @injectable()
@@ -12,6 +12,33 @@ export class UserRepository implements IUserRepository {
     @inject(databaseServiceId)
     private readonly dbService: IDatabaseService,
   ) {}
+
+  public async getAll(page: number): Promise<any> {
+    const limit: number = 20
+    const offset: number = page * (limit - 1)
+
+    const query: string = `
+      SELECT
+        id,
+        login,
+        hash_password AS "hashPassword",
+        email,
+        is_active AS "isActive",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt",
+        removed_at AS "removedAt"
+      FROM app_users
+      LIMIT $1
+      OFFSET $2;
+    `
+
+    return this.dbService
+      .getClient()
+      .then((client) =>
+        client.query(query, [limit, offset]).finally(() => client.release()),
+      )
+      .then((result) => result.rows)
+  }
 
   public async getById(id: number): Promise<any> {
     // const query: string = `

@@ -60,7 +60,7 @@ export class SalonTxRepository implements ISalonTxRepository {
     client: IGenericDatabaseClient,
   ): Promise<any> {
     const query: string = `
-      INSERT INTO app_users (method_id, type_id, is_debit, description, value, created_at)
+      INSERT INTO salon_transactions (method_id, type_id, is_debit, description, value, created_at)
       VALUES ($1, $2, $3, $4, $5, NOW())
       RETURNING
         id,

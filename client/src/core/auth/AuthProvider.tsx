@@ -12,23 +12,33 @@ function AuthProvider({ children }: AuthProviderProps) {
   const value = useMemo(
     () => ({
       isAuthenticated,
-      signIn: async (_email: string, _password: string) => {
+      signIn: async (login: string, password: string) => {
         const response: Response = await fetch('/api/auth/signin', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ email: _email, password: _password }),
+          credentials: 'include',
+          body: JSON.stringify({ login, password }),
         })
-        if (response.ok) {
-          setIsAuthenticated(true) //Comentar esse if se não quiser deixar habilitado o login para testes
+        const payload: { message?: string } = await response.json()
+        if (!response.ok) {
+          throw new Error(payload.message ?? 'Login ou senha incorretos.')
         }
+
+        setIsAuthenticated(true)
       },
       signOut: async () => {
-        const response: Response = await fetch('/api/auth/signout', {
-          method: 'POST',
-        })
-        if (response.ok) {
+        try {
+          await fetch('/api/auth/signout', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            credentials: 'include',
+            body: '{}',
+          })
+        } finally {
           setIsAuthenticated(false)
         }
       },

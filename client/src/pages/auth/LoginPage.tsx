@@ -5,37 +5,55 @@ import { useAuth } from '../../core/auth/useAuth'
 import { routePaths } from '../../routes/routePaths'
 
 type LoginForm = {
-  email: string
+  login: string
   password: string
 }
 
 function LoginPage() {
   const navigate = useNavigate()
   const { isAuthenticated, signIn } = useAuth()
-  const [form, setForm] = useState<LoginForm>({ email: '', password: '' })
+  const [form, setForm] = useState<LoginForm>({ login: '', password: '' })
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   if (isAuthenticated) {
     return <Navigate to={routePaths.dashboard} replace />
   }
 
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
-    signIn(form.email, form.password)
-    navigate(routePaths.dashboard, { replace: true })
+    setError(null)
+    setIsSubmitting(true)
+
+    try {
+      await signIn(form.login, form.password)
+      navigate(routePaths.schedule, { replace: true })
+    } catch (error) {
+      setError(
+        error instanceof Error ? error.message : 'Não foi possível entrar.',
+      )
+    } finally {
+      setIsSubmitting(false)
+    }
   }
 
   return (
     <main className="page login-page">
+      <header className="page-header">
+        <button type="button" onClick={() => navigate(routePaths.home)}>
+          Sair
+        </button>
+      </header>
       <section className="page-content" aria-labelledby="login-title">
         <h1 id="login-title">Login</h1>
         <form className="form" onSubmit={handleSubmit}>
-          <label htmlFor="email">E-mail</label>
+          <label htmlFor="login">Login ou e-mail</label>
           <input
-            id="email"
-            type="email"
-            value={form.email}
+            id="login"
+            type="text"
+            value={form.login}
             onChange={(event) =>
-              setForm({ ...form, email: event.target.value })
+              setForm({ ...form, login: event.target.value })
             }
             required
           />
@@ -49,7 +67,10 @@ function LoginPage() {
             }
             required
           />
-          <button type="submit">Entrar</button>
+          {error && <p role="alert">{error}</p>}
+          <button type="submit" disabled={isSubmitting}>
+            {isSubmitting ? 'Entrando...' : 'Entrar'}
+          </button>
         </form>
       </section>
     </main>

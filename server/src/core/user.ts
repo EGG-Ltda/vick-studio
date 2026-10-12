@@ -14,6 +14,7 @@ export const AppUserSchema = z.object({
 })
 
 export const AppUserCreateSchema = z.object({
+  login: z.string().min(1).max(255),
   email: z.email(),
   password: z.string(),
 })
@@ -22,6 +23,7 @@ export type AppUserCreate = z.infer<typeof AppUserCreateSchema>
 export type AppUser = z.infer<typeof AppUserSchema>
 
 export interface IUserRepository {
+  getAll(page: number): Promise<void>
   getById(id: number): Promise<any>
   getByLoginWithPassword(login: string): Promise<any>
   create(data: AppUserCreate, client: IGenericDatabaseClient): Promise<any>
@@ -34,6 +36,7 @@ export interface IUserRepository {
 }
 
 export interface IUserService {
+  getAll(page: number): Promise<AppUser[]>
   getById(id: number): Promise<AppUser>
   getByLoginWithPassword(login: string): Promise<AppUser>
   create(data: AppUserCreate): Promise<AppUser>

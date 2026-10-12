@@ -1,14 +1,15 @@
 import { IDatabaseUnitOfWork, unitOfWorkServiceId } from '@/core/db'
 import { hashServiceId, IHashService } from '@/core/hash'
 import {
-  IUserRepository,
-  IUserService,
   AppUser,
   AppUserCreate,
   AppUserSchema,
+  IUserRepository,
+  IUserService,
   userRepositoryId,
 } from '@/core/user'
 import { inject, injectable } from 'inversify'
+import z from 'zod'
 
 @injectable()
 export class UserService implements IUserService {
@@ -21,10 +22,14 @@ export class UserService implements IUserService {
     private readonly hashService: IHashService,
   ) {}
 
-  public async getById(id: number): Promise<AppUser> {
+  public async getAll(page: number): Promise<AppUser[]> {
     return this.userRepo
-      .getById(id)
-      .then((result) => AppUserSchema.parse(result))
+      .getAll(page)
+      .then((rows) => z.array(AppUserSchema).parse(rows))
+  }
+
+  public async getById(id: number): Promise<AppUser> {
+    return this.userRepo.getById(id).then((row) => AppUserSchema.parse(row))
   }
 
   public async getByLoginWithPassword(login: string): Promise<AppUser> {
@@ -46,7 +51,7 @@ export class UserService implements IUserService {
     return this.work.transaction<AppUser>((client) =>
       this.userRepo
         .update(id, email, client)
-        .then((result) => AppUserSchema.parse(result)),
+        .then((row) => AppUserSchema.parse(row)),
     )
   }
 

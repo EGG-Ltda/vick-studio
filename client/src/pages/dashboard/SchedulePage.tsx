@@ -2,11 +2,6 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, DragEvent, FormEvent } from 'react'
 import { listSchedules, type Schedule } from './calendarApi'
 
-const timeSlots = Array.from(
-  { length: 10 },
-  (_, index) => `${String(index + 9).padStart(2, '0')}:00`,
-)
-
 function uniqueSchedules(schedules: Schedule[]): Schedule[] {
   return Array.from(
     new Map(schedules.map((schedule) => [schedule.id, schedule])).values(),
@@ -32,6 +27,11 @@ function formatTime(value: string): string {
   }).format(new Date(value))
 }
 
+function displayHour(schedule: Schedule, date: Date): number {
+  const start = new Date(schedule.startsAt)
+  return start < startOfDay(date) ? 0 : start.getHours()
+}
+
 function statusLabel(status: Schedule['status']): string {
   const labels: Record<Schedule['status'], string> = {
     scheduled: 'Agendado',
@@ -47,6 +47,8 @@ function statusClass(status: Schedule['status']): string {
 }
 
 function SchedulePage() {
+  const [isTvMode, setIsTvMode] = useState(false)
+  const [fullscreenError, setFullscreenError] = useState('')
   const [selectedDate, setSelectedDate] = useState(new Date())
   const [schedules, setSchedules] = useState<Schedule[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -64,6 +66,58 @@ function SchedulePage() {
   const [startTime, setStartTime] = useState('09:00')
   const [durationMinutes, setDurationMinutes] = useState('60')
   const nextLocalId = useRef(-1)
+
+  useEffect(() => {
+    function handleEscape(event: KeyboardEvent) {
+      if (event.key === 'Escape') setIsTvMode(false)
+    }
+    document.addEventListener('keydown', handleEscape)
+    return () => document.removeEventListener('keydown', handleEscape)
+  }, [])
+
+  useEffect(() => {
+    if (!isTvMode) return
+    let isCurrent = true
+    let timer: ReturnType<typeof setTimeout>
+    async function refresh() {
+      try {
+        const data = await listSchedules(startOfDay(selectedDate), endOfDay(selectedDate))
+        if (isCurrent) {
+          setSchedules((current) => uniqueSchedules([...data, ...current.filter((schedule) => schedule.id < 0)]))
+          setError(null)
+        }
+      } catch {
+        if (isCurrent) setError('Não foi possível atualizar a agenda. Tentaremos novamente em 30 segundos.')
+      } finally {
+        if (isCurrent) timer = setTimeout(refresh, 30_000)
+      }
+    }
+    timer = setTimeout(refresh, 30_000)
+    return () => {
+      isCurrent = false
+      clearTimeout(timer)
+    }
+  }, [isTvMode, selectedDate])
+
+  async function toggleTvMode() {
+    setFullscreenError('')
+    if (isTvMode) {
+      setIsTvMode(false)
+      if (document.fullscreenElement) await document.exitFullscreen().catch(() => {})
+      return
+    }
+    setShowForm(false)
+    setIsTvMode(true)
+  }
+
+  async function enterFullscreen() {
+    try {
+      await document.documentElement.requestFullscreen()
+      setFullscreenError('')
+    } catch {
+      setFullscreenError('Tela cheia indisponível neste navegador. O modo TV continua ativo.')
+    }
+  }
 
   useEffect(() => {
     let isMounted = true
@@ -202,19 +256,29 @@ function SchedulePage() {
   const calendarStyle = {
     '--professional-count': Math.max(professionals.length, 1),
   } as CSSProperties
+  const hours = schedules.map((schedule) => displayHour(schedule, selectedDate))
+  const firstHour = Math.min(9, ...hours)
+  const lastHour = Math.max(18, ...hours)
+  const timeSlots = Array.from({ length: lastHour - firstHour + 1 }, (_, index) =>
+    `${String(index + firstHour).padStart(2, '0')}:00`,
+  )
 
   const completedCount = schedules.filter(
     (schedule) => schedule.status === 'completed',
   ).length
 
   return (
-    <section className="dashboard-view">
+    <section className={`dashboard-view${isTvMode ? ' schedule-tv' : ''}`}>
       <header className="dashboard-view-header">
         <div>
           <h1>{formattedDate}</h1>
-          <p>Agenda do dia</p>
+          <p>{isTvMode ? 'Vick Studio · Agenda da equipe · Atualização a cada 30 segundos' : 'Agenda do dia'}</p>
         </div>
         <div className="schedule-actions">
+          <button type="button" onClick={toggleTvMode} aria-pressed={isTvMode}>
+            {isTvMode ? 'Voltar à agenda' : 'Expandir para TV'}
+          </button>
+          {isTvMode && <button type="button" onClick={enterFullscreen}>Tela cheia</button>}
           <button
             type="button"
             onClick={() => changeDate(-1)}
@@ -232,13 +296,13 @@ function SchedulePage() {
           >
             Próximo
           </button>
-          <button
+          {!isTvMode && <button
             type="button"
             className="primary-button"
             onClick={() => setShowForm((isVisible) => !isVisible)}
           >
             {showForm ? 'Cancelar' : 'Novo agendamento'}
-          </button>
+          </button>}
         </div>
       </header>
 
@@ -308,6 +372,7 @@ function SchedulePage() {
       </div>
 
       {error && <p role="alert">{error}</p>}
+      {fullscreenError && <p role="status">{fullscreenError}</p>}
       {isLoading && <p>Carregando agenda...</p>}
 
       <div
@@ -328,22 +393,23 @@ function SchedulePage() {
             <div className="calendar-row" key={time}>
               <time>{time}</time>
               {displayProfessionals.map((professional) => {
-                const appointment = schedules.find(
+                const appointments = schedules.filter(
                   (schedule) =>
                     schedule.employeeId === professional.id &&
-                    formatTime(schedule.startsAt) === time,
-                )
+                    displayHour(schedule, selectedDate) === Number(time.split(':')[0]),
+                ).sort((a, b) => a.startsAt.localeCompare(b.startsAt))
                 return (
                   <div
                     className="calendar-cell"
                     key={professional.id}
-                    onDragOver={(event) => event.preventDefault()}
-                    onDrop={(event) => handleDrop(event, professional.id, time)}
+                    onDragOver={(event) => { if (!isTvMode) event.preventDefault() }}
+                    onDrop={(event) => { if (!isTvMode) handleDrop(event, professional.id, time) }}
                   >
-                    {appointment && (
+                    {appointments.map((appointment) => (
                       <article
+                        key={appointment.id}
                         className={`appointment appointment-${statusClass(appointment.status)}`}
-                        draggable
+                        draggable={!isTvMode}
                         onDragStart={(event) =>
                           handleDragStart(event, appointment.id)
                         }
@@ -352,11 +418,12 @@ function SchedulePage() {
                           setDraggedEmployeeId(null)
                         }}
                       >
+                        <span className="appointment-time">{formatTime(appointment.startsAt)} – {formatTime(appointment.endsAt)}</span>
                         <strong>{appointment.customerName}</strong>
                         <span>{appointment.serviceName}</span>
                         <small>{statusLabel(appointment.status)}</small>
                       </article>
-                    )}
+                    ))}
                   </div>
                 )
               })}

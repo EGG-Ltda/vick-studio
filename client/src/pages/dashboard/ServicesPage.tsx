@@ -23,21 +23,40 @@ const initialServices: Service[] = [
 function ServicesPage() {
   const [services, setServices] = useState(initialServices)
   const [showForm, setShowForm] = useState(false)
+  const [editingId, setEditingId] = useState<number | null>(null)
+  const [hideDisabled, setHideDisabled] = useState(false)
   const [form, setForm] = useState({ name: '', duration: '', price: '' })
+  function closeForm() {
+    setForm({ name: '', duration: '', price: '' })
+    setEditingId(null)
+    setShowForm(false)
+  }
+  function editService(service: Service) {
+    setEditingId(service.id)
+    setForm({ name: service.name, duration: String(service.duration), price: String(service.price) })
+    setShowForm(true)
+  }
   function addService(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
+    if (!form.name.trim()) return
+    if (editingId !== null) {
+      setServices((current) => current.map((service) => service.id === editingId
+        ? { ...service, name: form.name.trim(), duration: Number(form.duration), price: Number(form.price) }
+        : service))
+      closeForm()
+      return
+    }
     setServices((current) => [
       ...current,
       {
         id: Date.now(),
-        name: form.name,
+        name: form.name.trim(),
         duration: Number(form.duration),
         price: Number(form.price),
         active: true,
       },
     ])
-    setForm({ name: '', duration: '', price: '' })
-    setShowForm(false)
+    closeForm()
   }
   return (
     <section className="dashboard-view">
@@ -49,7 +68,7 @@ function ServicesPage() {
         <button
           className="primary-button"
           type="button"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => showForm ? closeForm() : setShowForm(true)}
         >
           {showForm ? 'Cancelar' : 'Novo serviço'}
         </button>
@@ -92,12 +111,19 @@ function ServicesPage() {
             />
           </label>
           <button className="primary-button" type="submit">
-            Adicionar
+            {editingId !== null ? 'Salvar alterações' : 'Adicionar'}
           </button>
         </form>
       )}
+      <label className="service-filter">
+        <input type="checkbox" checked={hideDisabled} onChange={(event) => setHideDisabled(event.target.checked)} />
+        Esconder serviços desabilitados
+      </label>
+      {services.filter((service) => !hideDisabled || service.active).length === 0 && (
+        <p role="status">Nenhum serviço disponível.</p>
+      )}
       <div className="service-grid">
-        {services.map((service) => (
+        {services.filter((service) => !hideDisabled || service.active).map((service) => (
           <article className="service-card" key={service.id}>
             <div>
               <span className="service-kicker">Serviço</span>
@@ -105,8 +131,14 @@ function ServicesPage() {
             </div>
             <strong>R$ {service.price.toFixed(2).replace('.', ',')}</strong>
             <p>{service.duration} minutos de atendimento</p>
+            <span className={`status-tag ${service.active ? 'status-active' : 'status-inactive'}`}>
+              {service.active ? 'Disponível' : 'Indisponível'}
+            </span>
+            <div className="service-card-actions">
+            <button type="button" onClick={() => editService(service)} aria-label={`Editar ${service.name}`}>Editar</button>
             <button
               type="button"
+              aria-label={`${service.active ? 'Desabilitar' : 'Habilitar'} ${service.name}`}
               onClick={() =>
                 setServices((current) =>
                   current.map((item) =>
@@ -117,8 +149,9 @@ function ServicesPage() {
                 )
               }
             >
-              {service.active ? 'Disponível' : 'Indisponível'}
+              {service.active ? 'Desabilitar' : 'Habilitar'}
             </button>
+            </div>
           </article>
         ))}
       </div>

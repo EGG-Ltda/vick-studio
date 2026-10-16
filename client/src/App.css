@@ -462,15 +462,35 @@ button {
   cursor: grabbing;
 }
 
-.appointment-concluído {
+.appointment-completed {
   border-color: #39a86b;
   background: #eaf8ee;
 }
 
-.appointment-em-atendimento {
+.appointment-in-progress {
   border-color: #d26c9d;
   background: #fbeaf2;
 }
+
+.appointment-cancelled {
+  border-color: #a33a2b;
+  background: #f8e2dd;
+}
+
+.calendar-cell .appointment + .appointment { margin-top: 6px; }
+.appointment .appointment-time { color: #17231e; font-weight: 700; margin-bottom: 4px; }
+.service-filter { display: flex; align-items: center; gap: 8px; margin: 20px 0; font-family: Arial, sans-serif; }
+.service-card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.service-card > .status-tag { align-self: flex-start; margin-top: 12px; }
+.dashboard-shell:has(.schedule-tv) .dashboard-sidebar { display: none; }
+.dashboard-shell:has(.schedule-tv) .dashboard-main { padding: 24px; }
+.schedule-tv { max-width: none; }
+.schedule-tv .calendar { min-height: 0; }
+.schedule-tv .professional-heading { font-size: clamp(1.1rem, 1.5vw, 1.8rem); }
+.schedule-tv .calendar-row > time { font-size: 1rem; }
+.schedule-tv .appointment { font-size: clamp(1rem, 1.3vw, 1.6rem); cursor: default; user-select: text; }
+.schedule-tv .appointment span, .schedule-tv .appointment small { font-size: 0.9em; color: #36433b; }
+.schedule-tv .schedule-summary { font-size: 1rem; }
 
 .users-table-wrapper {
   overflow-x: auto;

@@ -2,7 +2,7 @@ import {
   ITreatmentService,
   Treatment,
   TreatmentCreateSchema,
-  TreatmentServiceId,
+  treatmentServiceId,
 } from '@/core/treatment'
 import container from '@/di/bindings'
 import { authHook } from '@/shared/middlewares/auth'
@@ -10,7 +10,7 @@ import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 
 export default async function userRoutes(app: FastifyInstance): Promise<void> {
-  const treatmentService: ITreatmentService = container.get(TreatmentServiceId)
+  const treatmentService: ITreatmentService = container.get(treatmentServiceId)
 
   app.get<{
     Querystring: {

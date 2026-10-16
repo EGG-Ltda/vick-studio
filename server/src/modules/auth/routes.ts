@@ -13,7 +13,7 @@ import {
   AppUserCreateSchema,
   userServiceId,
 } from '@/core/user'
-import container from '@/di/bindings'
+import { container } from '@/di/bindings'
 import { authHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'

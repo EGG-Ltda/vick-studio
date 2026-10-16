@@ -1,4 +1,5 @@
 import { ENVIRONMENT } from '@/core/config'
+import { initializeDI } from '@/di/bindings'
 import { fail } from '@/shared/utils/response'
 import fastifyCookie from '@fastify/cookie'
 import fastifyCors from '@fastify/cors'
@@ -9,6 +10,9 @@ import path from 'path'
 import 'reflect-metadata'
 
 ;(async () => {
+  // Inject dependencies
+  initializeDI()
+
   // Fastify server instance
   const app = fastify({ logger: ENVIRONMENT === 'development' })
 

@@ -20,27 +20,27 @@ import { UserRepository } from '@/modules/user/repository'
 import { UserService } from '@/modules/user/service'
 import { Container } from 'inversify'
 
-const container = new Container()
+export const container = new Container()
 
-// Infra
-container.bind(databaseServiceId).to(PostgresService).inSingletonScope()
-container.bind(unitOfWorkServiceId).to(PostgresUnitOfWork).inSingletonScope()
-container.bind(hashServiceId).to(BcryptService).inSingletonScope()
-container.bind(jwtServiceId).to(JwtService).inSingletonScope()
+export function initializeDI() {
+  // Infra
+  container.bind(databaseServiceId).to(PostgresService).inSingletonScope()
+  container.bind(unitOfWorkServiceId).to(PostgresUnitOfWork).inSingletonScope()
+  container.bind(hashServiceId).to(BcryptService).inSingletonScope()
+  container.bind(jwtServiceId).to(JwtService).inSingletonScope()
 
-// Auth
-container.bind(authServiceId).to(AuthService).inSingletonScope()
+  // Auth
+  container.bind(authServiceId).to(AuthService).inSingletonScope()
 
-// User
-container.bind(userRepositoryId).to(UserRepository).inSingletonScope()
-container.bind(userServiceId).to(UserService).inSingletonScope()
+  // User
+  container.bind(userRepositoryId).to(UserRepository).inSingletonScope()
+  container.bind(userServiceId).to(UserService).inSingletonScope()
 
-// Schedule
-container.bind(scheduleRepositoryId).to(ScheduleRepository).inSingletonScope()
-container.bind(scheduleServiceId).to(ScheduleService).inSingletonScope()
+  // Schedule
+  container.bind(scheduleRepositoryId).to(ScheduleRepository).inSingletonScope()
+  container.bind(scheduleServiceId).to(ScheduleService).inSingletonScope()
 
-// Salon Transactions
-container.bind(salonTxRepositoryId).to(SalonTxRepository).inSingletonScope()
-container.bind(salonTxServiceId).to(SalonTxService).inSingletonScope()
-
-export default container
+  // Salon Transactions
+  container.bind(salonTxRepositoryId).to(SalonTxRepository).inSingletonScope()
+  container.bind(salonTxServiceId).to(SalonTxService).inSingletonScope()
+}

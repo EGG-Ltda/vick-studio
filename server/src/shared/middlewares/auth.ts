@@ -1,6 +1,6 @@
 import { authServiceId, IAuthService } from '@/core/auth'
 import { JwtPayload } from '@/core/jwt'
-import container from '@/di/bindings'
+import { container } from '@/di/bindings'
 import { fail } from '@/shared/utils/response'
 import { FastifyReply, FastifyRequest } from 'fastify'
 

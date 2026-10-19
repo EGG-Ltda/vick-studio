@@ -1,4 +1,5 @@
-import { checkEnvironmentVariables } from '@/shared/utils/env'
+import { ENVIRONMENT } from '@/core/config'
+import { initializeDI } from '@/di/bindings'
 import { fail } from '@/shared/utils/response'
 import fastifyCookie from '@fastify/cookie'
 import fastifyCors from '@fastify/cors'
@@ -8,13 +9,12 @@ import fs from 'fs'
 import path from 'path'
 import 'reflect-metadata'
 
-// Validate required environment variables
-checkEnvironmentVariables()
-export const ENVIRONMENT: string = process.env.NODE_ENV
-
 ;(async () => {
+  // Inject dependencies
+  initializeDI()
+
   // Fastify server instance
-  const app = fastify({ logger: true })
+  const app = fastify({ logger: ENVIRONMENT === 'development' })
 
   app.register(fastifyCookie)
   app.register(fastifyCors, {

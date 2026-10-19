@@ -6,8 +6,15 @@ import {
 } from '@/core/config'
 import { hashServiceId, IHashService } from '@/core/hash'
 import { JwtPayload, JwtToken } from '@/core/jwt'
-import { AppUser, IUserService, userServiceId } from '@/core/user'
-import container from '@/di/bindings'
+import {
+  IUserService,
+  AppUser,
+  AppUserCreate,
+  AppUserCreateSchema,
+  userServiceId,
+} from '@/core/user'
+import { container } from '@/di/bindings'
+import { authHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 import z from 'zod'

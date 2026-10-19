@@ -3,7 +3,7 @@ import {
   IScheduleService,
   ScheduleCreateSchema,
 } from '@/core/schedule'
-import container from '@/di/bindings'
+import { container } from '@/di/bindings'
 import { authHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'

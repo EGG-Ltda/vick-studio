@@ -4,6 +4,7 @@ import { hashServiceId } from '@/core/hash'
 import { jwtServiceId } from '@/core/jwt'
 import { scheduleRepositoryId, scheduleServiceId } from '@/core/schedule'
 import { salonTxRepositoryId, salonTxServiceId } from '@/core/transactions'
+import { treatmentRepositoryId, treatmentServiceId } from '@/core/treatment'
 import { userRepositoryId, userServiceId } from '@/core/user'
 import {
   PostgresService,
@@ -16,6 +17,8 @@ import { ScheduleRepository } from '@/modules/schedule/repository'
 import { ScheduleService } from '@/modules/schedule/service'
 import { SalonTxRepository } from '@/modules/transactions/repository'
 import { SalonTxService } from '@/modules/transactions/service'
+import { TreatmentRepository } from '@/modules/treatment/repository'
+import { TreatmentService } from '@/modules/treatment/service'
 import { UserRepository } from '@/modules/user/repository'
 import { UserService } from '@/modules/user/service'
 import { Container } from 'inversify'
@@ -42,5 +45,9 @@ container.bind(scheduleServiceId).to(ScheduleService).inSingletonScope()
 // Salon Transactions
 container.bind(salonTxRepositoryId).to(SalonTxRepository).inSingletonScope()
 container.bind(salonTxServiceId).to(SalonTxService).inSingletonScope()
+
+// Treatments
+container.bind(treatmentRepositoryId).to(TreatmentRepository).inSingletonScope()
+container.bind(treatmentServiceId).to(TreatmentService).inSingletonScope()
 
 export default container

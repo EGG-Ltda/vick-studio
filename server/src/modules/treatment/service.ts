@@ -4,7 +4,7 @@ import {
   ITreatmentService,
   Treatment,
   TreatmentCreate,
-  TreatmentRepositoryId,
+  treatmentRepositoryId,
   TreatmentSchema,
 } from '@/core/treatment'
 import { inject, injectable } from 'inversify'
@@ -15,7 +15,7 @@ export class TreatmentService implements ITreatmentService {
   public constructor(
     @inject(unitOfWorkServiceId)
     private readonly work: IDatabaseUnitOfWork,
-    @inject(TreatmentRepositoryId)
+    @inject(treatmentRepositoryId)
     private readonly treatmentRepo: ITreatmentRepository,
   ) {}
 

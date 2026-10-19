@@ -1,14 +1,14 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 
-type Service = {
+type Treatment = {
   id: number
   name: string
   duration: number
   price: number
   active: boolean
 }
-const initialServices: Service[] = [
+const initialTreatments: Treatment[] = [
   { id: 1, name: 'Corte feminino', duration: 60, price: 85, active: true },
   { id: 2, name: 'Manicure', duration: 45, price: 55, active: true },
   {
@@ -20,8 +20,8 @@ const initialServices: Service[] = [
   },
 ]
 
-function ServicesPage() {
-  const [services, setServices] = useState(initialServices)
+function TreatmentsPage() {
+  const [treatments, setTreatments] = useState(initialTreatments)
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [hideDisabled, setHideDisabled] = useState(false)
@@ -31,22 +31,22 @@ function ServicesPage() {
     setEditingId(null)
     setShowForm(false)
   }
-  function editService(service: Service) {
-    setEditingId(service.id)
-    setForm({ name: service.name, duration: String(service.duration), price: String(service.price) })
+  function editTreatment(treatment: Treatment) {
+    setEditingId(treatment.id)
+    setForm({ name: treatment.name, duration: String(treatment.duration), price: String(treatment.price) })
     setShowForm(true)
   }
-  function addService(event: FormEvent<HTMLFormElement>) {
+  function addTreatment(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     if (!form.name.trim()) return
     if (editingId !== null) {
-      setServices((current) => current.map((service) => service.id === editingId
-        ? { ...service, name: form.name.trim(), duration: Number(form.duration), price: Number(form.price) }
-        : service))
+      setTreatments((current) => current.map((treatment) => treatment.id === editingId
+        ? { ...treatment, name: form.name.trim(), duration: Number(form.duration), price: Number(form.price) }
+        : treatment))
       closeForm()
       return
     }
-    setServices((current) => [
+    setTreatments((current) => [
       ...current,
       {
         id: Date.now(),
@@ -74,7 +74,7 @@ function ServicesPage() {
         </button>
       </header>
       {showForm && (
-        <form className="user-form" onSubmit={addService}>
+        <form className="user-form" onSubmit={addTreatment}>
           <label>
             Nome
             <input
@@ -115,41 +115,41 @@ function ServicesPage() {
           </button>
         </form>
       )}
-      <label className="service-filter">
+      <label className="treatment-filter">
         <input type="checkbox" checked={hideDisabled} onChange={(event) => setHideDisabled(event.target.checked)} />
         Esconder serviços desabilitados
       </label>
-      {services.filter((service) => !hideDisabled || service.active).length === 0 && (
+      {treatments.filter((treatment) => !hideDisabled || treatment.active).length === 0 && (
         <p role="status">Nenhum serviço disponível.</p>
       )}
-      <div className="service-grid">
-        {services.filter((service) => !hideDisabled || service.active).map((service) => (
-          <article className="service-card" key={service.id}>
+      <div className="treatment-grid">
+        {treatments.filter((treatment) => !hideDisabled || treatment.active).map((treatment) => (
+          <article className="treatment-card" key={treatment.id}>
             <div>
-              <span className="service-kicker">Serviço</span>
-              <h2>{service.name}</h2>
+              <span className="treatment-kicker">Serviço</span>
+              <h2>{treatment.name}</h2>
             </div>
-            <strong>R$ {service.price.toFixed(2).replace('.', ',')}</strong>
-            <p>{service.duration} minutos de atendimento</p>
-            <span className={`status-tag ${service.active ? 'status-active' : 'status-inactive'}`}>
-              {service.active ? 'Disponível' : 'Indisponível'}
+            <strong>R$ {treatment.price.toFixed(2).replace('.', ',')}</strong>
+            <p>{treatment.duration} minutos de atendimento</p>
+            <span className={`status-tag ${treatment.active ? 'status-active' : 'status-inactive'}`}>
+              {treatment.active ? 'Disponível' : 'Indisponível'}
             </span>
-            <div className="service-card-actions">
-            <button type="button" onClick={() => editService(service)} aria-label={`Editar ${service.name}`}>Editar</button>
+            <div className="treatment-card-actions">
+            <button type="button" onClick={() => editTreatment(treatment)} aria-label={`Editar ${treatment.name}`}>Editar</button>
             <button
               type="button"
-              aria-label={`${service.active ? 'Desabilitar' : 'Habilitar'} ${service.name}`}
+              aria-label={`${treatment.active ? 'Desabilitar' : 'Habilitar'} ${treatment.name}`}
               onClick={() =>
-                setServices((current) =>
+                setTreatments((current) =>
                   current.map((item) =>
-                    item.id === service.id
+                    item.id === treatment.id
                       ? { ...item, active: !item.active }
                       : item,
                   ),
                 )
               }
             >
-              {service.active ? 'Desabilitar' : 'Habilitar'}
+              {treatment.active ? 'Desabilitar' : 'Habilitar'}
             </button>
             </div>
           </article>
@@ -159,4 +159,4 @@ function ServicesPage() {
   )
 }
 
-export default ServicesPage
+export default TreatmentsPage

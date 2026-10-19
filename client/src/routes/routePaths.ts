@@ -6,5 +6,5 @@ export const routePaths = {
   users: '/dashboard/usuarios',
   finance: '/dashboard/financeiro',
   employees: '/dashboard/funcionarios',
-  services: '/dashboard/servicos',
+  treatments: '/dashboard/servicos',
 } as const

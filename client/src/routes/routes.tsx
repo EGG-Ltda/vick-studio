@@ -5,7 +5,7 @@ import SchedulePage from '../pages/dashboard/SchedulePage'
 import UsersPage from '../pages/dashboard/UsersPage'
 import FinancePage from '../pages/dashboard/FinancePage'
 import EmployeesPage from '../pages/dashboard/EmployeesPage'
-import ServicesPage from '../pages/dashboard/ServicesPage'
+import TreatmentsPage from '../pages/dashboard/TreatmentsPage'
 import HomePage from '../pages/home/HomePage'
 import ProtectedRoute from './ProtectedRoute'
 import PublicRoute from './PublicRoute'
@@ -25,7 +25,7 @@ export function AppRoutes() {
           <Route path="usuarios" element={<UsersPage />} />
           <Route path="financeiro" element={<FinancePage />} />
           <Route path="funcionarios" element={<EmployeesPage />} />
-          <Route path="servicos" element={<ServicesPage />} />
+          <Route path="servicos" element={<TreatmentsPage />} />
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={routePaths.home} replace />} />

@@ -30,7 +30,7 @@ function CalendarPage() {
   const [form, setForm] = useState({
     customerId: '',
     employeeId: '',
-    serviceId: '',
+    treatmentId: '',
     startsAt: '09:00',
     endsAt: '10:00',
   })
@@ -83,7 +83,7 @@ function CalendarPage() {
       const created = await createSchedule({
         customerId: Number(form.customerId),
         employeeId: Number(form.employeeId),
-        serviceId: Number(form.serviceId),
+        treatmentId: Number(form.treatmentId),
         startsAt: startsAt.toISOString(),
         endsAt: endsAt.toISOString(),
       })
@@ -186,7 +186,7 @@ function CalendarPage() {
                 <div>
                   <h2>{schedule.customerName}</h2>
                   <p>
-                    {schedule.serviceName} com {schedule.employeeName}
+                    {schedule.treatmentName} com {schedule.employeeName}
                   </p>
                 </div>
                 <span
@@ -251,9 +251,9 @@ function CalendarPage() {
                 required
                 type="number"
                 min="1"
-                value={form.serviceId}
+                value={form.treatmentId}
                 onChange={(event) =>
-                  setForm({ ...form, serviceId: event.target.value })
+                  setForm({ ...form, treatmentId: event.target.value })
                 }
               />
             </label>

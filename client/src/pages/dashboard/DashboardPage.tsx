@@ -22,7 +22,7 @@ function DashboardPage() {
           <NavLink to={routePaths.schedule}>Agenda</NavLink>
           <NavLink to={routePaths.finance}>Financeiro</NavLink>
           <NavLink to={routePaths.employees}>Funcionários</NavLink>
-          <NavLink to={routePaths.services}>Serviços</NavLink>
+          <NavLink to={routePaths.treatments}>Serviços</NavLink>
           <NavLink to={routePaths.users}>Usuários</NavLink>
         </nav>
         <button type="button" onClick={handleLogout}>

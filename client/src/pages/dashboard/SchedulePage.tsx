@@ -62,7 +62,7 @@ function SchedulePage() {
   const [showForm, setShowForm] = useState(false)
   const [customerName, setCustomerName] = useState('')
   const [employeeId, setEmployeeId] = useState('')
-  const [serviceName, setServiceName] = useState('')
+  const [treatmentName, setTreatmentName] = useState('')
   const [startTime, setStartTime] = useState('09:00')
   const [durationMinutes, setDurationMinutes] = useState('60')
   const nextLocalId = useRef(-1)
@@ -183,8 +183,8 @@ function SchedulePage() {
             professionals.find(
               (professional) => professional.id === Number(employeeId),
             )?.name ?? '',
-          serviceId: localId,
-          serviceName,
+          treatmentId: localId,
+          treatmentName,
           startsAt: startsAt.toISOString(),
           endsAt: endsAt.toISOString(),
           status: 'scheduled',
@@ -193,7 +193,7 @@ function SchedulePage() {
     )
     setCustomerName('')
     setEmployeeId('')
-    setServiceName('')
+    setTreatmentName('')
     setStartTime('09:00')
     setDurationMinutes('60')
     setShowForm(false)
@@ -335,8 +335,8 @@ function SchedulePage() {
           <label>
             Serviço
             <input
-              value={serviceName}
-              onChange={(event) => setServiceName(event.target.value)}
+              value={treatmentName}
+              onChange={(event) => setTreatmentName(event.target.value)}
               required
             />
           </label>
@@ -420,7 +420,7 @@ function SchedulePage() {
                       >
                         <span className="appointment-time">{formatTime(appointment.startsAt)} – {formatTime(appointment.endsAt)}</span>
                         <strong>{appointment.customerName}</strong>
-                        <span>{appointment.serviceName}</span>
+                        <span>{appointment.treatmentName}</span>
                         <small>{statusLabel(appointment.status)}</small>
                       </article>
                     ))}

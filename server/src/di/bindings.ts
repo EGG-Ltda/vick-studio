@@ -46,4 +46,11 @@ export function initializeDI() {
   // Salon Transactions
   container.bind(salonTxRepositoryId).to(SalonTxRepository).inSingletonScope()
   container.bind(salonTxServiceId).to(SalonTxService).inSingletonScope()
+
+  // Treatments
+  container
+    .bind(treatmentRepositoryId)
+    .to(TreatmentRepository)
+    .inSingletonScope()
+  container.bind(treatmentServiceId).to(TreatmentService).inSingletonScope()
 }

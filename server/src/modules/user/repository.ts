@@ -41,23 +41,25 @@ export class UserRepository implements IUserRepository {
   }
 
   public async getById(id: number): Promise<any> {
-    // const query: string = `
-    //   SELECT
-    //     id,
-    //     email,
-    //     is_active AS "isActive",
-    //     created_at AS "createdAt",
-    //     updated_at AS "updatedAt"
-    //   FROM app_users
-    //   WHERE
-    //     id = $1;
-    // `
-    // return this.dbService
-    //   .getClient()
-    //   .then((client) =>
-    //     client.query(query, [id]).finally(() => client.release()),
-    //   )
-    //   .then((result) => result.rows[0])
+    const query: string = `
+      SELECT
+        id,
+        login,
+  	    email,
+        is_active AS "isActive",
+        created_at AS "createdAt",
+        updated_at AS "updatedAt",
+        removed_at AS "removedAt"
+      FROM app_users
+      WHERE
+        id = $1;
+    `
+    return this.dbService
+      .getClient()
+      .then((client) =>
+        client.query(query, [id]).finally(() => client.release()),
+      )
+      .then((result) => result.rows[0])
   }
 
   public async getByLoginWithPassword(login: string): Promise<any> {

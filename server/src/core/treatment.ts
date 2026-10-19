@@ -39,7 +39,7 @@ export interface ITreatmentService {
   changeIsActive(treatmentId: number, isActive: boolean): Promise<void>
 }
 
-export const TreatmentRepositoryId: ServiceIdentifier<ITreatmentRepository> =
+export const treatmentRepositoryId: ServiceIdentifier<ITreatmentRepository> =
   Symbol.for('TreatmentRepositoryId')
-export const TreatmentServiceId: ServiceIdentifier<ITreatmentService> =
+export const treatmentServiceId: ServiceIdentifier<ITreatmentService> =
   Symbol.for('TreatmentServiceId')

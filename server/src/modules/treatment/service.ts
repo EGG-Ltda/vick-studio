@@ -4,8 +4,9 @@ import {
   ITreatmentService,
   Treatment,
   TreatmentCreate,
-  treatmentRepositoryId,
+  TreatmentRepositoryId,
   TreatmentSchema,
+  TreatmentUpdate,
 } from '@/core/treatment'
 import { inject, injectable } from 'inversify'
 import z from 'zod'
@@ -15,7 +16,7 @@ export class TreatmentService implements ITreatmentService {
   public constructor(
     @inject(unitOfWorkServiceId)
     private readonly work: IDatabaseUnitOfWork,
-    @inject(treatmentRepositoryId)
+    @inject(TreatmentRepositoryId)
     private readonly treatmentRepo: ITreatmentRepository,
   ) {}
 
@@ -26,19 +27,14 @@ export class TreatmentService implements ITreatmentService {
   }
 
   public async create(data: TreatmentCreate): Promise<Treatment> {
-    return this.work.transaction<Treatment>(async (client) =>
-      this.treatmentRepo
-        .create(data, client)
-        .then((result) => TreatmentSchema.parse(result)),
-    )
+    return this.work
+      .transaction(async (client) => this.treatmentRepo.create(data, client))
+      .then((row) => TreatmentSchema.parse(row))
   }
 
-  public async changeIsActive(
-    treatmentId: number,
-    isActive: boolean,
-  ): Promise<void> {
-    return this.work.transaction(async (client) => {
-      this.treatmentRepo.changeIsActive(treatmentId, isActive, client)
-    })
+  public async update(data: TreatmentUpdate): Promise<Treatment> {
+    return this.work
+      .transaction(async (client) => this.treatmentRepo.update(data, client))
+      .then((row) => TreatmentSchema.parse(row))
   }
 }

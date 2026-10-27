@@ -2,7 +2,8 @@ import {
   ITreatmentService,
   Treatment,
   TreatmentCreateSchema,
-  treatmentServiceId,
+  TreatmentServiceId,
+  TreatmentUpdateSchema,
 } from '@/core/treatment'
 import { container } from '@/di/bindings'
 import { authHook } from '@/shared/middlewares/auth'
@@ -10,7 +11,7 @@ import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 
 export default async function userRoutes(app: FastifyInstance): Promise<void> {
-  const treatmentService: ITreatmentService = container.get(treatmentServiceId)
+  const treatmentService: ITreatmentService = container.get(TreatmentServiceId)
 
   app.get<{
     Querystring: {
@@ -46,17 +47,24 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       treatmentId: string
     }
     Body: {
-      isRemoved: boolean
+      name: string
+      description: string
+      price: string
+      durationMinutes: number
+      isActive: boolean
     }
-  }>(
-    '/treatments/:treatmentId/status',
-    { preHandler: authHook },
-    async (req, res) => {
-      const treatmentId: number = parseInt(req.query.treatmentId)
-      const isRemoved: boolean = Boolean(req.body.isRemoved)
+  }>('/treatments/:treatmentId', { preHandler: authHook }, async (req, res) => {
+    const treatmentId: number = Number(req.query.treatmentId)
+    const { success, data, error } = TreatmentUpdateSchema.safeParse({
+      ...req.body,
+      treatmentId,
+    })
 
-      await treatmentService.changeIsActive(treatmentId, isRemoved)
-      return ok(res, 'OK')
-    },
-  )
+    if (!success) {
+      return fail(res, 'Invalid body', 400, error.message)
+    }
+
+    const treatment: Treatment = await treatmentService.update(data)
+    return ok(res, treatment)
+  })
 }

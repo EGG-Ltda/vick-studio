@@ -20,26 +20,32 @@ export const TreatmentCreateSchema = z.object({
   durationMinutes: z.uint32(),
 })
 
+export const TreatmentUpdateSchema = z.object({
+  id: z.int(),
+  name: z.string().min(1).max(255),
+  description: z.string().min(1).max(1023),
+  price: z.number().positive(),
+  durationMinutes: z.uint32(),
+  isActive: z.boolean(),
+})
+
 export type Treatment = z.infer<typeof TreatmentSchema>
 export type TreatmentCreate = z.infer<typeof TreatmentCreateSchema>
+export type TreatmentUpdate = z.infer<typeof TreatmentUpdateSchema>
 
 export interface ITreatmentRepository {
   getAll(page: number): Promise<any>
   create(data: TreatmentCreate, client: IGenericDatabaseClient): Promise<any>
-  changeIsActive(
-    treatmentId: number,
-    isActive: boolean,
-    client: IGenericDatabaseClient,
-  ): Promise<any>
+  update(data: TreatmentUpdate, client: IGenericDatabaseClient): Promise<any>
 }
 
 export interface ITreatmentService {
   getAll(page: number): Promise<any>
   create(data: TreatmentCreate): Promise<any>
-  changeIsActive(treatmentId: number, isActive: boolean): Promise<void>
+  update(data: TreatmentUpdate): Promise<any>
 }
 
-export const treatmentRepositoryId: ServiceIdentifier<ITreatmentRepository> =
+export const TreatmentRepositoryId: ServiceIdentifier<ITreatmentRepository> =
   Symbol.for('TreatmentRepositoryId')
-export const treatmentServiceId: ServiceIdentifier<ITreatmentService> =
+export const TreatmentServiceId: ServiceIdentifier<ITreatmentService> =
   Symbol.for('TreatmentServiceId')

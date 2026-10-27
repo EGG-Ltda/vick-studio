@@ -1,4 +1,5 @@
 import {
+  GetTreatmentsOptionsSchema,
   ITreatmentService,
   Treatment,
   TreatmentCreateSchema,
@@ -16,11 +17,26 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
   app.get<{
     Querystring: {
       page: string
+      isActive: string
     }
   }>('/treatments', { preHandler: authHook }, async (req, res) => {
     const page: number = parseInt(req.query.page)
-    const treatment: Treatment[] = await treatmentService.getAll(page)
+    const isActive: boolean = Boolean(req.query.isActive)
 
+    const {
+      success,
+      data: options,
+      error,
+    } = GetTreatmentsOptionsSchema.safeParse({
+      page,
+      filters: { isActive },
+    })
+
+    if (!success) {
+      return fail(res, 'Invalid querystring', 400, error.message)
+    }
+
+    const treatment: Treatment[] = await treatmentService.get(options)
     return ok(res, treatment)
   })
 

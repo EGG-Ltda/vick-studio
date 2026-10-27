@@ -1,5 +1,6 @@
 import { IDatabaseUnitOfWork, unitOfWorkServiceId } from '@/core/db'
 import {
+  GetTreatmentsOptions,
   ITreatmentRepository,
   ITreatmentService,
   Treatment,
@@ -20,9 +21,9 @@ export class TreatmentService implements ITreatmentService {
     private readonly treatmentRepo: ITreatmentRepository,
   ) {}
 
-  public async getAll(page: number): Promise<Treatment[]> {
+  public async get(options: GetTreatmentsOptions): Promise<Treatment[]> {
     return this.treatmentRepo
-      .getAll(page)
+      .get(options)
       .then((rows) => z.array(TreatmentSchema).parse(rows))
   }
 

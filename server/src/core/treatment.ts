@@ -29,18 +29,28 @@ export const TreatmentUpdateSchema = z.object({
   isActive: z.boolean(),
 })
 
+export const GetTreatmentsOptionsSchema = z.object({
+  page: z.int().nonnegative(),
+  filters: z
+    .object({
+      isActive: z.boolean().optional(),
+    })
+    .optional(),
+})
+
 export type Treatment = z.infer<typeof TreatmentSchema>
 export type TreatmentCreate = z.infer<typeof TreatmentCreateSchema>
 export type TreatmentUpdate = z.infer<typeof TreatmentUpdateSchema>
+export type GetTreatmentsOptions = z.infer<typeof GetTreatmentsOptionsSchema>
 
 export interface ITreatmentRepository {
-  getAll(page: number): Promise<any>
+  get(options: GetTreatmentsOptions): Promise<any>
   create(data: TreatmentCreate, client: IGenericDatabaseClient): Promise<any>
   update(data: TreatmentUpdate, client: IGenericDatabaseClient): Promise<any>
 }
 
 export interface ITreatmentService {
-  getAll(page: number): Promise<any>
+  get(options: GetTreatmentsOptions): Promise<any>
   create(data: TreatmentCreate): Promise<any>
   update(data: TreatmentUpdate): Promise<any>
 }

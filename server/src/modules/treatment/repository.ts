@@ -4,6 +4,7 @@ import {
   IGenericDatabaseClient,
 } from '@/core/db'
 import {
+  GetTreatmentsOptions,
   ITreatmentRepository,
   TreatmentCreate,
   TreatmentUpdate,
@@ -17,11 +18,12 @@ export class TreatmentRepository implements ITreatmentRepository {
     private readonly dbService: IDatabaseService,
   ) {}
 
-  public async getAll(page: number): Promise<any> {
+  public async get(options: GetTreatmentsOptions): Promise<any> {
+    const params: any[] = []
     const limit: number = 20
-    const offset: number = page * (limit - 1)
+    const offset: number = options.page * (limit - 1)
 
-    const query: string = `
+    let query: string = `
       SELECT
         id,
         name,
@@ -32,14 +34,26 @@ export class TreatmentRepository implements ITreatmentRepository {
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM salon_treatments
-      LIMIT $1
-      OFFSET $2;
+    `
+
+    if (options?.filters?.isActive !== undefined) {
+      params.push(options.filters.isActive)
+      query += `
+        WHERE
+          is_active = $1
+      `
+    }
+
+    params.push(limit, offset)
+    query += `
+      LIMIT $2
+      OFFSET $3;
     `
 
     return this.dbService
       .getClient()
       .then((client) =>
-        client.query(query, [limit, offset]).finally(() => client.release()),
+        client.query(query, params).finally(() => client.release()),
       )
       .then((result) => result.rows)
   }

@@ -1,6 +1,7 @@
 import {
   AppUser,
   AppUserCreateSchema,
+  AppUserUpdateSchema,
   IUserService,
   userServiceId,
 } from '@/core/user'
@@ -12,7 +13,17 @@ import { FastifyInstance } from 'fastify'
 export default async function userRoutes(app: FastifyInstance): Promise<void> {
   const userService: IUserService = container.get(userServiceId)
 
-  // Update
+  // Get logged user
+  app.get('/users/@me', { preHandler: authHook }, async (req, res) => {
+    // const id: number = Number(req.tokenPayload['sub'])
+    // const user: AppUser = await userService.getById(id)
+    // if (!user) {
+    //   return fail(res, 'User not found', 404)
+    // }
+    // return ok(res, user)
+  })
+
+  // Update logged user
   app.put(
     '/users/@me',
     { preHandler: authHook },
@@ -24,7 +35,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     },
   )
 
-  // Delete
+  // Soft delete logged user
   app.delete(
     '/users/@me',
     { preHandler: authHook },
@@ -35,27 +46,19 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     },
   )
 
-  // Get
-  app.get('/users/@me', { preHandler: authHook }, async (req, res) => {
-    // const id: number = Number(req.tokenPayload['sub'])
-    // const user: AppUser = await userService.getById(id)
-    // if (!user) {
-    //   return fail(res, 'User not found', 404)
-    // }
-    // return ok(res, user)
-  })
-
+  // Get all users
   app.get<{
     Querystring: {
       page: string
     }
   }>('/users', { preHandler: authHook }, async (req, res) => {
-    const page: number = parseInt(req.query.page)
+    const page: number = Number(req.query.page)
     const users: AppUser[] = await userService.getAll(page)
 
     return ok(res, users)
   })
 
+  // Create user
   app.post<{
     Body: {
       login: string
@@ -72,6 +75,47 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     const user: AppUser = await userService.create(data)
     return ok(res, user)
   })
+
+  // Update user
+  app.put<{
+    Params: {
+      userId: string
+    }
+    Body: {
+      login: string
+      email: string
+    }
+  }>('/users/:userId', { preHandler: authHook }, async (req, res) => {
+    const userId: number = Number(req.params.userId)
+
+    const { success, data, error } = AppUserUpdateSchema.safeParse({
+      ...req.body,
+      userId,
+    })
+
+    if (!success) {
+      return fail(res, 'Invalid body', 400, error.message)
+    }
+
+    const user: AppUser = await userService.update(data)
+    return ok(res, user)
+  })
+
+  // Soft delete user
+  app.delete<{
+    Params: {
+      userId: string
+    }
+  }>(
+    '/users/:userId',
+    { preHandler: authHook },
+    async (req, res): Promise<void> => {
+      const userId: number = Number(req.params.userId)
+      await userService.delete(userId)
+
+      return ok(res)
+    },
+  )
 
   // Forget password
   app.post('/users/forget-password', async (req, res): Promise<void> => {})

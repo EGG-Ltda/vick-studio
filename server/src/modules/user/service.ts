@@ -4,6 +4,7 @@ import {
   AppUser,
   AppUserCreate,
   AppUserSchema,
+  AppUserUpdate,
   IUserRepository,
   IUserService,
   userRepositoryId,
@@ -39,23 +40,22 @@ export class UserService implements IUserService {
   }
 
   public async create(data: AppUserCreate): Promise<AppUser> {
-    return this.work.transaction<AppUser>(async (client) => {
-      data.password = await this.hashService.hash(data.password)
-      const userObj: any = await this.userRepo.create(data, client)
+    data.password = await this.hashService.hash(data.password)
 
-      return AppUserSchema.parse(userObj)
-    })
+    return this.work
+      .transaction(async (client) => this.userRepo.create(data, client))
+      .then((result) => AppUserSchema.parse(result))
   }
 
-  public async update(id: number, email: string): Promise<AppUser> {
-    return this.work.transaction<AppUser>((client) =>
-      this.userRepo
-        .update(id, email, client)
-        .then((row) => AppUserSchema.parse(row)),
+  public async update(data: AppUserUpdate): Promise<AppUser> {
+    return this.work
+      .transaction((client) => this.userRepo.update(data, client))
+      .then((row) => AppUserSchema.parse(row))
+  }
+
+  public async delete(userId: number): Promise<void> {
+    return this.work.transaction((client) =>
+      this.userRepo.delete(userId, client),
     )
-  }
-
-  public async delete(id: number): Promise<void> {
-    return this.work.transaction((client) => this.userRepo.delete(id, client))
   }
 }

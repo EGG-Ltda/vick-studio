@@ -723,3 +723,16 @@ button {
     grid-template-columns: 1fr;
   }
 }
+
+.users-registration-form { align-items: start; flex-wrap: wrap; }
+.users-registration-form label { min-width: 0; line-height: 1.25; }
+.users-registration-form > button { margin-top: 22px; }
+.users-filter { display: flex; align-items: center; gap: 8px; margin-bottom: 16px; }
+.users-pagination { display: flex; align-items: center; justify-content: flex-end; gap: 16px; margin-top: 16px; }
+.users-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.users-actions button, .users-pagination button { padding: 8px 12px; border: 1px solid #c5cbc5; border-radius: 2px; background: #fafbf9; cursor: pointer; }
+.users-actions button:disabled, .users-pagination button:disabled { cursor: default; opacity: 0.5; }
+@media (max-width: 760px) {
+  .users-registration-form { display: grid; grid-template-columns: 1fr; }
+  .users-registration-form > button { margin-top: 0; }
+}

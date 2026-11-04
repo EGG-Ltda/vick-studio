@@ -2,9 +2,9 @@ import { apiRequest } from '../../core/api/http'
 
 export type User = { id: number; login: string; email: string; isActive: boolean; removedAt: string | null }
 export type UserInput = { login: string; email: string }
-export const USER_PAGE_SIZE = 20
+export type UserPage = { items: User[]; hasNext: boolean }
 export function listUsers(page: number, hideDisabled: boolean, signal?: AbortSignal) {
-  return apiRequest<User[]>(`/users?${new URLSearchParams({ page: String(page), hideDisabled: String(hideDisabled) })}`, { signal })
+  return apiRequest<UserPage>(`/users?${new URLSearchParams({ page: String(page), hideDisabled: String(hideDisabled) })}`, { signal })
 }
 export function createUser(input: UserInput & { password: string }) {
   return apiRequest<User>('/users', { method: 'POST', body: JSON.stringify(input) })

@@ -56,7 +56,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     const page: number = Number(req.query.page ?? 0)
     if (!Number.isSafeInteger(page) || page < 0 || page > 1000000) return fail(res, 'Invalid page', 400)
     if (req.query.hideDisabled !== undefined && !['true', 'false'].includes(req.query.hideDisabled)) return fail(res, 'Invalid filter', 400)
-    const users: AppUser[] = await userService.getAll(page, req.query.hideDisabled === 'true')
+    const users = await userService.getAll(page, req.query.hideDisabled === 'true')
 
     return ok(res, users)
   })
@@ -75,8 +75,12 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       return fail(res, 'Invalid body', 400, error.message)
     }
 
-    const user: AppUser = await userService.create(data)
-    return ok(res, user)
+    try {
+      return ok(res, await userService.create(data))
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Este login já está em uso.', 409)
+      throw error
+    }
   })
 
   // Update user
@@ -100,8 +104,14 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       return fail(res, 'Invalid body', 400, error.message)
     }
 
-    const user: AppUser = await userService.update(data)
-    return ok(res, user)
+    try {
+      const user = await userService.update(data)
+      if (!user) return fail(res, 'Usuário não encontrado.', 404)
+      return ok(res, user)
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Este login já está em uso.', 409)
+      throw error
+    }
   })
 
   // Soft delete user

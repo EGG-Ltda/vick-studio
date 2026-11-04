@@ -1,4 +1,5 @@
 import { authServiceId, IAuthService } from '@/core/auth'
+import { IUserService, userServiceId } from '@/core/user'
 import { JwtPayload } from '@/core/jwt'
 import { container } from '@/di/bindings'
 import { fail } from '@/shared/utils/response'
@@ -27,6 +28,11 @@ export async function authHook(
       return fail(res, 'Invalid or expired token', 401)
     }
 
+    const userService: IUserService = container.get(userServiceId)
+    const user = await userService.getById(Number(payload.sub))
+    if (!user || !user.isActive || user.removedAt) {
+      return fail(res, 'Usuário desabilitado ou não encontrado.', 401)
+    }
     req.tokenPayload = payload
   } catch (err) {
     return fail(res, 'Invalid or expired token', 401, err)

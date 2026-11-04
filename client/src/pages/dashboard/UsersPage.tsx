@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { createUser, disableUser, listUsers, restoreUser, updateUser, USER_PAGE_SIZE } from './usersApi'
+import { createUser, disableUser, listUsers, restoreUser, updateUser } from './usersApi'
 import type { User } from './usersApi'
 
 function UsersPage() {
   const [users, setUsers] = useState<User[]>([])
+  const [hasNext, setHasNext] = useState(false)
   const [page, setPage] = useState(0)
   const [hideDisabled, setHideDisabled] = useState(true)
   const [loading, setLoading] = useState(true)
@@ -23,11 +24,12 @@ function UsersPage() {
     const controller = new AbortController()
     listUsers(page, hideDisabled, controller.signal).then((data) => {
       if (controller.signal.aborted) return
-      if (!data.length && page > 0) {
+      if (!data.items.length && page > 0) {
         setPage(page - 1)
         return
       }
-      setUsers(data)
+      setUsers(data.items)
+      setHasNext(data.hasNext)
       setLoading(false)
     }).catch((cause: unknown) => {
       if (controller.signal.aborted) return
@@ -138,7 +140,7 @@ function UsersPage() {
       <nav className="users-pagination" aria-label="Paginação de usuários">
         <button type="button" disabled={loading || busy || page === 0} onClick={() => { setLoading(true); setListError(''); setPage(page - 1) }}>Anterior</button>
         <span aria-live="polite">Página {page + 1}</span>
-        <button type="button" disabled={loading || busy || !!listError || users.length < USER_PAGE_SIZE} onClick={() => { setLoading(true); setPage(page + 1) }}>Próxima</button>
+        <button type="button" disabled={loading || busy || !!listError || !hasNext} onClick={() => { setLoading(true); setPage(page + 1) }}>Próxima</button>
       </nav>
     </section>
   )

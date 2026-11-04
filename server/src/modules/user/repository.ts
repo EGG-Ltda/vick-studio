@@ -3,7 +3,7 @@ import {
   IDatabaseService,
   IGenericDatabaseClient,
 } from '@/core/db'
-import { AppUserCreate, AppUserUpdate, IUserRepository } from '@/core/user'
+import { AppUserCreate, AppUserUpdate, IUserRepository, USER_PAGE_SIZE } from '@/core/user'
 import { inject, injectable } from 'inversify'
 
 @injectable()
@@ -14,7 +14,7 @@ export class UserRepository implements IUserRepository {
   ) {}
 
   public async getAll(page: number, hideDisabled = false): Promise<any> {
-    const limit: number = 20
+    const limit: number = USER_PAGE_SIZE
     const offset: number = page * limit
 
     const query: string = `
@@ -37,7 +37,7 @@ export class UserRepository implements IUserRepository {
     return this.dbService
       .getClient()
       .then((client) =>
-        client.query(query, [limit, offset, hideDisabled]).finally(() => client.release()),
+        client.query(query, [limit + 1, offset, hideDisabled]).finally(() => client.release()),
       )
       .then((result) => result.rows)
   }
@@ -139,7 +139,7 @@ export class UserRepository implements IUserRepository {
   public async delete(
     userId: number,
     client: IGenericDatabaseClient,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const query: string = `
       UPDATE app_users
       SET
@@ -150,12 +150,14 @@ export class UserRepository implements IUserRepository {
         id = $1;
     `
 
-    return client.query(query, [userId])
+    const result = await client.query(query, [userId])
+    return result.rowCount > 0
   }
-  public async restore(userId: number, client: IGenericDatabaseClient): Promise<void> {
-    await client.query(`
+  public async restore(userId: number, client: IGenericDatabaseClient): Promise<boolean> {
+    const result = await client.query(`
       UPDATE app_users SET is_active = TRUE, removed_at = NULL, updated_at = NOW()
       WHERE id = $1;
     `, [userId])
+    return result.rowCount > 0
   }
 }

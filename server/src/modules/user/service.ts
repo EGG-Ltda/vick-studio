@@ -23,9 +23,9 @@ export class UserService implements IUserService {
     private readonly hashService: IHashService,
   ) {}
 
-  public async getAll(page: number): Promise<AppUser[]> {
+  public async getAll(page: number, hideDisabled = false): Promise<AppUser[]> {
     return this.userRepo
-      .getAll(page)
+      .getAll(page, hideDisabled)
       .then((rows) => z.array(AppUserSchema).parse(rows))
   }
 
@@ -57,5 +57,8 @@ export class UserService implements IUserService {
     return this.work.transaction((client) =>
       this.userRepo.delete(userId, client),
     )
+  }
+  public async restore(userId: number): Promise<void> {
+    return this.work.transaction((client) => this.userRepo.restore(userId, client))
   }
 }

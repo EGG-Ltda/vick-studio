@@ -50,10 +50,13 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
   app.get<{
     Querystring: {
       page: string
+      hideDisabled?: string
     }
   }>('/users', { preHandler: authHook }, async (req, res) => {
-    const page: number = Number(req.query.page)
-    const users: AppUser[] = await userService.getAll(page)
+    const page: number = Number(req.query.page ?? 0)
+    if (!Number.isSafeInteger(page) || page < 0 || page > 1000000) return fail(res, 'Invalid page', 400)
+    if (req.query.hideDisabled !== undefined && !['true', 'false'].includes(req.query.hideDisabled)) return fail(res, 'Invalid filter', 400)
+    const users: AppUser[] = await userService.getAll(page, req.query.hideDisabled === 'true')
 
     return ok(res, users)
   })
@@ -90,7 +93,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
 
     const { success, data, error } = AppUserUpdateSchema.safeParse({
       ...req.body,
-      userId,
+      id: userId,
     })
 
     if (!success) {
@@ -111,8 +114,20 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: authHook },
     async (req, res): Promise<void> => {
       const userId: number = Number(req.params.userId)
+      if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
       await userService.delete(userId)
 
+      return ok(res)
+    },
+  )
+
+  app.patch<{ Params: { userId: string } }>(
+    '/users/:userId/restore',
+    { preHandler: authHook },
+    async (req, res) => {
+      const userId = Number(req.params.userId)
+      if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
+      await userService.restore(userId)
       return ok(res)
     },
   )

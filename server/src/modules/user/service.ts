@@ -4,6 +4,7 @@ import {
   AppUser,
   AppUserPage,
   USER_PAGE_SIZE,
+  MASTER_USER_ID,
   AppUserCreate,
   AppUserSchema,
   AppUserUpdate,
@@ -56,6 +57,9 @@ export class UserService implements IUserService {
   }
 
   public async delete(userId: number): Promise<void> {
+    if (userId === MASTER_USER_ID) {
+      throw Object.assign(new Error('O administrador master não pode ser desabilitado.'), { statusCode: 403 })
+    }
     const found = await this.work.transaction((client) => this.userRepo.delete(userId, client))
     if (!found) throw Object.assign(new Error('Usuário não encontrado.'), { statusCode: 404 })
   }

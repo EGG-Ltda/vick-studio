@@ -1,11 +1,13 @@
 import { IDatabaseUnitOfWork, unitOfWorkServiceId } from '@/core/db'
 import {
+  GetTreatmentsOptions,
   ITreatmentRepository,
   ITreatmentService,
   Treatment,
   TreatmentCreate,
-  treatmentRepositoryId,
+  TreatmentRepositoryId,
   TreatmentSchema,
+  TreatmentUpdate,
 } from '@/core/treatment'
 import { inject, injectable } from 'inversify'
 import z from 'zod'
@@ -15,30 +17,25 @@ export class TreatmentService implements ITreatmentService {
   public constructor(
     @inject(unitOfWorkServiceId)
     private readonly work: IDatabaseUnitOfWork,
-    @inject(treatmentRepositoryId)
+    @inject(TreatmentRepositoryId)
     private readonly treatmentRepo: ITreatmentRepository,
   ) {}
 
-  public async getAll(page: number): Promise<Treatment[]> {
+  public async get(options: GetTreatmentsOptions): Promise<Treatment[]> {
     return this.treatmentRepo
-      .getAll(page)
+      .get(options)
       .then((rows) => z.array(TreatmentSchema).parse(rows))
   }
 
   public async create(data: TreatmentCreate): Promise<Treatment> {
-    return this.work.transaction<Treatment>(async (client) =>
-      this.treatmentRepo
-        .create(data, client)
-        .then((result) => TreatmentSchema.parse(result)),
-    )
+    return this.work
+      .transaction(async (client) => this.treatmentRepo.create(data, client))
+      .then((row) => TreatmentSchema.parse(row))
   }
 
-  public async changeIsActive(
-    treatmentId: number,
-    isActive: boolean,
-  ): Promise<void> {
-    return this.work.transaction(async (client) => {
-      this.treatmentRepo.changeIsActive(treatmentId, isActive, client)
-    })
+  public async update(data: TreatmentUpdate): Promise<Treatment> {
+    return this.work
+      .transaction(async (client) => this.treatmentRepo.update(data, client))
+      .then((row) => TreatmentSchema.parse(row))
   }
 }

@@ -1,8 +1,10 @@
 import {
+  GetTreatmentsOptionsSchema,
   ITreatmentService,
   Treatment,
   TreatmentCreateSchema,
-  treatmentServiceId,
+  TreatmentServiceId,
+  TreatmentUpdateSchema,
 } from '@/core/treatment'
 import { container } from '@/di/bindings'
 import { authHook } from '@/shared/middlewares/auth'
@@ -10,16 +12,31 @@ import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 
 export default async function userRoutes(app: FastifyInstance): Promise<void> {
-  const treatmentService: ITreatmentService = container.get(treatmentServiceId)
+  const treatmentService: ITreatmentService = container.get(TreatmentServiceId)
 
   app.get<{
     Querystring: {
       page: string
+      isActive: string
     }
   }>('/treatments', { preHandler: authHook }, async (req, res) => {
     const page: number = parseInt(req.query.page)
-    const treatment: Treatment[] = await treatmentService.getAll(page)
+    const isActive: boolean = Boolean(req.query.isActive)
 
+    const {
+      success,
+      data: options,
+      error,
+    } = GetTreatmentsOptionsSchema.safeParse({
+      page,
+      filters: { isActive },
+    })
+
+    if (!success) {
+      return fail(res, 'Invalid querystring', 400, error.message)
+    }
+
+    const treatment: Treatment[] = await treatmentService.get(options)
     return ok(res, treatment)
   })
 
@@ -46,17 +63,24 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       treatmentId: string
     }
     Body: {
-      isRemoved: boolean
+      name: string
+      description: string
+      price: string
+      durationMinutes: number
+      isActive: boolean
     }
-  }>(
-    '/treatments/:treatmentId/status',
-    { preHandler: authHook },
-    async (req, res) => {
-      const treatmentId: number = parseInt(req.query.treatmentId)
-      const isRemoved: boolean = Boolean(req.body.isRemoved)
+  }>('/treatments/:treatmentId', { preHandler: authHook }, async (req, res) => {
+    const treatmentId: number = Number(req.query.treatmentId)
+    const { success, data, error } = TreatmentUpdateSchema.safeParse({
+      ...req.body,
+      treatmentId,
+    })
 
-      await treatmentService.changeIsActive(treatmentId, isRemoved)
-      return ok(res, 'OK')
-    },
-  )
+    if (!success) {
+      return fail(res, 'Invalid body', 400, error.message)
+    }
+
+    const treatment: Treatment = await treatmentService.update(data)
+    return ok(res, treatment)
+  })
 }

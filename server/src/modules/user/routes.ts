@@ -125,6 +125,9 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     async (req, res): Promise<void> => {
       const userId: number = Number(req.params.userId)
       if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
+      if (userId === Number(req.tokenPayload.sub)) {
+        return fail(res, 'Você não pode desabilitar seu próprio usuário.', 409)
+      }
       await userService.delete(userId)
 
       return ok(res)

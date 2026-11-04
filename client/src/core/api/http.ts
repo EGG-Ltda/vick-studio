@@ -4,6 +4,8 @@ export type ApiResponse<T> = {
   message?: string
 }
 
+export const SESSION_EXPIRED_EVENT = 'vick:session-expired'
+
 export async function apiRequest<T>(
   path: string,
   options?: RequestInit,
@@ -17,6 +19,10 @@ export async function apiRequest<T>(
     ...options,
     headers,
   })
+  if (response.status === 401) {
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+    throw new Error('Sua sessão expirou. Entre novamente para continuar.')
+  }
   const payload = (await response.json()) as ApiResponse<T>
 
   if (!response.ok || !payload.success) {

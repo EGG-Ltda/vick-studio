@@ -13,9 +13,9 @@ export class UserRepository implements IUserRepository {
     private readonly dbService: IDatabaseService,
   ) {}
 
-  public async getAll(page: number): Promise<any> {
+  public async getAll(page: number, hideDisabled = false): Promise<any> {
     const limit: number = 20
-    const offset: number = page * (limit - 1)
+    const offset: number = page * limit
 
     const query: string = `
       SELECT
@@ -28,6 +28,8 @@ export class UserRepository implements IUserRepository {
         updated_at AS "updatedAt",
         removed_at AS "removedAt"
       FROM app_users
+      WHERE ($3::boolean = false OR (is_active = TRUE AND removed_at IS NULL))
+      ORDER BY id
       LIMIT $1
       OFFSET $2;
     `
@@ -35,7 +37,7 @@ export class UserRepository implements IUserRepository {
     return this.dbService
       .getClient()
       .then((client) =>
-        client.query(query, [limit, offset]).finally(() => client.release()),
+        client.query(query, [limit, offset, hideDisabled]).finally(() => client.release()),
       )
       .then((result) => result.rows)
   }
@@ -119,8 +121,8 @@ export class UserRepository implements IUserRepository {
         email = $2,
         updated_at = NOW()
       WHERE
-        id = $2
-      id,
+        id = $3
+      RETURNING id,
         login,
         email,
         is_active AS "isActive",
@@ -149,5 +151,11 @@ export class UserRepository implements IUserRepository {
     `
 
     return client.query(query, [userId])
+  }
+  public async restore(userId: number, client: IGenericDatabaseClient): Promise<void> {
+    await client.query(`
+      UPDATE app_users SET is_active = TRUE, removed_at = NULL, updated_at = NOW()
+      WHERE id = $1;
+    `, [userId])
   }
 }

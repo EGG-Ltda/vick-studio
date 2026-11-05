@@ -36,7 +36,7 @@ export async function authHook(
   const userService: IUserService = container.get(userServiceId)
   const user = await userService.getById(userId)
   if (!user || !user.isActive || user.removedAt) {
-    return fail(res, 'Usuário desabilitado ou não encontrado.', 401)
+    return fail(res, 'User is disabled or not found', 401)
   }
   req.tokenPayload = payload
 }

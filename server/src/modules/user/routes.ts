@@ -35,13 +35,13 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     },
   )
 
-  // Soft delete logged user
+  // Disable logged user
   app.delete(
     '/users/@me',
     { preHandler: authHook },
     async (req, res): Promise<void> => {
       // const id: number = Number(req.tokenPayload['sub'])
-      // await userService.delete(id)
+      // await userService.disable(id)
       // return ok(res)
     },
   )
@@ -78,7 +78,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     try {
       return ok(res, await userService.create(data))
     } catch (error) {
-      if ((error as { code?: string }).code === '23505') return fail(res, 'Este login já está em uso.', 409)
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Login is already in use', 409)
       throw error
     }
   })
@@ -106,15 +106,15 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
 
     try {
       const user = await userService.update(data)
-      if (!user) return fail(res, 'Usuário não encontrado.', 404)
+      if (!user) return fail(res, 'User not found', 404)
       return ok(res, user)
     } catch (error) {
-      if ((error as { code?: string }).code === '23505') return fail(res, 'Este login já está em uso.', 409)
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Login is already in use', 409)
       throw error
     }
   })
 
-  // Soft delete user
+  // Disable user
   app.delete<{
     Params: {
       userId: string
@@ -126,9 +126,9 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       const userId: number = Number(req.params.userId)
       if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
       if (userId === Number(req.tokenPayload.sub)) {
-        return fail(res, 'Você não pode desabilitar seu próprio usuário.', 409)
+        return fail(res, 'You cannot disable your own user account.', 409)
       }
-      await userService.delete(userId)
+      await userService.disable(userId)
 
       return ok(res)
     },
@@ -140,7 +140,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     async (req, res) => {
       const userId = Number(req.params.userId)
       if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
-      await userService.restore(userId)
+      await userService.enable(userId)
       return ok(res)
     },
   )

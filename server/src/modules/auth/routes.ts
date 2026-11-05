@@ -90,7 +90,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     const user: AppUser = await userService.getById(payload['vick:userId'])
 
     if (!user || !user.isActive || user.removedAt) {
-      return fail(res, 'Usuário desabilitado ou não encontrado.', 401)
+      return fail(res, 'User is disabled or not found', 401)
     }
 
     const newAccessToken: JwtToken = authService.createAccessToken(user)

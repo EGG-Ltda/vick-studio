@@ -136,7 +136,7 @@ export class UserRepository implements IUserRepository {
       .then((result) => result.rows[0])
   }
 
-  public async delete(
+  public async disable(
     userId: number,
     client: IGenericDatabaseClient,
   ): Promise<boolean> {
@@ -153,7 +153,7 @@ export class UserRepository implements IUserRepository {
     const result = await client.query(query, [userId])
     return result.rowCount > 0
   }
-  public async restore(userId: number, client: IGenericDatabaseClient): Promise<boolean> {
+  public async enable(userId: number, client: IGenericDatabaseClient): Promise<boolean> {
     const result = await client.query(`
       UPDATE app_users SET is_active = TRUE, removed_at = NULL, updated_at = NOW()
       WHERE id = $1;

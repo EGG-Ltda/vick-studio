@@ -56,15 +56,15 @@ export class UserService implements IUserService {
       .then((row) => row ? AppUserSchema.parse(row) : null)
   }
 
-  public async delete(userId: number): Promise<void> {
+  public async disable(userId: number): Promise<void> {
     if (userId === MASTER_USER_ID) {
-      throw Object.assign(new Error('O administrador master não pode ser desabilitado.'), { statusCode: 403 })
+      throw Object.assign(new Error('The master administrator cannot be disabled.'), { statusCode: 403 })
     }
-    const found = await this.work.transaction((client) => this.userRepo.delete(userId, client))
-    if (!found) throw Object.assign(new Error('Usuário não encontrado.'), { statusCode: 404 })
+    const found = await this.work.transaction((client) => this.userRepo.disable(userId, client))
+    if (!found) throw Object.assign(new Error('User not found'), { statusCode: 404 })
   }
-  public async restore(userId: number): Promise<void> {
-    const found = await this.work.transaction((client) => this.userRepo.restore(userId, client))
-    if (!found) throw Object.assign(new Error('Usuário não encontrado.'), { statusCode: 404 })
+  public async enable(userId: number): Promise<void> {
+    const found = await this.work.transaction((client) => this.userRepo.enable(userId, client))
+    if (!found) throw Object.assign(new Error('User not found'), { statusCode: 404 })
   }
 }

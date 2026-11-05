@@ -39,8 +39,8 @@ export interface IUserRepository {
   getByLoginWithPassword(login: string): Promise<any>
   create(data: AppUserCreate, client: IGenericDatabaseClient): Promise<any>
   update(data: AppUserUpdate, client: IGenericDatabaseClient): Promise<any>
-  delete(userId: number, client: IGenericDatabaseClient): Promise<boolean>
-  restore(userId: number, client: IGenericDatabaseClient): Promise<boolean>
+  disable(userId: number, client: IGenericDatabaseClient): Promise<boolean>
+  enable(userId: number, client: IGenericDatabaseClient): Promise<boolean>
 }
 
 export interface IUserService {
@@ -49,8 +49,8 @@ export interface IUserService {
   getByLoginWithPassword(login: string): Promise<AppUser>
   create(data: AppUserCreate): Promise<AppUser>
   update(data: AppUserUpdate): Promise<any>
-  delete(userId: number): Promise<void>
-  restore(userId: number): Promise<void>
+  disable(userId: number): Promise<void>
+  enable(userId: number): Promise<void>
 }
 
 export const userRepositoryId: ServiceIdentifier<IUserRepository> =

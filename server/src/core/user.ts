@@ -26,8 +26,7 @@ export const AppUserUpdateSchema = z.object({
 })
 
 export const USER_PAGE_SIZE = 20
-export const MASTER_USER_ID = 1
-export type AppUserPage = { items: AppUser[]; hasNext: boolean }
+export type AppUserPage = { items: (AppUser & { isMaster: boolean })[]; hasNext: boolean }
 
 export type AppUserCreate = z.infer<typeof AppUserCreateSchema>
 export type AppUserUpdate = z.infer<typeof AppUserUpdateSchema>

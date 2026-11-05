@@ -1,10 +1,10 @@
+import { MASTER_USER_ID } from '@/core/config'
 import { IDatabaseUnitOfWork, unitOfWorkServiceId } from '@/core/db'
 import { hashServiceId, IHashService } from '@/core/hash'
 import {
   AppUser,
   AppUserPage,
   USER_PAGE_SIZE,
-  MASTER_USER_ID,
   AppUserCreate,
   AppUserSchema,
   AppUserUpdate,
@@ -29,7 +29,11 @@ export class UserService implements IUserService {
   public async getAll(page: number, hideDisabled = false): Promise<AppUserPage> {
     return this.userRepo
       .getAll(page, hideDisabled)
-      .then((rows) => ({ items: z.array(AppUserSchema).parse(rows.slice(0, USER_PAGE_SIZE)), hasNext: rows.length > USER_PAGE_SIZE }))
+      .then((rows) => ({
+        items: z.array(AppUserSchema).parse(rows.slice(0, USER_PAGE_SIZE))
+          .map((user) => ({ ...user, isMaster: user.id === MASTER_USER_ID })),
+        hasNext: rows.length > USER_PAGE_SIZE,
+      }))
   }
 
   public async getById(id: number): Promise<AppUser> {

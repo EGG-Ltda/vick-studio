@@ -1,8 +1,7 @@
 import { apiRequest } from '../../core/api/http'
 
-export type User = { id: number; login: string; email: string; isActive: boolean; removedAt: string | null }
+export type User = { id: number; login: string; email: string; isActive: boolean; removedAt: string | null; isMaster?: boolean }
 export type UserInput = { login: string; email: string }
-export const MASTER_USER_ID = 1
 export type UserPage = { items: User[]; hasNext: boolean }
 export function listUsers(page: number, hideDisabled: boolean, signal?: AbortSignal) {
   return apiRequest<UserPage>(`/users?${new URLSearchParams({ page: String(page), hideDisabled: String(hideDisabled) })}`, { signal })

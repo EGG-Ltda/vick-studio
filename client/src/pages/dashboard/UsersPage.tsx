@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
-import { createUser, disableUser, listUsers, restoreUser, updateUser, MASTER_USER_ID } from './usersApi'
+import { createUser, disableUser, listUsers, restoreUser, updateUser } from './usersApi'
 import type { User } from './usersApi'
 
 function UsersPage() {
@@ -78,7 +78,7 @@ function UsersPage() {
 
   async function changeStatus(user: User) {
     const active = user.isActive && !user.removedAt
-    if (active && user.id === MASTER_USER_ID) return
+    if (active && user.isMaster) return
     const action = active ? 'Desabilitar' : 'Reabilitar'
     if (!window.confirm(`${action} o usuário ${user.login}?`)) return
     setBusy(true)
@@ -131,7 +131,7 @@ function UsersPage() {
                 <td>{user.login}</td><td>{user.email}</td><td>{user.isActive && !user.removedAt ? 'Ativo' : 'Desabilitado'}</td>
                 <td><div className="users-actions">
                   <button type="button" disabled={busy} aria-label={`Editar ${user.login}`} onClick={() => openForm(user)}>Editar</button>
-                  <button type="button" className="user-status-button" disabled={busy || (user.id === MASTER_USER_ID && user.isActive && !user.removedAt)} title={user.id === MASTER_USER_ID ? 'O administrador master não pode ser desabilitado.' : undefined} aria-label={`${user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'} ${user.login}`} onClick={() => void changeStatus(user)}>{user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'}</button>
+                  <button type="button" className="user-status-button" disabled={busy || (user.isMaster && user.isActive && !user.removedAt)} title={user.isMaster ? 'O administrador master não pode ser desabilitado.' : undefined} aria-label={`${user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'} ${user.login}`} onClick={() => void changeStatus(user)}>{user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'}</button>
                 </div></td>
               </tr>
             ))}

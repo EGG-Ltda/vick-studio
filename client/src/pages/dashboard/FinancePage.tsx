@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { SalonModal } from '../../components/SalonModal'
 
 type Transaction = {
   id: number
@@ -39,6 +40,7 @@ const initialTransactions: Transaction[] = [
 
 function FinancePage() {
   const [transactions, setTransactions] = useState(initialTransactions)
+  const [showForm, setShowForm] = useState(false)
   const [form, setForm] = useState({
     description: '',
     category: 'Atendimento',
@@ -72,25 +74,23 @@ function FinancePage() {
       amount: '',
       type: 'Entrada',
     })
+    setShowForm(false)
   }
 
   return (
     <section className="dashboard-view">
       <header className="dashboard-view-header">
         <div>
+          <span className="salon-eyebrow">Um olhar para o seu negócio</span>
           <h1>Financeiro</h1>
           <p>Acompanhe as entradas e saídas do estúdio.</p>
         </div>
         <button
           className="primary-button"
           type="button"
-          onClick={() =>
-            document
-              .getElementById('finance-form')
-              ?.scrollIntoView({ behavior: 'smooth' })
-          }
+          onClick={() => setShowForm(true)}
         >
-          Novo lançamento
+          <span aria-hidden="true">＋</span> Novo lançamento
         </button>
       </header>
       <div className="metric-grid">
@@ -114,66 +114,87 @@ function FinancePage() {
           <small>Despesas registradas</small>
         </article>
       </div>
-      <form
-        id="finance-form"
-        className="user-form finance-form"
-        onSubmit={addTransaction}
-      >
-        <label>
-          Descrição
-          <input
-            value={form.description}
-            onChange={(event) =>
-              setForm({ ...form, description: event.target.value })
-            }
-            required
-          />
-        </label>
-        <label>
-          Categoria
-          <select
-            value={form.category}
-            onChange={(event) =>
-              setForm({ ...form, category: event.target.value })
-            }
+      {showForm && (
+        <SalonModal
+          title="Novo lançamento"
+          description="Registre uma entrada ou saída para acompanhar o estúdio."
+          onClose={() => setShowForm(false)}
+        >
+          <form
+            id="finance-form"
+            className="user-form finance-form"
+            onSubmit={addTransaction}
           >
-            <option>Atendimento</option>
-            <option>Estoque</option>
-            <option>Despesas fixas</option>
-          </select>
-        </label>
-        <label>
-          Valor
-          <input
-            type="number"
-            min="0.01"
-            step="0.01"
-            value={form.amount}
-            onChange={(event) =>
-              setForm({ ...form, amount: event.target.value })
-            }
-            required
-          />
-        </label>
-        <label>
-          Tipo
-          <select
-            value={form.type}
-            onChange={(event) =>
-              setForm({
-                ...form,
-                type: event.target.value as Transaction['type'],
-              })
-            }
-          >
-            <option>Entrada</option>
-            <option>Saída</option>
-          </select>
-        </label>
-        <button className="primary-button" type="submit">
-          Adicionar
-        </button>
-      </form>
+            <label>
+              Descrição
+              <input
+                autoFocus
+                value={form.description}
+                onChange={(event) =>
+                  setForm({ ...form, description: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label>
+              Categoria
+              <select
+                value={form.category}
+                onChange={(event) =>
+                  setForm({ ...form, category: event.target.value })
+                }
+              >
+                <option>Atendimento</option>
+                <option>Estoque</option>
+                <option>Despesas fixas</option>
+              </select>
+            </label>
+            <label>
+              Valor
+              <input
+                type="number"
+                min="0.01"
+                step="0.01"
+                value={form.amount}
+                onChange={(event) =>
+                  setForm({ ...form, amount: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label>
+              Tipo
+              <select
+                value={form.type}
+                onChange={(event) =>
+                  setForm({
+                    ...form,
+                    type: event.target.value as Transaction['type'],
+                  })
+                }
+              >
+                <option>Entrada</option>
+                <option>Saída</option>
+              </select>
+            </label>
+            <div className="modal-actions">
+              <button type="button" onClick={() => setShowForm(false)}>
+                Cancelar
+              </button>
+              <button className="primary-button" type="submit">
+                Adicionar lançamento
+              </button>
+            </div>
+          </form>
+        </SalonModal>
+      )}
+      <div className="list-toolbar">
+        <div>
+          <h2>Movimentações</h2>
+          <span>Entradas e saídas em um só lugar.</span>
+        </div>
+        <span className="count-tag">{transactions.length} lançamentos</span>
+      </div>
       <div className="users-table-wrapper">
         <table className="users-table">
           <thead>

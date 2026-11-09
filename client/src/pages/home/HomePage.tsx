@@ -61,9 +61,6 @@ function HomePage() {
           <a href="#sobre">Sobre</a>
           <a href="#contato">Contato</a>
         </nav>
-        <button className="home-header-action" type="button" onClick={goToServices}>
-          Agendar Agora
-        </button>
       </header>
 
       <section className="home-hero" aria-labelledby="home-title">

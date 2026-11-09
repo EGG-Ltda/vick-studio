@@ -1,71 +1,147 @@
-import { IUserService, AppUser, userServiceId } from '@/core/user'
-import container from '@/di/bindings'
+import {
+  AppUser,
+  AppUserCreateSchema,
+  AppUserUpdateSchema,
+  IUserService,
+  userServiceId,
+} from '@/core/user'
+import { container } from '@/di/bindings'
 import { authHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 
-type UserGetByIdRequest = {
-  Params: {
-    id: string
-  }
-}
-
-type UpdateUserPutRequest = {
-  Params: {
-    id: string
-  }
-  Body: {
-    email: string
-  }
-}
-
-type DeleteUserRequest = {
-  Params: {
-    id: string
-  }
-}
-
 export default async function userRoutes(app: FastifyInstance): Promise<void> {
   const userService: IUserService = container.get(userServiceId)
 
-  // Update
-  app.put<UpdateUserPutRequest>(
+  // Get logged user
+  app.get('/users/@me', { preHandler: authHook }, async (req, res) => {
+    // const id: number = Number(req.tokenPayload['sub'])
+    // const user: AppUser = await userService.getById(id)
+    // if (!user) {
+    //   return fail(res, 'User not found', 404)
+    // }
+    // return ok(res, user)
+  })
+
+  // Update logged user
+  app.put(
     '/users/@me',
     { preHandler: authHook },
     async (req, res): Promise<void> => {
       // const id: number = Number(req.tokenPayload['sub'])
       // const email: string = String(req.body.email)
-
       // const user: AppUser = await userService.update(id, email)
       // return ok(res, user)
     },
   )
 
-  // Delete
-  app.delete<DeleteUserRequest>(
+  // Disable logged user
+  app.delete(
     '/users/@me',
     { preHandler: authHook },
     async (req, res): Promise<void> => {
       // const id: number = Number(req.tokenPayload['sub'])
-      // await userService.delete(id)
-
+      // await userService.disable(id)
       // return ok(res)
     },
   )
 
-  // Get
-  app.get<UserGetByIdRequest>(
-    '/users/@me',
+  // Get all users
+  app.get<{
+    Querystring: {
+      page: string
+      hideDisabled?: string
+    }
+  }>('/users', { preHandler: authHook }, async (req, res) => {
+    const page: number = Number(req.query.page ?? 0)
+    if (!Number.isSafeInteger(page) || page < 0 || page > 1000000) return fail(res, 'Invalid page', 400)
+    if (req.query.hideDisabled !== undefined && !['true', 'false'].includes(req.query.hideDisabled)) return fail(res, 'Invalid filter', 400)
+    const users = await userService.getAll(page, req.query.hideDisabled === 'true')
+
+    return ok(res, users)
+  })
+
+  // Create user
+  app.post<{
+    Body: {
+      login: string
+      email: string
+      password: string
+    }
+  }>('/users', { preHandler: authHook }, async (req, res) => {
+    const { success, data, error } = AppUserCreateSchema.safeParse(req.body)
+
+    if (!success) {
+      return fail(res, 'Invalid body', 400, error.message)
+    }
+
+    try {
+      return ok(res, await userService.create(data))
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Login is already in use', 409)
+      throw error
+    }
+  })
+
+  // Update user
+  app.put<{
+    Params: {
+      userId: string
+    }
+    Body: {
+      login: string
+      email: string
+    }
+  }>('/users/:userId', { preHandler: authHook }, async (req, res) => {
+    const userId: number = Number(req.params.userId)
+
+    const { success, data, error } = AppUserUpdateSchema.safeParse({
+      ...req.body,
+      id: userId,
+    })
+
+    if (!success) {
+      return fail(res, 'Invalid body', 400, error.message)
+    }
+
+    try {
+      const user = await userService.update(data)
+      if (!user) return fail(res, 'User not found', 404)
+      return ok(res, user)
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Login is already in use', 409)
+      throw error
+    }
+  })
+
+  // Disable user
+  app.delete<{
+    Params: {
+      userId: string
+    }
+  }>(
+    '/users/:userId',
+    { preHandler: authHook },
+    async (req, res): Promise<void> => {
+      const userId: number = Number(req.params.userId)
+      if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
+      if (userId === Number(req.tokenPayload.sub)) {
+        return fail(res, 'You cannot disable your own user account.', 409)
+      }
+      await userService.disable(userId)
+
+      return ok(res)
+    },
+  )
+
+  app.patch<{ Params: { userId: string } }>(
+    '/users/:userId/restore',
     { preHandler: authHook },
     async (req, res) => {
-      // const id: number = Number(req.tokenPayload['sub'])
-      // const user: AppUser = await userService.getById(id)
-
-      // if (!user) {
-      //   return fail(res, 'User not found', 404)
-      // }
-
-      // return ok(res, user)
+      const userId = Number(req.params.userId)
+      if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
+      await userService.enable(userId)
+      return ok(res)
     },
   )
 

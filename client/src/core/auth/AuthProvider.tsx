@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import { AuthContext } from './authContext'
+import { SESSION_EXPIRED_EVENT } from '../api/http'
 
 type AuthProviderProps = {
   children: ReactNode
@@ -9,48 +10,42 @@ type AuthProviderProps = {
 function AuthProvider({ children }: AuthProviderProps) {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
 
+  useEffect(() => {
+    const expireSession = () => setIsAuthenticated(false)
+    window.addEventListener(SESSION_EXPIRED_EVENT, expireSession)
+    return () => window.removeEventListener(SESSION_EXPIRED_EVENT, expireSession)
+  }, [])
+
   const value = useMemo(
     () => ({
       isAuthenticated,
       signIn: async (login: string, password: string) => {
+        const response: Response = await fetch('/api/auth/signin', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          body: JSON.stringify({ login, password }),
+        })
+        const payload: { message?: string } = await response.json()
+        if (!response.ok) {
+          throw new Error(payload.message ?? 'Login ou senha incorretos.')
+        }
+
+        setIsAuthenticated(true)
+      },
+      signOut: async () => {
         try {
-          const response = await fetch('/api/auth/signin', {
+          await fetch('/api/auth/signout', {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ login, password }),
+            credentials: 'include',
+            body: '{}',
           })
-          const payload = await response.json().catch(() => null) as {
-            success?: boolean
-            message?: string
-          } | null
-
-          if (!response.ok || !payload?.success) {
-            return {
-              success: false,
-              message: payload?.message ?? 'Não foi possível entrar. Tente novamente.',
-            }
-          }
-
-          setIsAuthenticated(true)
-          return { success: true }
-        } catch {
-          return {
-            success: false,
-            message: 'Não foi possível conectar ao servidor. Tente novamente.',
-          }
-        }
-      },
-      signOut: async () => {
-        try {
-          const response = await fetch('/api/auth/signout', {
-            method: 'POST',
-          })
-          if (response.ok) {
-            setIsAuthenticated(false)
-          }
-        } catch {
+        } finally {
           setIsAuthenticated(false)
         }
       },

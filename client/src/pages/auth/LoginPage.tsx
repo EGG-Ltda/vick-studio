@@ -27,16 +27,16 @@ function LoginPage() {
     setFeedback('')
     setIsSubmitting(true)
 
-    const result = await signIn(form.login, form.password)
-
-    setIsSubmitting(false)
-
-    if (result.success) {
-      navigate(routePaths.dashboard, { replace: true })
-      return
+    try {
+      await signIn(form.login, form.password)
+      navigate(routePaths.schedule, { replace: true })
+    } catch (error) {
+      setFeedback(
+        error instanceof Error ? error.message : 'Não foi possível entrar. Tente novamente.',
+      )
+    } finally {
+      setIsSubmitting(false)
     }
-
-    setFeedback(result.message ?? 'Não foi possível entrar. Tente novamente.')
   }
 
   return (

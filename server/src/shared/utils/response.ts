@@ -1,4 +1,4 @@
-import { ENVIRONMENT } from '@/app'
+import { ENVIRONMENT } from '@/core/config'
 import { FastifyReply } from 'fastify'
 
 export function ok(res: FastifyReply, data?: any): FastifyReply {

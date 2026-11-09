@@ -1,13 +1,8 @@
 import { createContext } from 'react'
 
-type SignInResult = {
-  success: boolean
-  message?: string
-}
-
 type AuthContextValue = {
   isAuthenticated: boolean
-  signIn: (login: string, password: string) => Promise<SignInResult>
+  signIn: (login: string, password: string) => Promise<void>
   signOut: () => Promise<void>
 }
 

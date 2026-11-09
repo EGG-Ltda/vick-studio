@@ -1,6 +1,7 @@
 import { authServiceId, IAuthService } from '@/core/auth'
+import { IUserService, userServiceId } from '@/core/user'
 import { JwtPayload } from '@/core/jwt'
-import container from '@/di/bindings'
+import { container } from '@/di/bindings'
 import { fail } from '@/shared/utils/response'
 import { FastifyReply, FastifyRequest } from 'fastify'
 
@@ -16,19 +17,26 @@ export async function authHook(
   req: FastifyRequest,
   res: FastifyReply,
 ): Promise<void> {
+  const token: string = req.cookies['accessToken']
+  if (!token) {
+    return fail(res, 'Missing access token', 401)
+  }
+
+  let payload: JwtPayload
   try {
-    const token: string = req.cookies['accessToken']
-    if (!token) {
-      return fail(res, 'Missing access token', 401)
-    }
-
-    const payload: JwtPayload = authService.verifyAccessToken(token)
-    if (!payload) {
-      return fail(res, 'Invalid or expired token', 401)
-    }
-
-    req.tokenPayload = payload
+    payload = authService.verifyAccessToken(token)
   } catch (err) {
     return fail(res, 'Invalid or expired token', 401, err)
   }
+  const userId = Number(payload?.sub)
+  if (!Number.isSafeInteger(userId) || userId <= 0) {
+    return fail(res, 'Invalid or expired token', 401)
+  }
+
+  const userService: IUserService = container.get(userServiceId)
+  const user = await userService.getById(userId)
+  if (!user || !user.isActive || user.removedAt) {
+    return fail(res, 'User is disabled or not found', 401)
+  }
+  req.tokenPayload = payload
 }

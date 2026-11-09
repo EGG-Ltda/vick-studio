@@ -4,7 +4,7 @@ import { hashServiceId } from '@/core/hash'
 import { jwtServiceId } from '@/core/jwt'
 import { scheduleRepositoryId, scheduleServiceId } from '@/core/schedule'
 import { salonTxRepositoryId, salonTxServiceId } from '@/core/transactions'
-import { treatmentRepositoryId, treatmentServiceId } from '@/core/treatment'
+import { TreatmentRepositoryId, TreatmentServiceId } from '@/core/treatment'
 import { userRepositoryId, userServiceId } from '@/core/user'
 import {
   PostgresService,
@@ -49,8 +49,8 @@ export function initializeDI() {
 
   // Treatments
   container
-    .bind(treatmentRepositoryId)
+    .bind(TreatmentRepositoryId)
     .to(TreatmentRepository)
     .inSingletonScope()
-  container.bind(treatmentServiceId).to(TreatmentService).inSingletonScope()
+  container.bind(TreatmentServiceId).to(TreatmentService).inSingletonScope()
 }

@@ -3,8 +3,8 @@ import { ServiceIdentifier } from 'inversify'
 import z from 'zod'
 
 export const AppUserSchema = z.object({
-  id: z.int(),
-  login: z.string().min(1).max(255),
+  id: z.int().positive(),
+  login: z.string().trim().min(1).max(255),
   hashPassword: z.string().optional(),
   email: z.email(),
   isActive: z.boolean(),
@@ -14,37 +14,42 @@ export const AppUserSchema = z.object({
 })
 
 export const AppUserCreateSchema = z.object({
-  login: z.string().min(1).max(255),
+  login: z.string().trim().min(1).max(255),
   email: z.email(),
-  password: z.string(),
+  password: z.string().min(8).max(32),
 })
 
 export const AppUserUpdateSchema = z.object({
-  id: z.int(),
-  login: z.string().min(1).max(255),
+  id: z.int().positive(),
+  login: z.string().trim().min(1).max(255),
   email: z.email(),
 })
+
+export const USER_PAGE_SIZE = 20
+export type AppUserPage = { items: (AppUser & { isMaster: boolean })[]; hasNext: boolean }
 
 export type AppUserCreate = z.infer<typeof AppUserCreateSchema>
 export type AppUserUpdate = z.infer<typeof AppUserUpdateSchema>
 export type AppUser = z.infer<typeof AppUserSchema>
 
 export interface IUserRepository {
-  getAll(page: number): Promise<void>
+  getAll(page: number, hideDisabled?: boolean): Promise<any>
   getById(id: number): Promise<any>
   getByLoginWithPassword(login: string): Promise<any>
   create(data: AppUserCreate, client: IGenericDatabaseClient): Promise<any>
   update(data: AppUserUpdate, client: IGenericDatabaseClient): Promise<any>
-  delete(userId: number, client: IGenericDatabaseClient): Promise<void>
+  disable(userId: number, client: IGenericDatabaseClient): Promise<boolean>
+  enable(userId: number, client: IGenericDatabaseClient): Promise<boolean>
 }
 
 export interface IUserService {
-  getAll(page: number): Promise<AppUser[]>
+  getAll(page: number, hideDisabled?: boolean): Promise<AppUserPage>
   getById(id: number): Promise<AppUser>
   getByLoginWithPassword(login: string): Promise<AppUser>
   create(data: AppUserCreate): Promise<AppUser>
   update(data: AppUserUpdate): Promise<any>
-  delete(userId: number): Promise<void>
+  disable(userId: number): Promise<void>
+  enable(userId: number): Promise<void>
 }
 
 export const userRepositoryId: ServiceIdentifier<IUserRepository> =

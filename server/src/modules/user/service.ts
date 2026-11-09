@@ -1,7 +1,10 @@
+import { MASTER_USER_ID } from '@/core/config'
 import { IDatabaseUnitOfWork, unitOfWorkServiceId } from '@/core/db'
 import { hashServiceId, IHashService } from '@/core/hash'
 import {
   AppUser,
+  AppUserPage,
+  USER_PAGE_SIZE,
   AppUserCreate,
   AppUserSchema,
   AppUserUpdate,
@@ -23,20 +26,24 @@ export class UserService implements IUserService {
     private readonly hashService: IHashService,
   ) {}
 
-  public async getAll(page: number): Promise<AppUser[]> {
+  public async getAll(page: number, hideDisabled = false): Promise<AppUserPage> {
     return this.userRepo
-      .getAll(page)
-      .then((rows) => z.array(AppUserSchema).parse(rows))
+      .getAll(page, hideDisabled)
+      .then((rows) => ({
+        items: z.array(AppUserSchema).parse(rows.slice(0, USER_PAGE_SIZE))
+          .map((user) => ({ ...user, isMaster: user.id === MASTER_USER_ID })),
+        hasNext: rows.length > USER_PAGE_SIZE,
+      }))
   }
 
   public async getById(id: number): Promise<AppUser> {
-    return this.userRepo.getById(id).then((row) => AppUserSchema.parse(row))
+    return this.userRepo.getById(id).then((row) => row ? AppUserSchema.parse(row) : null)
   }
 
   public async getByLoginWithPassword(login: string): Promise<AppUser> {
     return this.userRepo
       .getByLoginWithPassword(login)
-      .then((row) => AppUserSchema.parse(row))
+      .then((row) => row ? AppUserSchema.parse(row) : null)
   }
 
   public async create(data: AppUserCreate): Promise<AppUser> {
@@ -50,12 +57,18 @@ export class UserService implements IUserService {
   public async update(data: AppUserUpdate): Promise<AppUser> {
     return this.work
       .transaction((client) => this.userRepo.update(data, client))
-      .then((row) => AppUserSchema.parse(row))
+      .then((row) => row ? AppUserSchema.parse(row) : null)
   }
 
-  public async delete(userId: number): Promise<void> {
-    return this.work.transaction((client) =>
-      this.userRepo.delete(userId, client),
-    )
+  public async disable(userId: number): Promise<void> {
+    if (userId === MASTER_USER_ID) {
+      throw Object.assign(new Error('The master administrator cannot be disabled.'), { statusCode: 403 })
+    }
+    const found = await this.work.transaction((client) => this.userRepo.disable(userId, client))
+    if (!found) throw Object.assign(new Error('User not found'), { statusCode: 404 })
+  }
+  public async enable(userId: number): Promise<void> {
+    const found = await this.work.transaction((client) => this.userRepo.enable(userId, client))
+    if (!found) throw Object.assign(new Error('User not found'), { statusCode: 404 })
   }
 }

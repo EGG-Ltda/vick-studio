@@ -35,13 +35,13 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     },
   )
 
-  // Soft delete logged user
+  // Disable logged user
   app.delete(
     '/users/@me',
     { preHandler: authHook },
     async (req, res): Promise<void> => {
       // const id: number = Number(req.tokenPayload['sub'])
-      // await userService.delete(id)
+      // await userService.disable(id)
       // return ok(res)
     },
   )
@@ -50,10 +50,13 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
   app.get<{
     Querystring: {
       page: string
+      hideDisabled?: string
     }
   }>('/users', { preHandler: authHook }, async (req, res) => {
-    const page: number = Number(req.query.page)
-    const users: AppUser[] = await userService.getAll(page)
+    const page: number = Number(req.query.page ?? 0)
+    if (!Number.isSafeInteger(page) || page < 0 || page > 1000000) return fail(res, 'Invalid page', 400)
+    if (req.query.hideDisabled !== undefined && !['true', 'false'].includes(req.query.hideDisabled)) return fail(res, 'Invalid filter', 400)
+    const users = await userService.getAll(page, req.query.hideDisabled === 'true')
 
     return ok(res, users)
   })
@@ -72,8 +75,12 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       return fail(res, 'Invalid body', 400, error.message)
     }
 
-    const user: AppUser = await userService.create(data)
-    return ok(res, user)
+    try {
+      return ok(res, await userService.create(data))
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Login is already in use', 409)
+      throw error
+    }
   })
 
   // Update user
@@ -90,18 +97,24 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
 
     const { success, data, error } = AppUserUpdateSchema.safeParse({
       ...req.body,
-      userId,
+      id: userId,
     })
 
     if (!success) {
       return fail(res, 'Invalid body', 400, error.message)
     }
 
-    const user: AppUser = await userService.update(data)
-    return ok(res, user)
+    try {
+      const user = await userService.update(data)
+      if (!user) return fail(res, 'User not found', 404)
+      return ok(res, user)
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') return fail(res, 'Login is already in use', 409)
+      throw error
+    }
   })
 
-  // Soft delete user
+  // Disable user
   app.delete<{
     Params: {
       userId: string
@@ -111,8 +124,23 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     { preHandler: authHook },
     async (req, res): Promise<void> => {
       const userId: number = Number(req.params.userId)
-      await userService.delete(userId)
+      if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
+      if (userId === Number(req.tokenPayload.sub)) {
+        return fail(res, 'You cannot disable your own user account.', 409)
+      }
+      await userService.disable(userId)
 
+      return ok(res)
+    },
+  )
+
+  app.patch<{ Params: { userId: string } }>(
+    '/users/:userId/restore',
+    { preHandler: authHook },
+    async (req, res) => {
+      const userId = Number(req.params.userId)
+      if (!Number.isSafeInteger(userId) || userId <= 0) return fail(res, 'Invalid user', 400)
+      await userService.enable(userId)
       return ok(res)
     },
   )

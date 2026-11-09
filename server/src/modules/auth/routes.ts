@@ -43,7 +43,7 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
     }
 
     const user: AppUser = await userService.getByLoginWithPassword(data.login)
-    if (!user) {
+    if (!user || !user.isActive || user.removedAt) {
       return fail(res, 'Email or password incorrect', 401)
     }
 
@@ -88,6 +88,10 @@ export default async function authRoutes(app: FastifyInstance): Promise<void> {
 
     const payload: JwtPayload = authService.verifyRefreshToken(refreshToken)
     const user: AppUser = await userService.getById(payload['vick:userId'])
+
+    if (!user || !user.isActive || user.removedAt) {
+      return fail(res, 'User is disabled or not found', 401)
+    }
 
     const newAccessToken: JwtToken = authService.createAccessToken(user)
     res.setCookie('accessToken', newAccessToken.token, {

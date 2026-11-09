@@ -3,7 +3,7 @@ import {
   IDatabaseService,
   IGenericDatabaseClient,
 } from '@/core/db'
-import { AppUserCreate, AppUserUpdate, IUserRepository } from '@/core/user'
+import { AppUserCreate, AppUserUpdate, IUserRepository, USER_PAGE_SIZE } from '@/core/user'
 import { inject, injectable } from 'inversify'
 
 @injectable()
@@ -13,9 +13,9 @@ export class UserRepository implements IUserRepository {
     private readonly dbService: IDatabaseService,
   ) {}
 
-  public async getAll(page: number): Promise<any> {
-    const limit: number = 20
-    const offset: number = page * (limit - 1)
+  public async getAll(page: number, hideDisabled = false): Promise<any> {
+    const limit: number = USER_PAGE_SIZE
+    const offset: number = page * limit
 
     const query: string = `
       SELECT
@@ -28,6 +28,8 @@ export class UserRepository implements IUserRepository {
         updated_at AS "updatedAt",
         removed_at AS "removedAt"
       FROM app_users
+      WHERE ($3::boolean = false OR (is_active = TRUE AND removed_at IS NULL))
+      ORDER BY id
       LIMIT $1
       OFFSET $2;
     `
@@ -35,7 +37,7 @@ export class UserRepository implements IUserRepository {
     return this.dbService
       .getClient()
       .then((client) =>
-        client.query(query, [limit, offset]).finally(() => client.release()),
+        client.query(query, [limit + 1, offset, hideDisabled]).finally(() => client.release()),
       )
       .then((result) => result.rows)
   }
@@ -119,8 +121,8 @@ export class UserRepository implements IUserRepository {
         email = $2,
         updated_at = NOW()
       WHERE
-        id = $2
-      id,
+        id = $3
+      RETURNING id,
         login,
         email,
         is_active AS "isActive",
@@ -134,10 +136,10 @@ export class UserRepository implements IUserRepository {
       .then((result) => result.rows[0])
   }
 
-  public async delete(
+  public async disable(
     userId: number,
     client: IGenericDatabaseClient,
-  ): Promise<void> {
+  ): Promise<boolean> {
     const query: string = `
       UPDATE app_users
       SET
@@ -148,6 +150,14 @@ export class UserRepository implements IUserRepository {
         id = $1;
     `
 
-    return client.query(query, [userId])
+    const result = await client.query(query, [userId])
+    return result.rowCount > 0
+  }
+  public async enable(userId: number, client: IGenericDatabaseClient): Promise<boolean> {
+    const result = await client.query(`
+      UPDATE app_users SET is_active = TRUE, removed_at = NULL, updated_at = NOW()
+      WHERE id = $1;
+    `, [userId])
+    return result.rowCount > 0
   }
 }

@@ -61,24 +61,29 @@ function HomePage() {
           <a href="#sobre">Sobre</a>
           <a href="#contato">Contato</a>
         </nav>
+        <div className="home-header-actions">
+          <button className="home-primary-action home-header-booking" type="button" onClick={goToServices}>
+            Agendar Agora <span aria-hidden="true">→</span>
+          </button>
+          <button
+            className="home-salon-action"
+            type="button"
+            aria-label="Área do Salão"
+            title="Entrar na Área do Salão"
+            onClick={() => navigate(routePaths.login)}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero-content">
           <h1 id="home-title">Seu momento de florescer.</h1>
           <p className="hero-description">Cuidado, beleza e bem-estar pensados para você.</p>
-          <div className="home-hero-actions">
-            <button className="home-primary-action" type="button" onClick={goToServices}>
-              Agendar Agora <span aria-hidden="true">→</span>
-            </button>
-            <button
-              className="home-secondary-action"
-              type="button"
-              onClick={() => navigate(routePaths.login)}
-            >
-              Área do Salão <span aria-hidden="true">→</span>
-            </button>
-          </div>
         </div>
       </section>
 

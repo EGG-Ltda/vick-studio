@@ -7,7 +7,9 @@
     "build": "tsc && tsc-alias",
     "start": "node dist/app.js",
     "db:migrate": "node scripts/migrate.cjs",
-    "test:password-reset": "npm run build && node --test tests/password-reset.integration.cjs"
+    "test:password-reset": "npm run build && node --test tests/password-reset.integration.cjs",
+    "test:booking": "npm run build && node --test tests/booking-origin.test.cjs tests/booking-deadline.test.cjs tests/booking.integration.cjs",
+    "test:customers": "npm run build && node --test tests/customer-migration.test.cjs tests/booking.integration.cjs"
   },
   "author": "",
   "license": "ISC",
@@ -21,6 +23,7 @@
   "dependencies": {
     "@fastify/cookie": "^11.0.2",
     "@fastify/cors": "^11.2.0",
+    "@fastify/rate-limit": "^11.2.2",
     "@fastify/static": "^8.2.0",
     "bcrypt": "^6.0.0",
     "bcryptjs": "^3.0.3",

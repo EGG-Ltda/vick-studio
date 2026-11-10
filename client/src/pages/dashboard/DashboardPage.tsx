@@ -8,9 +8,15 @@ import './dashboard.css'
 
 const navigation: { label: string; path: string; icon: SalonIconName }[] = [
   { label: 'Agenda', path: routePaths.schedule, icon: 'agenda' },
+  { label: 'Clientes', path: routePaths.customers, icon: 'clientes' },
   { label: 'Financeiro', path: routePaths.finance, icon: 'financeiro' },
   { label: 'Funcionários', path: routePaths.employees, icon: 'funcionarios' },
   { label: 'Serviços', path: routePaths.treatments, icon: 'servicos' },
+  {
+    label: 'Configurações da agenda',
+    path: routePaths.bookingSettings,
+    icon: 'agenda',
+  },
   { label: 'Usuários', path: routePaths.users, icon: 'usuarios' },
 ]
 
@@ -19,7 +25,9 @@ function DashboardPage() {
   const { signOut } = useAuth()
   const { pathname } = useLocation()
   const currentPage =
-    navigation.find((item) => item.path === pathname)?.label ?? 'Agenda'
+    navigation.find(
+      (item) => item.path === pathname || pathname.startsWith(item.path + '/'),
+    )?.label ?? 'Agenda'
 
   async function handleLogout() {
     await signOut()

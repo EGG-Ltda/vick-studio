@@ -1,7 +1,7 @@
-import { JWT_TOKEN_ACCESS_TOPIC, JWT_TOKEN_REFRESH_TOPIC } from "@/core/config";
-import { JwtService } from "@/infra/jwt/default/service";
-import { ServiceIdentifier } from "inversify";
-import z from "zod";
+import { JWT_TOKEN_ACCESS_TOPIC, JWT_TOKEN_REFRESH_TOPIC } from '@/core/config'
+import { JwtService } from '@/infra/jwt/default/service'
+import { ServiceIdentifier } from 'inversify'
+import z from 'zod'
 
 export const JwtPayloadSchema = z.object({
   jti: z.string(),
@@ -11,15 +11,16 @@ export const JwtPayloadSchema = z.object({
   exp: z.number(),
   nbf: z.number(),
   iat: z.number(),
-  "vick:userId": z.number().optional(),
-  "vick:topic": z
+  'vick:userId': z.number().optional(),
+  'vick:passwordVersion': z.int().nonnegative().default(0),
+  'vick:topic': z
     .literal(JWT_TOKEN_ACCESS_TOPIC)
     .or(z.literal(JWT_TOKEN_REFRESH_TOPIC))
     .optional(),
-});
+})
 
-export type JwtPayload = z.infer<typeof JwtPayloadSchema>;
-export type JwtToken = { token: string; payload: JwtPayload };
+export type JwtPayload = z.infer<typeof JwtPayloadSchema>
+export type JwtToken = { token: string; payload: JwtPayload }
 
 export const jwtServiceId: ServiceIdentifier<JwtService> =
-  Symbol.for("JwtServiceId");
+  Symbol.for('JwtServiceId')

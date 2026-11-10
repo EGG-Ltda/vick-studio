@@ -6,11 +6,16 @@ import {
   listUsers,
   restoreUser,
   updateUser,
+  setTemporaryPassword,
 } from './usersApi'
 import type { User } from './usersApi'
 import { SalonModal } from '../../components/SalonModal'
 
 function UsersPage() {
+  const [resetTarget, setResetTarget] = useState<User | null>(null)
+  const [temporaryPassword, setTemporaryPasswordValue] = useState('')
+  const [passwordConfirmation, setPasswordConfirmation] = useState('')
+  const [resetError, setResetError] = useState('')
   const [users, setUsers] = useState<User[]>([])
   const [hasNext, setHasNext] = useState(false)
   const [page, setPage] = useState(0)
@@ -118,6 +123,47 @@ function UsersPage() {
     }
   }
 
+  function closePasswordReset() {
+    if (busy) return
+    setResetTarget(null)
+    setTemporaryPasswordValue('')
+    setPasswordConfirmation('')
+    setResetError('')
+  }
+
+  async function resetPassword(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!resetTarget) return
+    setResetError('')
+    if (temporaryPassword !== passwordConfirmation) {
+      setResetError('As senhas não conferem.')
+      return
+    }
+    setBusy(true)
+    try {
+      await setTemporaryPassword(
+        resetTarget.id,
+        temporaryPassword,
+        passwordConfirmation,
+      )
+      setNotice(
+        `Senha temporária definida para ${resetTarget.login}. Comunique-a ao funcionário por um canal privado. A troca será exigida ao entrar.`,
+      )
+      setResetTarget(null)
+      setTemporaryPasswordValue('')
+      setPasswordConfirmation('')
+      refresh()
+    } catch (cause) {
+      setResetError(
+        cause instanceof Error
+          ? cause.message
+          : 'Não foi possível redefinir a senha.',
+      )
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <section className="dashboard-view">
       <header className="dashboard-view-header">
@@ -137,6 +183,69 @@ function UsersPage() {
       </header>
       {error && !showForm && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {resetTarget && (
+        <SalonModal
+          title="Definir senha temporária"
+          description={`Redefinir o acesso de ${resetTarget.login}.`}
+          busy={busy}
+          onClose={closePasswordReset}
+        >
+          <form className="user-form" onSubmit={resetPassword}>
+            <p className="form-hint">
+              As sessões anteriores serão encerradas. No próximo acesso, o
+              funcionário deverá criar uma senha pessoal para continuar.
+            </p>
+            <fieldset className="password-reset-fields" disabled={busy}>
+              <label>
+                Senha temporária
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  maxLength={32}
+                  autoComplete="new-password"
+                  value={temporaryPassword}
+                  onChange={(event) =>
+                    setTemporaryPasswordValue(event.target.value)
+                  }
+                  aria-describedby="temporary-password-hint"
+                />
+              </label>
+              <label>
+                Confirmar senha temporária
+                <input
+                  type="password"
+                  required
+                  minLength={8}
+                  maxLength={32}
+                  autoComplete="new-password"
+                  value={passwordConfirmation}
+                  onChange={(event) =>
+                    setPasswordConfirmation(event.target.value)
+                  }
+                />
+              </label>
+            </fieldset>
+            <small id="temporary-password-hint">
+              Use de 8 a 32 caracteres e comunique a senha somente ao
+              funcionário.
+            </small>
+            {resetError && <p role="alert">{resetError}</p>}
+            <div className="modal-actions">
+              <button
+                type="button"
+                disabled={busy}
+                onClick={closePasswordReset}
+              >
+                Cancelar
+              </button>
+              <button type="submit" className="primary-button" disabled={busy}>
+                {busy ? 'Definindo…' : 'Definir senha temporária'}
+              </button>
+            </div>
+          </form>
+        </SalonModal>
+      )}
       {showForm && (
         <SalonModal
           title={editing ? 'Editar usuário' : 'Novo usuário'}
@@ -180,7 +289,7 @@ function UsersPage() {
             </label>
             {!editing && (
               <label>
-                Senha
+                Senha temporária
                 <input
                   type="password"
                   value={password}
@@ -192,7 +301,10 @@ function UsersPage() {
                   autoComplete="new-password"
                   aria-describedby="user-password-hint"
                 />
-                <small id="user-password-hint">De 8 a 32 caracteres.</small>
+                <small id="user-password-hint">
+                  De 8 a 32 caracteres. O funcionário deverá criar uma senha
+                  pessoal no primeiro acesso.
+                </small>
               </label>
             )}
             {error && <p role="alert">{error}</p>}
@@ -277,6 +389,9 @@ function UsersPage() {
                     {user.isMaster && (
                       <span className="master-tag">Master</span>
                     )}
+                    {user.isAdmin && !user.isMaster && (
+                      <span className="master-tag">Admin</span>
+                    )}
                   </td>
                   <td data-label="E-mail">{user.email}</td>
                   <td data-label="Status">
@@ -287,6 +402,11 @@ function UsersPage() {
                         ? 'Ativo'
                         : 'Desabilitado'}
                     </span>
+                    {user.mustChangePassword && (
+                      <small className="password-pending-tag">
+                        Troca de senha pendente
+                      </small>
+                    )}
                   </td>
                   <td data-label="Ações">
                     <div className="users-actions">
@@ -298,6 +418,23 @@ function UsersPage() {
                       >
                         Editar
                       </button>
+                      {user.canResetPassword && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={`Redefinir senha de ${user.login}`}
+                          onClick={() => {
+                            setShowForm(false)
+                            setResetTarget(user)
+                            setResetError('')
+                            setNotice('')
+                            setTemporaryPasswordValue('')
+                            setPasswordConfirmation('')
+                          }}
+                        >
+                          Redefinir senha
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="user-status-button"

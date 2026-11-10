@@ -987,6 +987,20 @@ body:has(.salon-modal[open]) {
   padding: 0;
   border: 0;
 }
+.password-reset-fields {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.password-pending-tag {
+  display: block;
+  margin-top: 6px;
+  color: #a77b40;
+  font-size: 10px;
+}
 .salon-modal .schedule-form {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }

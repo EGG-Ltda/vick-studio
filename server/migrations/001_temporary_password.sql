@@ -1,0 +1,4 @@
+ALTER TABLE app_users
+  ADD COLUMN IF NOT EXISTS is_admin BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS must_change_password BOOLEAN NOT NULL DEFAULT false,
+  ADD COLUMN IF NOT EXISTS password_version INTEGER NOT NULL DEFAULT 0 CHECK (password_version >= 0);

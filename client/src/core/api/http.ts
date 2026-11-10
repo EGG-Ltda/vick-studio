@@ -2,9 +2,11 @@ export type ApiResponse<T> = {
   data: T
   success: boolean
   message?: string
+  code?: string
 }
 
 export const SESSION_EXPIRED_EVENT = 'vick:session-expired'
+export const PASSWORD_CHANGE_REQUIRED_EVENT = 'vick:password-change-required'
 
 export async function apiRequest<T>(
   path: string,
@@ -46,6 +48,9 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok || !payload.success) {
+    if (payload.code === 'PASSWORD_CHANGE_REQUIRED') {
+      window.dispatchEvent(new Event(PASSWORD_CHANGE_REQUIRED_EVENT))
+    }
     throw new Error(payload.message ?? 'Não foi possível concluir a operação.')
   }
 

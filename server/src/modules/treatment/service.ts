@@ -36,6 +36,11 @@ export class TreatmentService implements ITreatmentService {
   public async update(data: TreatmentUpdate): Promise<Treatment> {
     return this.work
       .transaction(async (client) => this.treatmentRepo.update(data, client))
-      .then((row) => TreatmentSchema.parse(row))
+      .then((row) => {
+        if (!row) {
+          throw Object.assign(new Error('Serviço não encontrado.'), { statusCode: 404 })
+        }
+        return TreatmentSchema.parse(row)
+      })
   }
 }

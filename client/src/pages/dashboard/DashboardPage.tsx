@@ -11,6 +11,11 @@ const navigation: { label: string; path: string; icon: SalonIconName }[] = [
   { label: 'Financeiro', path: routePaths.finance, icon: 'financeiro' },
   { label: 'Funcionários', path: routePaths.employees, icon: 'funcionarios' },
   { label: 'Serviços', path: routePaths.treatments, icon: 'servicos' },
+  {
+    label: 'Configurações da agenda',
+    path: routePaths.bookingSettings,
+    icon: 'agenda',
+  },
   { label: 'Usuários', path: routePaths.users, icon: 'usuarios' },
 ]
 

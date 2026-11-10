@@ -4,6 +4,8 @@ import z from 'zod'
 
 export const ScheduleStatusSchema = z.enum([
   'scheduled',
+  'awaiting_deposit',
+  'confirmed',
   'in_progress',
   'completed',
   'cancelled',
@@ -28,6 +30,10 @@ export const ScheduleSchema = z.object({
   startsAt: z.date(),
   endsAt: z.date(),
   status: ScheduleStatusSchema,
+  depositDueAt: z.date().nullable().optional(),
+  depositRequired: z.number().nullable().optional(),
+  depositConfirmedAt: z.date().nullable().optional(),
+  cancellationReason: z.string().nullable().optional(),
 })
 
 export type ScheduleCreate = z.infer<typeof ScheduleCreateSchema>

@@ -1,5 +1,7 @@
 export const routePaths = {
   home: '/',
+  booking: '/agendar',
+  bookingSettings: '/dashboard/configuracoes-agenda',
   login: '/login',
   changePassword: '/alterar-senha',
   dashboard: '/dashboard',

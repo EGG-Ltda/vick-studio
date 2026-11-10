@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import BookingPage from '../pages/booking/BookingPage'
+import BookingSettingsPage from '../pages/dashboard/BookingSettingsPage'
 import LoginPage from '../pages/auth/LoginPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
 import SchedulePage from '../pages/dashboard/SchedulePage'
@@ -15,6 +17,8 @@ import ChangePasswordPage from '../pages/auth/ChangePasswordPage'
 export function AppRoutes() {
   return (
     <Routes>
+      <Route path="/agendar" element={<BookingPage />} />
+      <Route path="/agendar/reservar" element={<BookingPage />} />
       <Route
         path={routePaths.changePassword}
         element={<ChangePasswordPage />}
@@ -27,6 +31,10 @@ export function AppRoutes() {
         <Route path={routePaths.dashboard} element={<DashboardPage />}>
           <Route index element={<Navigate to="schedule" replace />} />
           <Route path="schedule" element={<SchedulePage />} />
+          <Route
+            path="configuracoes-agenda"
+            element={<BookingSettingsPage />}
+          />
           <Route path="usuarios" element={<UsersPage />} />
           <Route path="financeiro" element={<FinancePage />} />
           <Route path="funcionarios" element={<EmployeesPage />} />

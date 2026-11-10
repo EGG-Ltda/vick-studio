@@ -815,6 +815,24 @@ test(
           )
         },
       )
+      await require('./customer-history.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        manager,
+        professional,
+        other,
+        alice,
+        bob,
+        first,
+        staffData,
+        employeeId,
+        password,
+        cpf,
+        bodyFor,
+      })
       await t.test(
         'availability respects disabled professionals and logout invalidates customer session',
         async () => {
@@ -828,9 +846,13 @@ test(
             200,
           )
           assert.equal(
-            requireStatus(await request('GET', '/booking/catalog'), 200).body
-              .data.employees.length,
-            0,
+            requireStatus(
+              await request('GET', '/booking/catalog'),
+              200,
+            ).body.data.employees.some(
+              (employee) => employee.id === employeeId,
+            ),
+            false,
           )
           assert.equal(
             requireStatus(await request('GET', slotsRoute(), alice.cookie), 200)

@@ -15,6 +15,7 @@ import {
 } from './schemas'
 import z from 'zod'
 import { customerDepositDeadline } from './deadline'
+import { recordDeposit } from '../customers/ledger'
 
 export function bookingError(message: string, statusCode = 400): never {
   throw Object.assign(new Error(message), { statusCode })
@@ -28,7 +29,7 @@ const bookingSelect = `SELECT s.id,s.customer_id AS "customerId",p.name AS "cust
  s.deposit_due_at AS "depositDueAt",s.deposit_confirmed_at AS "depositConfirmedAt",u.login AS "depositConfirmedBy",
  s.payment_instructions AS "paymentInstructions",s.cancelled_at AS "cancelledAt",s.cancellation_reason AS "cancellationReason",
  e.id AS "employeeId",ep.name AS "employeeName",e.user_id AS "employeeUserId",
- (SELECT json_agg(json_build_object('id',t.id,'name',t.name,'price',st.price::float)) FROM salon_schedule_treatments st JOIN salon_treatments t ON t.id=st.treatment_id WHERE st.schedule_id=s.id) AS treatments
+ (SELECT json_agg(json_build_object('id',t.id,'name',st.treatment_name,'price',st.price::float)) FROM salon_schedule_treatments st JOIN salon_treatments t ON t.id=st.treatment_id WHERE st.schedule_id=s.id) AS treatments
  FROM salon_schedules s JOIN customers c ON c.id=s.customer_id JOIN persons p ON p.id=c.person_id
  JOIN salon_schedule_treatments first_t ON first_t.id=(SELECT min(id) FROM salon_schedule_treatments WHERE schedule_id=s.id)
  JOIN employees e ON e.id=first_t.employee_id JOIN persons ep ON ep.id=e.person_id LEFT JOIN app_users u ON u.id=s.deposit_confirmed_by`
@@ -483,12 +484,15 @@ export class BookingService {
     const result = await this.work.transaction(async (client) => {
       const row = (
         await client.query(
-          `SELECT s.*,e.user_id FROM salon_schedules s JOIN salon_schedule_treatments t ON t.id=(SELECT min(id) FROM salon_schedule_treatments WHERE schedule_id=s.id) JOIN employees e ON e.id=t.employee_id WHERE s.id=$1 FOR UPDATE OF s`,
+          `SELECT s.*,e.user_id,e.is_active AS employee_active FROM salon_schedules s JOIN salon_schedule_treatments t ON t.id=(SELECT min(id) FROM salon_schedule_treatments WHERE schedule_id=s.id) JOIN employees e ON e.id=t.employee_id WHERE s.id=$1 FOR UPDATE OF s`,
           [id],
         )
       ).rows[0]
       if (!row) bookingError('Booking not found.', 404)
-      if (!canManagePasswords(actor) && row.user_id !== actor.id)
+      if (
+        !canManagePasswords(actor) &&
+        (row.user_id !== actor.id || !row.employee_active)
+      )
         bookingError(
           'Only the responsible professional, ADMIN or MASTER can confirm this deposit.',
           403,
@@ -520,6 +524,7 @@ export class BookingService {
         `UPDATE salon_schedules SET status='confirmed',deposit_received=$2,deposit_confirmed_at=now(),deposit_confirmed_by=$3,updated_at=now() WHERE id=$1`,
         [id, amount, actor.id],
       )
+      await recordDeposit(client, id, amount, actor.id)
       return { id }
     })
     if (result.expired)

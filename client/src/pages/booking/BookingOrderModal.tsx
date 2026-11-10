@@ -8,6 +8,7 @@ import {
   money,
 } from './bookingApi'
 import type { BookingOrder } from './bookingApi'
+import { OrderManagement } from './OrderManagement'
 export function BookingOrderModal({
   id,
   onClose,
@@ -93,9 +94,19 @@ export function BookingOrderModal({
               <dt>Valor combinado</dt>
               <dd>{money(order.totalPrice)}</dd>
               <dt>Sinal necessário</dt>
-              <dd>{money(order.depositRequired)}</dd>
+              <dd>
+                {order.depositRequired == null
+                  ? 'Não exigido nesta reserva'
+                  : money(order.depositRequired)}
+              </dd>
               <dt>Sinal</dt>
-              <dd>{order.depositConfirmedAt ? 'Pago' : 'Pendente'}</dd>
+              <dd>
+                {order.depositRequired == null
+                  ? 'Não se aplica'
+                  : order.depositConfirmedAt
+                    ? 'Confirmado'
+                    : 'Pendente'}
+              </dd>
               {order.depositDueAt && (
                 <>
                   <dt>Prazo do sinal</dt>
@@ -111,8 +122,6 @@ export function BookingOrderModal({
                     {order.depositConfirmedBy} em{' '}
                     {bookingDate(order.depositConfirmedAt)}
                   </dd>
-                  <dt>Saldo previsto</dt>
-                  <dd>{money(order.totalPrice - order.depositReceived!)}</dd>
                 </>
               )}
             </dl>
@@ -159,6 +168,17 @@ export function BookingOrderModal({
                   confirmar o sinal.
                 </p>
               )}
+            <OrderManagement
+              key={`${id}-${order.status}`}
+              id={id}
+              onBusyChange={setBusy}
+              onUpdated={() => {
+                void bookingRequest<BookingOrder>(`/booking/orders/${id}`)
+                  .then(setOrder)
+                  .catch((cause) => setError(cause.message))
+                onChanged()
+              }}
+            />
           </>
         )}
       </div>

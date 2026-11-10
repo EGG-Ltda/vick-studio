@@ -8,6 +8,7 @@ import { canManagePasswords } from '@/shared/utils/user'
 import { ok } from '@/shared/utils/response'
 import { BookingService, bookingError } from './service'
 import { isBookingOriginAllowed } from './origin'
+import { CustomerService } from '../customers/service'
 import {
   BookingSchema,
   EmployeeSchema,
@@ -20,6 +21,10 @@ import {
 
 export default async function bookingRoutes(app: FastifyInstance) {
   const service = new BookingService(
+    container.get(databaseServiceId),
+    container.get(unitOfWorkServiceId),
+  )
+  const customers = new CustomerService(
     container.get(databaseServiceId),
     container.get(unitOfWorkServiceId),
   )
@@ -217,14 +222,14 @@ export default async function bookingRoutes(app: FastifyInstance) {
       .object({ search: z.string().trim().min(2).max(100) })
       .safeParse(req.query)
     if (!query.success) bookingError('Enter at least two characters to search.')
+    const result = await customers.list(req.authUser, query.data.search, 0)
     return ok(
       res,
-      (
-        await service.query(
-          `SELECT c.id,p.name,a.email FROM customers c JOIN persons p ON p.id=c.person_id JOIN customer_accounts a ON a.customer_id=c.id WHERE p.name ILIKE $1 OR a.email ILIKE $1 ORDER BY p.name LIMIT 20`,
-          ['%' + query.data.search + '%'],
-        )
-      ).rows,
+      result.items.map(({ id, name, email }: Record<string, unknown>) => ({
+        id,
+        name,
+        email,
+      })),
     )
   })
   app.post(
@@ -264,6 +269,7 @@ export default async function bookingRoutes(app: FastifyInstance) {
       if (!Number.isSafeInteger(id) || id <= 0)
         bookingError('Invalid booking ID.')
       await service.expire()
+      await customers.authorizeOrder(req.authUser, id)
       const booking = await service.get(id)
       if (!booking) bookingError('Booking not found.', 404)
       return ok(res, {

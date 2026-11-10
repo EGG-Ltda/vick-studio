@@ -127,3 +127,72 @@ Os testes criam e removem apenas seus próprios bancos aleatórios. Não cadastr
 clientes reais nem alteram contas do salão. O limitador de cadastro/login usa
 memória por instância (10 tentativas/minuto por IP); para múltiplas instâncias,
 configurar um armazenamento compartilhado no `@fastify/rate-limit`.
+
+## Clientes, histórico e comanda
+
+A migração `004_customer_history_orders.sql` reutiliza `customers`, `persons`,
+`customer_accounts`, `salon_schedules`, `salon_schedule_treatments` e as tabelas
+financeiras existentes. Executar `npm run db:migrate` antes de iniciar a API.
+Não há criação de uma segunda base de clientes e nenhum DTO administrativo
+contém senha, hash ou token do cliente.
+
+- ADMIN/MASTER consultam todos os clientes, editam nome/CPF/e-mail/telefone e
+  acessam observações internas gerais. A alteração cadastral é auditada; mudar
+  o e-mail também muda o login e revoga as sessões do cliente, preservando sua senha.
+- Uma profissional operacional ativa consulta os clientes vinculados aos seus
+  agendamentos. Histórico, pagamentos e totais são filtrados pelos atendimentos
+  da própria profissional. Cadastro e notas gerais são exclusivos da administração.
+- As observações de cada atendimento são separadas das notas gerais. A profissional
+  responsável e ADMIN/MASTER podem acrescentá-las; não são enviadas à área pública.
+- A busca administrativa atende nome, CPF, telefone e e-mail, com páginas de 20
+  registros. Cadastros presenciais antigos também aparecem, reaproveitando os
+  contatos existentes quando disponíveis.
+
+Na comanda, consumos têm descrição, quantidade, valor unitário, autor e data.
+Cancelar um item exige motivo e mantém o lançamento original auditável. Itens
+podem ser alterados enquanto a reserva aguarda sinal ou está confirmada/em atendimento;
+após a conclusão seus valores permanecem no histórico. Não há integração de estoque.
+
+O sinal confirmado gera um recebimento financeiro na mesma transação da baixa,
+com uma restrição para que não seja contado duas vezes. Pagamentos adicionais
+são registrados em `salon_transactions`, vinculados à comanda. Eles não podem
+exceder o saldo da comanda. Estornos são novos registros (não exclusões), restritos
+a ADMIN/MASTER e vinculados ao recebimento original; a soma não pode exceder o
+que foi recebido. Recebimentos, consumos e estornos usam UUID de solicitação e
+bloqueio da comanda para evitar duplicações e ultrapassagem do saldo por concorrência.
+Os registros são manuais e não executam transferência ou cobrança bancária.
+
+O total efetivamente pago é a soma dos recebimentos/sinais menos os estornos.
+Consumo adicionado, reserva criada e procedimento concluído não contam como
+pagamento. O saldo inclui procedimentos e consumos ativos. Eventual valor pago
+acima da cobrança após cancelar um consumo aparece como crédito a devolver;
+nenhum estorno é lançado automaticamente.
+
+A conclusão do atendimento fica disponível a partir do horário marcado, apenas
+para a responsável ou administração. Procedimentos entram como realizados somente
+com status `completed`, registrando data e usuário da conclusão. Concluir não
+registra pagamento nem exige quitação: débitos continuam visíveis. Cancelamentos
+permanecem no histórico. Nomes e preços dos procedimentos são guardados no vínculo
+da comanda e alterações no catálogo não os reescrevem. Para registros anteriores,
+o nome disponível na data da migração é preservado; preços já gravados são mantidos.
+
+A migração importa sinais antigos confirmados apenas quando a comanda não tem
+recebimentos manuais vinculados, evitando contar o mesmo dinheiro duas vezes.
+Recebimentos manuais existentes são preservados; saídas de estoque não são tratadas
+como estornos. Comandas antigas que já têm registros financeiros devem ter sua
+conciliação conferida pela equipe, pois a base anterior não identificava quais
+recebimentos manuais já incluíam o sinal. Uma transação antiga vinculada a várias
+comandas interrompe a migração para que sua distribuição seja conciliada explicitamente.
+
+Endpoints principais: `/customers`, `/customers/:id`, `/customers/:id/history`,
+`/customers/:id/payments`, `/customers/:id/notes` e `/orders/:id` com sub-recursos
+`consumptions`, `payments`, `notes` e `complete`. A autorização é feita no backend,
+inclusive nas rotas antigas de consulta da Agenda, comanda, busca de clientes e
+transações. O financeiro global exige ADMIN/MASTER.
+
+Testes: com `TEST_DATABASE_CONNECTION_STRING` de um PostgreSQL local com CREATEDB,
+executar `npm run test:customers`. A suíte usa bancos aleatórios descartáveis e
+verifica busca, paginação, permissões/IDOR, ausência de credenciais, consumos,
+idempotência, recebimentos, estornos concorrentes, migração financeira, conclusão,
+preços históricos e edição cadastral. `npm run test:password-reset` cobre a regressão
+anterior. Não são alteradas contas ou recebimentos reais durante os testes.

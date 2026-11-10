@@ -24,6 +24,7 @@ export const ScheduleSchema = z.object({
   customerId: z.number(),
   customerName: z.string(),
   employeeId: z.number(),
+  employeeUserId: z.number(),
   employeeName: z.string(),
   serviceId: z.number(),
   serviceName: z.string(),

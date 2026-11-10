@@ -979,6 +979,28 @@ body:has(.salon-modal[open]) {
   gap: 20px;
   margin-top: 24px;
 }
+.treatment-form-fields {
+  display: grid;
+  min-width: 0;
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.password-reset-fields {
+  display: grid;
+  gap: 20px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+.password-pending-tag {
+  display: block;
+  margin-top: 6px;
+  color: #a77b40;
+  font-size: 10px;
+}
 .salon-modal .schedule-form {
   grid-template-columns: repeat(2, minmax(0, 1fr));
 }
@@ -1010,6 +1032,21 @@ body:has(.salon-modal[open]) {
   transition:
     border-color 150ms,
     box-shadow 150ms;
+}
+.salon-modal textarea {
+  width: 100%;
+  min-height: 88px;
+  padding: 11px 13px;
+  border: 1px solid #e7d5cc;
+  border-radius: 8px;
+  color: #68444b;
+  background: #fffdfa;
+  font: inherit;
+  resize: vertical;
+}
+.salon-modal textarea:focus-visible {
+  outline: 2px solid var(--salon-gold);
+  outline-offset: 3px;
 }
 .salon-modal :is(input, select):focus {
   border-color: var(--salon-gold);

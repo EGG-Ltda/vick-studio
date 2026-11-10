@@ -1,6 +1,7 @@
 export const routePaths = {
   home: '/',
   login: '/login',
+  changePassword: '/alterar-senha',
   dashboard: '/dashboard',
   schedule: '/dashboard/schedule',
   users: '/dashboard/usuarios',

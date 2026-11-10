@@ -21,14 +21,14 @@ export class TreatmentRepository implements ITreatmentRepository {
   public async get(options: GetTreatmentsOptions): Promise<any> {
     const params: any[] = []
     const limit: number = 20
-    const offset: number = options.page * (limit - 1)
+    const offset: number = options.page * limit
 
     let query: string = `
       SELECT
         id,
         name,
         description,
-        price,
+        price::float8 AS price,
         duration_minutes AS "durationMinutes",
         is_active AS "isActive",
         created_at AS "createdAt",
@@ -46,8 +46,9 @@ export class TreatmentRepository implements ITreatmentRepository {
 
     params.push(limit, offset)
     query += `
-      LIMIT $2
-      OFFSET $3;
+      ORDER BY id
+      LIMIT $${params.length - 1}
+      OFFSET $${params.length};
     `
 
     return this.dbService
@@ -67,12 +68,12 @@ export class TreatmentRepository implements ITreatmentRepository {
         name, description, price,
         duration_minutes, is_active, created_at
       )
-      VALUES ($1, $2, $3, $4, $5, true, NOW())
+      VALUES ($1, $2, $3, $4, true, NOW())
       RETURNING
         id,
         name,
         description,
-        price,
+        price::float8 AS price,
         duration_minutes AS "durationMinutes",
         is_active AS "isActive",
         created_at AS "createdAt",
@@ -107,7 +108,7 @@ export class TreatmentRepository implements ITreatmentRepository {
         id,
         name,
         description,
-        price,
+        price::float8 AS price,
         duration_minutes AS "durationMinutes",
         is_active AS "isActive",
         created_at AS "createdAt",
@@ -121,6 +122,6 @@ export class TreatmentRepository implements ITreatmentRepository {
       data.durationMinutes,
       data.isActive,
       data.id,
-    ])
+    ]).then((result) => result.rows[0])
   }
 }

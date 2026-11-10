@@ -564,7 +564,7 @@ body:has(.public-home-page) {
   position: relative;
   z-index: 2;
   display: flex;
-  min-height: max(460px, calc(100vh - 120px));
+  min-height: 0;
   align-items: flex-start;
   padding: clamp(92px, 16vh, 150px) 0 60px;
 }
@@ -657,7 +657,7 @@ body:has(.public-home-page) {
   background: #e8b84a;
 }
 
-.home-services-intro p {
+.home-services-intro > h2 {
   margin: 0;
   color: #a10710;
   font-family: Georgia, 'Times New Roman', serif;
@@ -722,7 +722,7 @@ body:has(.public-home-page) {
   }
 
   .home-hero {
-    min-height: max(540px, calc(100vh - 100px));
+    min-height: 0;
     padding-top: clamp(100px, 18vh, 138px);
   }
 
@@ -793,3 +793,20 @@ body:has(.public-home-page) {
     min-height: 240px;
   }
 }
+
+.home-treatment-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr));
+  gap: 24px;
+  width: min(100%, 1000px);
+}
+.home-treatment-card {
+  padding: 24px;
+  border: 1px solid #e8c7ac;
+  border-radius: 16px;
+  background: #fff8f1;
+  color: #603d38;
+  overflow-wrap: anywhere;
+}
+.home-treatment-card h3 { color: #a10710; margin-top: 0; }
+.home-treatment-card p { line-height: 1.5; }

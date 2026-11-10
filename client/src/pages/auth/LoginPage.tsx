@@ -12,14 +12,21 @@ type LoginForm = {
 
 function LoginPage() {
   const navigate = useNavigate()
-  const { isAuthenticated, signIn } = useAuth()
+  const { isAuthenticated, mustChangePassword, signIn } = useAuth()
   const [form, setForm] = useState<LoginForm>({ login: '', password: '' })
   const [isPasswordVisible, setIsPasswordVisible] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [feedback, setFeedback] = useState('')
 
   if (isAuthenticated) {
-    return <Navigate to={routePaths.dashboard} replace />
+    return (
+      <Navigate
+        to={
+          mustChangePassword ? routePaths.changePassword : routePaths.dashboard
+        }
+        replace
+      />
+    )
   }
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
@@ -28,11 +35,18 @@ function LoginPage() {
     setIsSubmitting(true)
 
     try {
-      await signIn(form.login, form.password)
-      navigate(routePaths.schedule, { replace: true })
+      const session = await signIn(form.login, form.password)
+      navigate(
+        session.mustChangePassword
+          ? routePaths.changePassword
+          : routePaths.schedule,
+        { replace: true },
+      )
     } catch (error) {
       setFeedback(
-        error instanceof Error ? error.message : 'Não foi possível entrar. Tente novamente.',
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível entrar. Tente novamente.',
       )
     } finally {
       setIsSubmitting(false)
@@ -48,7 +62,13 @@ function LoginPage() {
         aria-hidden="true"
       >
         <defs>
-          <linearGradient id="login-art-background" x1="0" y1="0" x2="0.78" y2="1">
+          <linearGradient
+            id="login-art-background"
+            x1="0"
+            y1="0"
+            x2="0.78"
+            y2="1"
+          >
             <stop stopColor="#b31843" />
             <stop offset="0.52" stopColor="#87001f" />
             <stop offset="1" stopColor="#5f0019" />
@@ -58,8 +78,20 @@ function LoginPage() {
             <stop offset="0.48" stopColor="#d66d82" />
             <stop offset="1" stopColor="#bd375c" />
           </linearGradient>
-          <filter id="login-art-shadow" x="-40%" y="-10%" width="190%" height="120%">
-            <feDropShadow dx="8" dy="8" stdDeviation="7" floodColor="#7d4132" floodOpacity="0.24" />
+          <filter
+            id="login-art-shadow"
+            x="-40%"
+            y="-10%"
+            width="190%"
+            height="120%"
+          >
+            <feDropShadow
+              dx="8"
+              dy="8"
+              stdDeviation="7"
+              floodColor="#7d4132"
+              floodOpacity="0.24"
+            />
           </filter>
         </defs>
 
@@ -91,12 +123,10 @@ function LoginPage() {
       <span className="login-dots" aria-hidden="true" />
 
       <section className="login-card" aria-labelledby="login-title">
-        <img
-          className="login-brand"
-          src={vickFlorezLogo}
-          alt="Vick Florez"
-        />
-        <h1 id="login-title" className="visually-hidden">Acessar o sistema</h1>
+        <img className="login-brand" src={vickFlorezLogo} alt="Vick Florez" />
+        <h1 id="login-title" className="visually-hidden">
+          Acessar o sistema
+        </h1>
         <form className="login-form" onSubmit={handleSubmit}>
           <div className="login-field">
             <label htmlFor="login">E-mail</label>
@@ -148,9 +178,14 @@ function LoginPage() {
                 type="button"
                 className="password-toggle"
                 onClick={() => setIsPasswordVisible((visible) => !visible)}
-                aria-label={isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'}
+                aria-label={
+                  isPasswordVisible ? 'Ocultar senha' : 'Mostrar senha'
+                }
               >
-                <span className="login-icon login-icon-eye" aria-hidden="true" />
+                <span
+                  className="login-icon login-icon-eye"
+                  aria-hidden="true"
+                />
               </button>
             </div>
           </div>
@@ -158,14 +193,26 @@ function LoginPage() {
           <button
             type="button"
             className="forgot-password"
-            onClick={() => setFeedback('A recuperação de senha ainda não está disponível.')}
+            onClick={() =>
+              setFeedback(
+                'Solicite uma senha temporária ao administrador do salão. Ao entrar com ela, você deverá definir sua senha pessoal.',
+              )
+            }
           >
             Esqueceu sua senha?
           </button>
-          <button type="submit" className="login-submit" disabled={isSubmitting}>
+          <button
+            type="submit"
+            className="login-submit"
+            disabled={isSubmitting}
+          >
             {isSubmitting ? 'Entrando...' : 'Entrar'}
           </button>
-          {feedback && <p className="login-feedback" role="alert">{feedback}</p>}
+          {feedback && (
+            <p className="login-feedback" role="alert">
+              {feedback}
+            </p>
+          )}
         </form>
       </section>
     </main>

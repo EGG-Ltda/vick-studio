@@ -5,7 +5,9 @@
   "main": "app.js",
   "scripts": {
     "build": "tsc && tsc-alias",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "db:migrate": "node scripts/migrate.cjs",
+    "test:password-reset": "npm run build && node --test tests/password-reset.integration.cjs"
   },
   "author": "",
   "license": "ISC",

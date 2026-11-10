@@ -2,9 +2,11 @@ export type ApiResponse<T> = {
   data: T
   success: boolean
   message?: string
+  code?: string
 }
 
 export const SESSION_EXPIRED_EVENT = 'vick:session-expired'
+export const PASSWORD_CHANGE_REQUIRED_EVENT = 'vick:password-change-required'
 
 export async function apiRequest<T>(
   path: string,
@@ -14,19 +16,42 @@ export async function apiRequest<T>(
   if (options?.body != null && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
   }
-  const response = await fetch(`/api${path}`, {
-    credentials: 'include',
-    ...options,
-    headers,
-  })
-  if (response.status === 401) {
-    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
-    throw new Error('Sua sessão expirou. Entre novamente para continuar.')
+  let response: Response
+  try {
+    response = await fetch(`/api${path}`, {
+      credentials: 'include',
+      ...options,
+      headers,
+    })
+  } catch (error) {
+    if (error instanceof TypeError) {
+      throw new Error(
+        'Unable to connect to the server. Check that the API is running.',
+      )
+    }
+    throw error
   }
-  const payload = (await response.json()) as ApiResponse<T>
+  if (response.status === 401) {
+    if (path === '/auth/signin') throw new Error('Invalid login or password.')
+    window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+    throw new Error('Your session has expired. Sign in again to continue.')
+  }
+  const payload = (await response
+    .json()
+    .catch(() => null)) as ApiResponse<T> | null
+  if (!payload || typeof payload.success !== 'boolean') {
+    throw new Error(
+      response.status >= 500
+        ? 'Unable to connect to the server. Check that the API is running.'
+        : 'The server returned an invalid response. Please try again.',
+    )
+  }
 
   if (!response.ok || !payload.success) {
-    throw new Error(payload.message ?? 'Não foi possível concluir a operação.')
+    if (payload.code === 'PASSWORD_CHANGE_REQUIRED') {
+      window.dispatchEvent(new Event(PASSWORD_CHANGE_REQUIRED_EVENT))
+    }
+    throw new Error(payload.message ?? 'Unable to complete the operation.')
   }
 
   return payload.data

@@ -3,7 +3,13 @@ import {
   IDatabaseService,
   IGenericDatabaseClient,
 } from '@/core/db'
-import { AppUserCreate, AppUserUpdate, IUserRepository, USER_PAGE_SIZE } from '@/core/user'
+import {
+  AppUserCreate,
+  AppUserUpdate,
+  AppUserSchema,
+  IUserRepository,
+  USER_PAGE_SIZE,
+} from '@/core/user'
 import { inject, injectable } from 'inversify'
 
 @injectable()
@@ -24,6 +30,7 @@ export class UserRepository implements IUserRepository {
         hash_password AS "hashPassword",
         email,
         is_active AS "isActive",
+        is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
         updated_at AS "updatedAt",
         removed_at AS "removedAt"
@@ -37,7 +44,9 @@ export class UserRepository implements IUserRepository {
     return this.dbService
       .getClient()
       .then((client) =>
-        client.query(query, [limit + 1, offset, hideDisabled]).finally(() => client.release()),
+        client
+          .query(query, [limit + 1, offset, hideDisabled])
+          .finally(() => client.release()),
       )
       .then((result) => result.rows)
   }
@@ -47,8 +56,10 @@ export class UserRepository implements IUserRepository {
       SELECT
         id,
         login,
+        hash_password AS "hashPassword",
         email,
         is_active AS "isActive",
+        is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
         updated_at AS "updatedAt",
         removed_at AS "removedAt"
@@ -72,6 +83,7 @@ export class UserRepository implements IUserRepository {
         hash_password AS "hashPassword",
         email,
         is_active AS "isActive",
+        is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
         updated_at AS "updatedAt",
         removed_at AS "removedAt"
@@ -93,13 +105,14 @@ export class UserRepository implements IUserRepository {
     client: IGenericDatabaseClient,
   ): Promise<any> {
     const query: string = `
-      INSERT INTO app_users (login, email, hash_password, is_active, created_at)
-      VALUES ($1, $2, $3, true, NOW())
+      INSERT INTO app_users (login, email, hash_password, is_active, must_change_password, created_at)
+      VALUES ($1, $2, $3, true, true, NOW())
       RETURNING
         id,
         login,
         email,
         is_active AS "isActive",
+        is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
         updated_at AS "updatedAt",
         removed_at AS "removedAt";
@@ -126,6 +139,7 @@ export class UserRepository implements IUserRepository {
         login,
         email,
         is_active AS "isActive",
+        is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
         updated_at AS "updatedAt",
         removed_at AS "removedAt";
@@ -153,11 +167,40 @@ export class UserRepository implements IUserRepository {
     const result = await client.query(query, [userId])
     return result.rowCount > 0
   }
-  public async enable(userId: number, client: IGenericDatabaseClient): Promise<boolean> {
-    const result = await client.query(`
+  public async enable(
+    userId: number,
+    client: IGenericDatabaseClient,
+  ): Promise<boolean> {
+    const result = await client.query(
+      `
       UPDATE app_users SET is_active = TRUE, removed_at = NULL, updated_at = NOW()
       WHERE id = $1;
-    `, [userId])
+    `,
+      [userId],
+    )
     return result.rowCount > 0
+  }
+
+  public async replacePassword(
+    userId: number,
+    expectedVersion: number,
+    hash: string,
+    mustChangePassword: boolean,
+    client: IGenericDatabaseClient,
+  ) {
+    const result = await client.query(
+      `
+      UPDATE app_users
+      SET hash_password = $3, must_change_password = $4,
+          password_version = password_version + 1, updated_at = NOW()
+      WHERE id = $1 AND password_version = $2
+        AND is_active = true AND removed_at IS NULL
+      RETURNING id, login, email, is_active AS "isActive", is_admin AS "isAdmin",
+        must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
+        created_at AS "createdAt", updated_at AS "updatedAt", removed_at AS "removedAt";
+    `,
+      [userId, expectedVersion, hash, mustChangePassword],
+    )
+    return result.rows[0] ? AppUserSchema.parse(result.rows[0]) : null
   }
 }

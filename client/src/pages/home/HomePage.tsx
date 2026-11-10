@@ -1,9 +1,39 @@
+import { useEffect, useState } from 'react'
+import { listTreatments } from '../../core/api/treatments'
+import type { PublicTreatment } from '../../core/api/treatments'
 import { useNavigate } from 'react-router-dom'
 import vickFlorezLogo from '../../assets/vick-florez-logo.webp'
 import { routePaths } from '../../routes/routePaths'
 
 function HomePage() {
   const navigate = useNavigate()
+  const [treatments, setTreatments] = useState<PublicTreatment[]>([])
+  const [catalogStatus, setCatalogStatus] = useState('Carregando serviços…')
+  useEffect(() => {
+    let controller: AbortController
+    function refresh() {
+      controller?.abort()
+      controller = new AbortController()
+      const signal = controller.signal
+      listTreatments(true, signal).then((items) => {
+        if (signal.aborted) return
+        setTreatments(items)
+        setCatalogStatus(items.length ? '' : 'Nenhum serviço disponível no momento.')
+      }).catch(() => {
+        if (signal.aborted) return
+        setTreatments([])
+        setCatalogStatus('Não foi possível carregar os serviços. Tente novamente em instantes.')
+      })
+    }
+    refresh()
+    window.addEventListener('focus', refresh)
+    const interval = window.setInterval(refresh, 30000)
+    return () => {
+      controller.abort()
+      window.removeEventListener('focus', refresh)
+      window.clearInterval(interval)
+    }
+  }, [])
 
   function goToServices() {
     document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' })
@@ -89,7 +119,18 @@ function HomePage() {
 
       <section className="home-services-intro" id="servicos" aria-labelledby="services-title">
         <span aria-hidden="true" />
-        <p id="services-title">Nossos serviços</p>
+        <h2 id="services-title">Nossos serviços</h2>
+        {catalogStatus && <p role="status">{catalogStatus}</p>}
+        <div className="home-treatment-grid">
+          {treatments.map((treatment) => (
+            <article className="home-treatment-card" key={treatment.id}>
+              <h3>{treatment.name}</h3>
+              <p>{treatment.description}</p>
+              <strong>{treatment.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
+              <p>{treatment.durationMinutes} minutos</p>
+            </article>
+          ))}
+        </div>
       </section>
       <section className="home-anchor-section" id="sobre" aria-label="Sobre" />
       <footer className="home-anchor-section" id="contato" aria-label="Contato" />

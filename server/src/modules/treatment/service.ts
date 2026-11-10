@@ -38,7 +38,7 @@ export class TreatmentService implements ITreatmentService {
       .transaction(async (client) => this.treatmentRepo.update(data, client))
       .then((row) => {
         if (!row) {
-          throw Object.assign(new Error('Serviço não encontrado.'), { statusCode: 404 })
+          throw Object.assign(new Error('Treatment not found.'), { statusCode: 404 })
         }
         return TreatmentSchema.parse(row)
       })

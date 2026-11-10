@@ -79,7 +79,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       return ok(res, treatment)
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        return fail(res, 'Já existe um serviço com esse nome.', 409)
+        return fail(res, 'A treatment with this name already exists.', 409)
       }
       throw error
     }
@@ -112,7 +112,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       return ok(res, treatment)
     } catch (error) {
       if ((error as { code?: string }).code === '23505') {
-        return fail(res, 'Já existe um serviço com esse nome.', 409)
+        return fail(res, 'A treatment with this name already exists.', 409)
       }
       throw error
     }

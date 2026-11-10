@@ -26,15 +26,15 @@ export async function apiRequest<T>(
   } catch (error) {
     if (error instanceof TypeError) {
       throw new Error(
-        'Não foi possível conectar ao servidor. Verifique se a API está em execução.',
+        'Unable to connect to the server. Check that the API is running.',
       )
     }
     throw error
   }
   if (response.status === 401) {
-    if (path === '/auth/signin') throw new Error('Login ou senha incorretos.')
+    if (path === '/auth/signin') throw new Error('Invalid login or password.')
     window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
-    throw new Error('Sua sessão expirou. Entre novamente para continuar.')
+    throw new Error('Your session has expired. Sign in again to continue.')
   }
   const payload = (await response
     .json()
@@ -42,8 +42,8 @@ export async function apiRequest<T>(
   if (!payload || typeof payload.success !== 'boolean') {
     throw new Error(
       response.status >= 500
-        ? 'Não foi possível conectar ao servidor. Verifique se a API está em execução.'
-        : 'O servidor retornou uma resposta inválida. Tente novamente.',
+        ? 'Unable to connect to the server. Check that the API is running.'
+        : 'The server returned an invalid response. Please try again.',
     )
   }
 
@@ -51,7 +51,7 @@ export async function apiRequest<T>(
     if (payload.code === 'PASSWORD_CHANGE_REQUIRED') {
       window.dispatchEvent(new Event(PASSWORD_CHANGE_REQUIRED_EVENT))
     }
-    throw new Error(payload.message ?? 'Não foi possível concluir a operação.')
+    throw new Error(payload.message ?? 'Unable to complete the operation.')
   }
 
   return payload.data

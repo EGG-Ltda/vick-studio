@@ -14,6 +14,15 @@ async function migrate() {
   await client.connect()
   try {
     await client.query('BEGIN')
+    const masterId = process.env.MASTER_USER_ID ?? ''
+    if (
+      masterId &&
+      (!Number.isSafeInteger(Number(masterId)) || Number(masterId) <= 0)
+    )
+      throw new Error('MASTER_USER_ID must be a positive safe integer')
+    await client.query("SELECT set_config('vick.master_user_id',$1,true)", [
+      masterId,
+    ])
     await client.query('SELECT pg_advisory_xact_lock(458123)')
     await client.query(`CREATE TABLE IF NOT EXISTS app_migrations (
       name TEXT PRIMARY KEY, applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW()

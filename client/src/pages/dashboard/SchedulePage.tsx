@@ -1,440 +1,229 @@
-import { useEffect, useRef, useState } from 'react'
-import type { CSSProperties, DragEvent, FormEvent } from 'react'
-import { listSchedules, type Schedule } from './calendarApi'
+import {useAuth} from '../../core/auth/useAuth'
+import {allowed} from '../../core/auth/permissions'
+import { useEffect, useState } from 'react'
+import type { CSSProperties } from 'react'
+import { listSchedules } from './calendarApi'
+import type { Schedule } from './calendarApi'
 import { SalonModal } from '../../components/SalonModal'
 import { SalonIcon } from '../../components/SalonIcon'
-
-function uniqueSchedules(schedules: Schedule[]): Schedule[] {
-  return Array.from(
-    new Map(schedules.map((schedule) => [schedule.id, schedule])).values(),
-  )
-}
-
-function startOfDay(date: Date): Date {
-  const result = new Date(date)
-  result.setHours(0, 0, 0, 0)
-  return result
-}
-
-function endOfDay(date: Date): Date {
-  const result = startOfDay(date)
-  result.setDate(result.getDate() + 1)
-  return result
-}
-
-function formatTime(value: string): string {
-  return new Intl.DateTimeFormat('pt-BR', {
+import { BookingForm } from '../booking/BookingForm'
+import { BookingOrderModal } from '../booking/BookingOrderModal'
+import {
+  bookingRequest,
+  bookingStatus,
+  cancellationText,
+} from '../booking/bookingApi'
+import type { BookingCatalog } from '../booking/bookingApi'
+import '../booking/booking.css'
+const salonTime = (value: string) =>
+  new Intl.DateTimeFormat('pt-BR', {
     hour: '2-digit',
     minute: '2-digit',
+    timeZone: 'America/Sao_Paulo',
   }).format(new Date(value))
-}
-
-function displayHour(schedule: Schedule, date: Date): number {
-  const start = new Date(schedule.startsAt)
-  return start < startOfDay(date) ? 0 : start.getHours()
-}
-
-function statusLabel(status: Schedule['status']): string {
-  const labels: Record<Schedule['status'], string> = {
-    scheduled: 'Agendado',
-    in_progress: 'Em atendimento',
-    completed: 'Concluído',
-    cancelled: 'Cancelado',
-  }
-  return labels[status]
-}
-
-function statusClass(status: Schedule['status']): string {
-  return status.replace('_', '-')
-}
-
-function SchedulePage() {
-  const [isTvMode, setIsTvMode] = useState(false)
-  const [fullscreenError, setFullscreenError] = useState('')
-  const [selectedDate, setSelectedDate] = useState(new Date())
-  const [schedules, setSchedules] = useState<Schedule[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [draggedScheduleId, setDraggedScheduleId] = useState<number | null>(
-    null,
-  )
-  const [draggedEmployeeId, setDraggedEmployeeId] = useState<number | null>(
-    null,
-  )
-  const [showForm, setShowForm] = useState(false)
-  const [customerName, setCustomerName] = useState('')
-  const [employeeId, setEmployeeId] = useState('')
-  const [treatmentName, setTreatmentName] = useState('')
-  const [startTime, setStartTime] = useState('09:00')
-  const [durationMinutes, setDurationMinutes] = useState('60')
-  const nextLocalId = useRef(-1)
-
+const today = () =>
+  new Intl.DateTimeFormat('en-CA', {
+    timeZone: 'America/Sao_Paulo',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(new Date())
+export default function SchedulePage() {
+  const {user}=useAuth()
+  const [date, setDate] = useState(today),
+    [schedules, setSchedules] = useState<Schedule[]>([]),
+    [catalog, setCatalog] = useState<BookingCatalog | null>(null),
+    [orderId, setOrderId] = useState<number | null>(null),
+    [showForm, setShowForm] = useState(false),
+    [error, setError] = useState(''),
+    [loading, setLoading] = useState(true),
+    [revision, setRevision] = useState(0),
+    [tv, setTv] = useState(false)
   useEffect(() => {
-    function handleEscape(event: KeyboardEvent) {
-      if (event.key === 'Escape') setIsTvMode(false)
-    }
-    document.addEventListener('keydown', handleEscape)
-    return () => document.removeEventListener('keydown', handleEscape)
-  }, [])
-
-  useEffect(() => {
-    if (!isTvMode) return
-    let isCurrent = true
-    let timer: ReturnType<typeof setTimeout>
-    async function refresh() {
+    const controller = new AbortController()
+    let running = false
+    async function load() {
+      if (running) return
+      running = true
       try {
-        const data = await listSchedules(
-          startOfDay(selectedDate),
-          endOfDay(selectedDate),
-        )
-        if (isCurrent) {
-          setSchedules((current) =>
-            uniqueSchedules([
-              ...data,
-              ...current.filter((schedule) => schedule.id < 0),
-            ]),
-          )
-          setError(null)
+        const start = new Date(date + 'T00:00:00-03:00'),
+          end = new Date(start.getTime() + 86400000)
+        const [items, data] = await Promise.all([
+          listSchedules(start, end),
+          bookingRequest<BookingCatalog>('/booking/catalog', {
+            signal: controller.signal,
+          }),
+        ])
+        if (!controller.signal.aborted) {
+          const grouped = new Map<number, Schedule>()
+          for (const item of items) {
+            const existing = grouped.get(item.id)
+            grouped.set(
+              item.id,
+              existing
+                ? {
+                    ...existing,
+                    treatmentName:
+                      existing.treatmentName + ' + ' + item.treatmentName,
+                  }
+                : item,
+            )
+          }
+          setSchedules([...grouped.values()])
+          setCatalog(data)
+          setError('')
         }
-      } catch {
-        if (isCurrent)
+      } catch (cause) {
+        if (!controller.signal.aborted)
           setError(
-            'Não foi possível atualizar a agenda. Tentaremos novamente em 30 segundos.',
+            cause instanceof Error
+              ? cause.message
+              : 'Unable to load schedules.',
           )
       } finally {
-        if (isCurrent) timer = setTimeout(refresh, 30_000)
+        if (!controller.signal.aborted) setLoading(false)
+        running = false
       }
     }
-    timer = setTimeout(refresh, 30_000)
+    void load()
+    const timer = setInterval(() => void load(), 30000)
     return () => {
-      isCurrent = false
-      clearTimeout(timer)
+      controller.abort()
+      clearInterval(timer)
     }
-  }, [isTvMode, selectedDate])
-
-  async function toggleTvMode() {
-    setFullscreenError('')
-    if (isTvMode) {
-      setIsTvMode(false)
-      if (document.fullscreenElement)
-        await document.exitFullscreen().catch(() => {})
-      return
-    }
-    setShowForm(false)
-    setIsTvMode(true)
-  }
-
-  async function enterFullscreen() {
-    try {
-      await document.documentElement.requestFullscreen()
-      setFullscreenError('')
-    } catch {
-      setFullscreenError(
-        'Tela cheia indisponível neste navegador. O modo TV continua ativo.',
-      )
-    }
-  }
-
+  }, [date, revision])
   useEffect(() => {
-    let isMounted = true
-    setIsLoading(true)
-    setError(null)
-
-    listSchedules(startOfDay(selectedDate), endOfDay(selectedDate))
-      .then((data) => {
-        if (isMounted) setSchedules(uniqueSchedules(data))
-      })
-      .catch(() => {
-        if (isMounted) setError('Não foi possível carregar os agendamentos.')
-      })
-      .finally(() => {
-        if (isMounted) setIsLoading(false)
-      })
-
-    return () => {
-      isMounted = false
+    const escape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setTv(false)
     }
-  }, [selectedDate])
-
-  const formattedDate = new Intl.DateTimeFormat('pt-BR', {
-    weekday: 'long',
-    day: '2-digit',
-    month: 'long',
-    year: 'numeric',
-  }).format(selectedDate)
-
-  function changeDate(amount: number) {
-    setSelectedDate((currentDate) => {
-      const nextDate = new Date(currentDate)
-      nextDate.setDate(nextDate.getDate() + amount)
-      return nextDate
-    })
+    document.addEventListener('keydown', escape)
+    return () => document.removeEventListener('keydown', escape)
+  }, [])
+  function move(days: number) {
+    const value = new Date(date + 'T12:00:00Z')
+    value.setUTCDate(value.getUTCDate() + days)
+    setDate(value.toISOString().slice(0, 10))
+    setLoading(true)
   }
-
-  function goToToday() {
-    setSelectedDate(new Date())
-  }
-
-  function addSchedule(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const [hours, minutes] = startTime.split(':').map(Number)
-    const startsAt = new Date(selectedDate)
-    startsAt.setHours(hours, minutes, 0, 0)
-    const endsAt = new Date(
-      startsAt.getTime() + Number(durationMinutes) * 60 * 1000,
-    )
-
-    const localId = nextLocalId.current
-    nextLocalId.current -= 1
-
-    setSchedules((currentSchedules) =>
-      uniqueSchedules([
-        ...currentSchedules,
-        {
-          id: localId,
-          customerId: localId,
-          customerName,
-          employeeId: Number(employeeId),
-          employeeName:
-            professionals.find(
-              (professional) => professional.id === Number(employeeId),
-            )?.name ?? '',
-          treatmentId: localId,
-          treatmentName,
-          startsAt: startsAt.toISOString(),
-          endsAt: endsAt.toISOString(),
-          status: 'scheduled',
-        },
-      ]),
-    )
-    setCustomerName('')
-    setEmployeeId('')
-    setTreatmentName('')
-    setStartTime('09:00')
-    setDurationMinutes('60')
-    setShowForm(false)
-    setError(null)
-  }
-
-  function handleDragStart(event: DragEvent<HTMLElement>, scheduleId: number) {
-    event.dataTransfer.effectAllowed = 'move'
-    event.dataTransfer.setData('text/plain', String(scheduleId))
-    const schedule = schedules.find((item) => item.id === scheduleId)
-    setDraggedScheduleId(scheduleId)
-    setDraggedEmployeeId(schedule?.employeeId ?? null)
-  }
-
-  function handleDrop(
-    event: DragEvent<HTMLDivElement>,
-    employeeId: number,
-    time: string,
-  ) {
-    event.preventDefault()
-    const scheduleId = Number(event.dataTransfer.getData('text/plain'))
-    const id = Number.isNaN(scheduleId) ? draggedScheduleId : scheduleId
-    if (id === null || id === undefined || employeeId !== draggedEmployeeId)
-      return
-
-    const [hours, minutes] = time.split(':').map(Number)
-    const nextStart = new Date(selectedDate)
-    nextStart.setHours(hours, minutes, 0, 0)
-
-    setSchedules((currentSchedules) =>
-      uniqueSchedules(
-        currentSchedules.map((schedule) => {
-          if (schedule.id !== id) return schedule
-
-          const duration =
-            new Date(schedule.endsAt).getTime() -
-            new Date(schedule.startsAt).getTime()
-          return {
-            ...schedule,
-            startsAt: nextStart.toISOString(),
-            endsAt: new Date(nextStart.getTime() + duration).toISOString(),
-          }
-        }),
-      ),
-    )
-    setDraggedScheduleId(null)
-    setDraggedEmployeeId(null)
-  }
-
-  const loadedProfessionals = Array.from(
-    new Map(
-      schedules.map((schedule) => [schedule.employeeId, schedule.employeeName]),
-    ).entries(),
-  ).map(([id, name]) => ({ id, name }))
-  const professionals = loadedProfessionals
-  const displayProfessionals =
-    professionals.length > 0
-      ? professionals
-      : [{ id: 0, name: 'Nenhuma profissional cadastrada' }]
-  const calendarStyle = {
-    '--professional-count': Math.max(professionals.length, 1),
-  } as CSSProperties
-  const hours = schedules.map((schedule) => displayHour(schedule, selectedDate))
-  const firstHour = Math.min(9, ...hours)
-  const lastHour = Math.max(18, ...hours)
-  const timeSlots = Array.from(
-    { length: lastHour - firstHour + 1 },
-    (_, index) => `${String(index + firstHour).padStart(2, '0')}:00`,
+  const professionalMap = new Map(
+    (catalog?.employees ?? []).map((employee) => [employee.id, employee.name]),
   )
-
-  const completedCount = schedules.filter(
-    (schedule) => schedule.status === 'completed',
-  ).length
-
+  for (const schedule of schedules)
+    professionalMap.set(schedule.employeeId, schedule.employeeName)
+  const professionals = [...professionalMap].map(([id, name]) => ({ id, name }))
+  const columns = professionals.length
+    ? professionals
+    : [{ id: 0, name: 'Nenhuma profissional cadastrada' }]
+  const hours = schedules.map((schedule) =>
+    Number(salonTime(schedule.startsAt).slice(0, 2)),
+  )
+  const timeSlots = Array.from(
+    { length: Math.max(18, ...hours) - Math.min(9, ...hours) + 1 },
+    (_, i) => String(i + Math.min(9, ...hours)).padStart(2, '0') + ':00',
+  )
   return (
-    <section className={`dashboard-view${isTvMode ? ' schedule-tv' : ''}`}>
+    <section className={`dashboard-view${tv ? ' schedule-tv' : ''}`}>
       <header className="dashboard-view-header">
         <div>
           <span className="salon-eyebrow">
             Cada horário, um momento especial
           </span>
-          <h1>{isTvMode ? 'Agenda da equipe' : 'Agenda'}</h1>
+          <h1>{tv ? 'Agenda da equipe' : 'Agenda'}</h1>
           <p>
-            {isTvMode
-              ? 'Vick Florez · Atualização a cada 30 segundos'
-              : 'Organize os atendimentos e faça o dia florescer.'}
+            Confirme o sinal e acompanhe as reservas. Atualização a cada 30
+            segundos.
           </p>
         </div>
         <div className="schedule-actions">
-          <button type="button" onClick={toggleTvMode} aria-pressed={isTvMode}>
+          <button
+            type="button"
+            aria-pressed={tv}
+            onClick={() => setTv((value) => !value)}
+          >
             <SalonIcon name="tv" />
-            {isTvMode ? 'Voltar à agenda' : 'Expandir para TV'}
+            {tv ? 'Voltar à agenda' : 'Expandir para TV'}
           </button>
-          {isTvMode && (
-            <button type="button" onClick={enterFullscreen}>
+          {tv && (
+            <button
+              type="button"
+              onClick={() =>
+                void document.documentElement
+                  .requestFullscreen()
+                  .catch(() => setError('Unable to enter fullscreen.'))
+              }
+            >
               Tela cheia
             </button>
           )}
-          {!isTvMode && (
+          {!tv && allowed(user,'agenda.create') && (
             <button
-              type="button"
               className="primary-button"
               onClick={() => setShowForm(true)}
             >
-              <span aria-hidden="true">＋</span> Novo agendamento
+              Novo agendamento
             </button>
           )}
         </div>
       </header>
-
-      {showForm && (
+      {showForm && catalog && (
         <SalonModal
           title="Novo agendamento"
-          description="Reserve um momento de cuidado na agenda do salão."
+          description="Reserva pela equipe, com prazo específico para o sinal."
           onClose={() => setShowForm(false)}
         >
-          <form className="user-form schedule-form" onSubmit={addSchedule}>
-            <label>
-              Cliente
-              <input
-                autoFocus
-                placeholder="Nome da cliente"
-                value={customerName}
-                onChange={(event) => setCustomerName(event.target.value)}
-                required
-              />
-            </label>
-            <label>
-              Profissional
-              <select
-                value={employeeId}
-                onChange={(event) => setEmployeeId(event.target.value)}
-                required
-                disabled={professionals.length === 0}
-              >
-                <option value="">Selecione</option>
-                {professionals.map((professional) => (
-                  <option value={professional.id} key={professional.id}>
-                    {professional.name}
-                  </option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Serviço
-              <input
-                value={treatmentName}
-                onChange={(event) => setTreatmentName(event.target.value)}
-                required
-              />
-            </label>
-            <label>
-              Horário
-              <input
-                type="time"
-                value={startTime}
-                onChange={(event) => setStartTime(event.target.value)}
-                required
-              />
-            </label>
-            <label>
-              Duração (min.)
-              <input
-                type="number"
-                min="15"
-                step="15"
-                value={durationMinutes}
-                onChange={(event) => setDurationMinutes(event.target.value)}
-                required
-              />
-            </label>
-            {professionals.length === 0 && (
-              <p className="form-hint">
-                Não há profissionais disponíveis na agenda deste dia.
-              </p>
-            )}
-            <div className="modal-actions">
-              <button type="button" onClick={() => setShowForm(false)}>
-                Cancelar
-              </button>
-              <button
-                type="submit"
-                className="primary-button"
-                disabled={professionals.length === 0}
-              >
-                Adicionar agendamento
-              </button>
-            </div>
-          </form>
+          <BookingForm
+            catalog={catalog}
+            staff
+            onBooked={() => {
+              setShowForm(false)
+              setRevision((value) => value + 1)
+            }}
+          />
         </SalonModal>
       )}
-
+      {orderId !== null && (
+        <BookingOrderModal
+          id={orderId}
+          onClose={() => setOrderId(null)}
+          onChanged={() => setRevision((value) => value + 1)}
+        />
+      )}
       <div className="schedule-toolbar">
-        <div className="schedule-date-control">
-          <div className="date-arrows">
-            <button
-              type="button"
-              onClick={() => changeDate(-1)}
-              aria-label="Dia anterior"
-            >
-              ‹
-            </button>
-            <button
-              type="button"
-              onClick={() => changeDate(1)}
-              aria-label="Próximo dia"
-            >
-              ›
-            </button>
-          </div>
-          <strong>{formattedDate}</strong>
-          <button className="today-button" type="button" onClick={goToToday}>
-            Hoje
+        <div className="schedule-date-navigation">
+          <button aria-label="Dia anterior" onClick={() => move(-1)}>
+            ‹
           </button>
+          <label>
+            Data{' '}
+            <input
+              type="date"
+              value={date}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setDate(e.target.value)
+                  setLoading(true)
+                }
+              }}
+            />
+          </label>
+          <button aria-label="Próximo dia" onClick={() => move(1)}>
+            ›
+          </button>
+          <button onClick={() => setDate(today())}>Hoje</button>
         </div>
-        <div className="schedule-summary">
-          <span>{schedules.length} agendamentos</span>
-          <span>{completedCount} concluído</span>
-        </div>
+        <p>
+          {schedules.filter((s) => s.status !== 'cancelled').length} reservas
+          ativas ·{' '}
+          {schedules.filter((s) => s.status === 'awaiting_deposit').length}{' '}
+          aguardando sinal
+        </p>
       </div>
-
-      {error && <p role="alert">{error}</p>}
-      {fullscreenError && <p role="status">{fullscreenError}</p>}
-      {isLoading && <p>Carregando agenda...</p>}
-
+      {error && (
+        <p className="booking-error" role="alert">
+          {error}
+        </p>
+      )}
+      {loading && <p role="status">Carregando agenda…</p>}
       <div
         className="calendar-scroll"
         role="region"
@@ -443,14 +232,17 @@ function SchedulePage() {
       >
         <div
           className="calendar"
-          aria-label="Calendário de agendamentos"
-          style={calendarStyle}
+          style={
+            {
+              '--professional-count': Math.max(professionals.length, 1),
+            } as CSSProperties
+          }
         >
           <div className="calendar-header">
             <div className="calendar-corner">
               <SalonIcon name="agenda" />
             </div>
-            {displayProfessionals.map((professional) => (
+            {columns.map((professional) => (
               <div className="professional-heading" key={professional.id}>
                 <strong>{professional.name}</strong>
               </div>
@@ -460,67 +252,72 @@ function SchedulePage() {
             {timeSlots.map((time) => (
               <div className="calendar-row" key={time}>
                 <time>{time}</time>
-                {displayProfessionals.map((professional) => {
-                  const appointments = schedules
-                    .filter(
-                      (schedule) =>
-                        schedule.employeeId === professional.id &&
-                        displayHour(schedule, selectedDate) ===
-                          Number(time.split(':')[0]),
-                    )
-                    .sort((a, b) => a.startsAt.localeCompare(b.startsAt))
-                  return (
-                    <div
-                      className="calendar-cell"
-                      key={professional.id}
-                      onDragOver={(event) => {
-                        if (!isTvMode) event.preventDefault()
-                      }}
-                      onDrop={(event) => {
-                        if (!isTvMode) handleDrop(event, professional.id, time)
-                      }}
-                    >
-                      {appointments.map((appointment) => (
-                        <article
-                          key={appointment.id}
-                          className={`appointment appointment-${statusClass(appointment.status)}`}
-                          draggable={!isTvMode}
-                          onDragStart={(event) =>
-                            handleDragStart(event, appointment.id)
-                          }
-                          onDragEnd={() => {
-                            setDraggedScheduleId(null)
-                            setDraggedEmployeeId(null)
-                          }}
+                {columns.map((professional) => (
+                  <div className="calendar-cell" key={professional.id}>
+                    {schedules
+                      .filter(
+                        (schedule) =>
+                          schedule.employeeId === professional.id &&
+                          schedule.status !== 'cancelled' &&
+                          salonTime(schedule.startsAt).slice(0, 2) ===
+                            time.slice(0, 2),
+                      )
+                      .map((schedule) => (
+                        <button
+                          key={schedule.id}
+                          type="button"
+                          onClick={() => setOrderId(schedule.id)}
+                          className={`appointment appointment-${schedule.status.replaceAll('_', '-')}`}
                         >
                           <span className="appointment-time">
-                            {formatTime(appointment.startsAt)} –{' '}
-                            {formatTime(appointment.endsAt)}
+                            {salonTime(schedule.startsAt)} –{' '}
+                            {salonTime(schedule.endsAt)}
                           </span>
-                          <strong>{appointment.customerName}</strong>
-                          <span>{appointment.treatmentName}</span>
-                          <small>{statusLabel(appointment.status)}</small>
-                        </article>
+                          <strong>{schedule.customerName}</strong>
+                          <span>{schedule.treatmentName}</span>
+                          <small>{bookingStatus(schedule.status)}</small>
+                        </button>
                       ))}
-                    </div>
-                  )
-                })}
+                  </div>
+                ))}
               </div>
             ))}
           </div>
         </div>
       </div>
-      {!isLoading && schedules.length === 0 && (
+      {!loading && !schedules.length && (
         <p className="empty-calendar">Nenhum agendamento para este dia.</p>
       )}
-      <div className="calendar-legend" aria-label="Legenda dos agendamentos">
-        <span>Agendado</span>
-        <span>Em atendimento</span>
-        <span>Concluído</span>
-        <span>Cancelado</span>
-      </div>
+      <section className="booking-history">
+        <h2>Cancelamentos do dia</h2>
+        <p>Essas reservas permanecem no histórico e não ocupam horários.</p>
+        <div className="booking-list">
+          {schedules
+            .filter((schedule) => schedule.status === 'cancelled')
+            .map((schedule) => (
+              <button
+                key={schedule.id}
+                className="cancelled"
+                type="button"
+                onClick={() => setOrderId(schedule.id)}
+              >
+                <strong>
+                  {salonTime(schedule.startsAt)} · {schedule.customerName}
+                </strong>
+                <span>
+                  {schedule.employeeName} · {schedule.treatmentName}
+                </span>
+                <span>
+                  {cancellationText(schedule.cancellationReason ?? null)}
+                </span>
+                <small>Abrir comanda e motivo do cancelamento</small>
+              </button>
+            ))}
+        </div>
+        {!schedules.some((schedule) => schedule.status === 'cancelled') && (
+          <p>Nenhum cancelamento nesta data.</p>
+        )}
+      </section>
     </section>
   )
 }
-
-export default SchedulePage

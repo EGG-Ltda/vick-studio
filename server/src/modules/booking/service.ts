@@ -22,8 +22,8 @@ export function bookingError(message: string, statusCode = 400): never {
 }
 const digest = (value: string) =>
   createHash('sha256').update(value).digest('hex')
-const settingsSelect = `SELECT enabled,deposit_days AS "depositDays",short_notice_hours AS "shortNoticeHours",deposit_type AS "depositType",deposit_value::float AS "depositValue",payment_instructions AS "paymentInstructions",timezone FROM booking_settings WHERE id=true`
-const bookingSelect = `SELECT s.id,s.customer_id AS "customerId",p.name AS "customerName",s.status,
+const settingsSelect = `SELECT package_validity_months AS "packageValidityMonths",enabled,deposit_days AS "depositDays",short_notice_hours AS "shortNoticeHours",deposit_type AS "depositType",deposit_value::float AS "depositValue",payment_instructions AS "paymentInstructions",timezone FROM booking_settings WHERE id=true`
+const bookingSelect = `SELECT s.package_use_id AS "packageUseId",(SELECT purchase_id FROM package_uses WHERE id=s.package_use_id) AS "packagePurchaseId",s.id,s.customer_id AS "customerId",p.name AS "customerName",s.status,
  s.schedule_started_at AS "startsAt",s.schedule_ended_at AS "endsAt",s.total_price::float AS "totalPrice",
  s.deposit_required::float AS "depositRequired",s.deposit_received::float AS "depositReceived",
  s.deposit_due_at AS "depositDueAt",s.deposit_confirmed_at AS "depositConfirmedAt",u.login AS "depositConfirmedBy",
@@ -52,7 +52,7 @@ export class BookingService {
   }
   async updateSettings(data: z.infer<typeof SettingsSchema>) {
     await this.query(
-      `UPDATE booking_settings SET enabled=$1,deposit_days=$2,deposit_type=$3,deposit_value=$4,payment_instructions=$5,short_notice_hours=$6 WHERE id=true`,
+      `UPDATE booking_settings SET enabled=$1,deposit_days=$2,deposit_type=$3,deposit_value=$4,payment_instructions=$5,short_notice_hours=$6,package_validity_months=$7 WHERE id=true`,
       [
         data.enabled,
         data.depositDays,
@@ -60,6 +60,7 @@ export class BookingService {
         data.depositValue,
         data.paymentInstructions,
         data.shortNoticeHours,
+        data.packageValidityMonths,
       ],
     )
     return this.settings()
@@ -79,8 +80,8 @@ export class BookingService {
             409,
           )
         const person = await client.query(
-          'INSERT INTO persons(name,cpf_cnpj,is_pj,created_at) VALUES($1,$2,false,now()) RETURNING id',
-          [data.name, data.cpf],
+          'INSERT INTO persons(name,cpf_cnpj,is_pj,created_at,born_at) VALUES($1,$2,false,now(),$3) RETURNING id',
+          [data.name, data.cpf, data.birthDate],
         )
         const customer = await client.query(
           'INSERT INTO customers(person_id,created_at) VALUES($1,now()) RETURNING id',
@@ -239,9 +240,10 @@ export class BookingService {
     startsAt: string,
     client: IGenericDatabaseClient,
     staffDeadline?: string,
+    options?: { ignoreScheduleId?: number; duration?: number },
   ) {
     const settings = (await client.query(settingsSelect, [])).rows[0]
-    if (!settings.enabled && !staffDeadline)
+    if (!settings.enabled && !staffDeadline && !options?.ignoreScheduleId)
       bookingError('Online booking is not available.', 409)
     const employee = (
       await client.query(
@@ -261,10 +263,13 @@ export class BookingService {
         'Professional is not qualified for the selected treatments.',
         409,
       )
-    const duration = treatments.reduce(
-      (sum: number, t: { duration: number; price: number }) => sum + t.duration,
-      0,
-    )
+    const duration =
+      options?.duration ??
+      treatments.reduce(
+        (sum: number, t: { duration: number; price: number }) =>
+          sum + t.duration,
+        0,
+      )
     if (duration <= 0 || duration > 720)
       bookingError('Invalid treatment duration.')
     const total =
@@ -318,8 +323,8 @@ export class BookingService {
       bookingError('This time is outside the professional working hours.', 409)
     const conflict = (
       await client.query(
-        `SELECT 1 FROM salon_schedule_treatments t JOIN salon_schedules s ON s.id=t.schedule_id WHERE t.employee_id=$1 AND s.status<>'cancelled' AND s.schedule_started_at<$3 AND s.schedule_ended_at>$2 LIMIT 1`,
-        [employeeId, startsAt, timing.finish],
+        `SELECT 1 FROM salon_schedule_treatments t JOIN salon_schedules s ON s.id=t.schedule_id WHERE t.employee_id=$1 AND s.status<>'cancelled' AND s.id<>$4 AND s.schedule_started_at<$3 AND s.schedule_ended_at>$2 LIMIT 1`,
+        [employeeId, startsAt, timing.finish, options?.ignoreScheduleId ?? 0],
       )
     ).rows.length
     if (conflict) bookingError('This time is no longer available.', 409)
@@ -342,6 +347,7 @@ export class BookingService {
     treatmentIds: number[],
     date: string,
     staffDeadline?: string,
+    options?: { ignoreScheduleId?: number; duration?: number },
   ) {
     // Availability is advisory; creation revalidates under an exclusive professional lock.
     return this.work.transaction(async (client) => {
@@ -363,6 +369,7 @@ export class BookingService {
               time.start,
               client,
               staffDeadline,
+              options,
             )),
           })
         } catch (error: any) {

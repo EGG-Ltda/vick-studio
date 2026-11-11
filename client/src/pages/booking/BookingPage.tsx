@@ -1,6 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
+import { PackageBooking } from '../social/PackageBooking'
+import { PackageHistory } from '../social/PackageHistory'
 import logo from '../../assets/vick-florez-logo.webp'
 import { BookingForm } from './BookingForm'
 import {
@@ -56,6 +58,13 @@ function BookingSummary({ order }: { order: BookingOrder }) {
 }
 export default function BookingPage() {
   const navigate = useNavigate()
+  const location = useLocation()
+  const [packageRevision, setPackageRevision] = useState(0)
+  const [isPackageSelected, setIsPackageSelected] = useState(false)
+  useEffect(() => {
+    const id = new URLSearchParams(location.search).get('pacote')
+    if (id && /^\d+$/.test(id)) sessionStorage.setItem('bookingPackage', id)
+  }, [location.search])
   const isReservationPage = useLocation().pathname === '/agendar/reservar'
   const successHeading = useRef<HTMLHeadingElement>(null)
   const [session, setSession] = useState<CustomerSession | null>(null),
@@ -67,6 +76,7 @@ export default function BookingPage() {
     [error, setError] = useState(''),
     [created, setCreated] = useState<BookingOrder | null>(null)
   const [form, setForm] = useState({
+    birthDate: '',
     name: '',
     cpf: '',
     phone: '',
@@ -145,7 +155,14 @@ export default function BookingPage() {
         },
       )
       setSession(account)
-      setForm({ name: '', cpf: '', phone: '', email: '', password: '' })
+      setForm({
+        birthDate: '',
+        name: '',
+        cpf: '',
+        phone: '',
+        email: '',
+        password: '',
+      })
       navigate('/agendar/reservar', { replace: true })
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to sign in.')
@@ -253,6 +270,21 @@ export default function BookingPage() {
                         />
                       </label>
                       <label>
+                        Data de nascimento
+                        <input
+                          required
+                          type="date"
+                          autoComplete="bday"
+                          max={new Date().toLocaleDateString('en-CA', {
+                            timeZone: 'America/Sao_Paulo',
+                          })}
+                          value={form.birthDate}
+                          onChange={(e) =>
+                            setForm({ ...form, birthDate: e.target.value })
+                          }
+                        />
+                      </label>
+                      <label>
                         Telefone
                         <input
                           required
@@ -327,6 +359,17 @@ export default function BookingPage() {
         )}
         {session && catalog && (
           <>
+            <PackageBooking
+              catalog={catalog}
+              onSelectionChange={setIsPackageSelected}
+              onBooked={() => {
+                setPackageRevision((r) => r + 1)
+                void bookingRequest<BookingOrder[]>('/customer/bookings')
+                  .then(setOrders)
+                  .catch((cause) => setError(cause.message))
+              }}
+            />
+            <PackageHistory revision={packageRevision} />
             {created ? (
               <section aria-live="polite">
                 <h2 ref={successHeading} tabIndex={-1}>
@@ -342,7 +385,9 @@ export default function BookingPage() {
                 </button>
               </section>
             ) : (
-              <BookingForm catalog={catalog} onBooked={setCreated} />
+              !isPackageSelected && (
+                <BookingForm catalog={catalog} onBooked={setCreated} />
+              )
             )}
             <section className="booking-history">
               <h2>Meus agendamentos</h2>

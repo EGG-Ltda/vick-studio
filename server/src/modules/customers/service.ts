@@ -15,7 +15,7 @@ import {
 import z from 'zod'
 
 const scope = `($1::boolean OR EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active))`
-const profileSelect = `SELECT c.id,p.name,p.cpf_cnpj AS cpf,COALESCE(a.email,c.contact_email) AS email,COALESCE(a.phone,c.contact_phone) AS phone,c.created_at AS "createdAt" FROM customers c JOIN persons p ON p.id=c.person_id LEFT JOIN customer_accounts a ON a.customer_id=c.id`
+const profileSelect = `SELECT c.id,p.born_at::text AS "birthDate",p.name,p.cpf_cnpj AS cpf,COALESCE(a.email,c.contact_email) AS email,COALESCE(a.phone,c.contact_phone) AS phone,c.created_at AS "createdAt" FROM customers c JOIN persons p ON p.id=c.person_id LEFT JOIN customer_accounts a ON a.customer_id=c.id`
 export class CustomerService {
   constructor(
     private db: IDatabaseService,
@@ -139,8 +139,8 @@ export class CustomerService {
             )
         }
         await client.query(
-          'UPDATE persons SET name=$1,cpf_cnpj=$2,updated_at=now() WHERE id=(SELECT person_id FROM customers WHERE id=$3)',
-          [data.name, data.cpf, id],
+          'UPDATE persons SET name=$1,cpf_cnpj=$2,born_at=COALESCE($4::date,born_at),updated_at=now() WHERE id=(SELECT person_id FROM customers WHERE id=$3)',
+          [data.name, data.cpf, id, data.birthDate ?? null],
         )
         await client.query(
           'UPDATE customers SET contact_email=$1,contact_phone=$2,updated_at=now() WHERE id=$3',
@@ -225,8 +225,9 @@ export class CustomerService {
     actor: AppUser,
     id: number,
     client?: IGenericDatabaseClient,
+    lock = true,
   ) {
-    const sql = `SELECT s.*,s.schedule_started_at<=clock_timestamp() AS has_started,EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active) AS assigned FROM salon_schedules s WHERE s.id=$1${client ? ' FOR UPDATE OF s' : ''}`
+    const sql = `SELECT s.*,s.schedule_started_at<=clock_timestamp() AS has_started,EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active) AS assigned FROM salon_schedules s WHERE s.id=$1${client && lock ? ' FOR UPDATE OF s' : ''}`
     const row = (
       client
         ? await client.query(sql, [id, actor.id])
@@ -251,7 +252,7 @@ export class CustomerService {
           [id],
         ),
         query(
-          `SELECT t.id,t.ledger_kind AS kind,abs(t.value)::float AS amount,t.description,t.created_at AS "createdAt",m.name AS method,t.refund_of AS "refundOf",u.login AS author,(SELECT COALESCE(sum(abs(value)),0)::float FROM salon_transactions WHERE refund_of=t.id AND ledger_kind='refund') AS "refundedAmount" FROM salon_transactions t JOIN payment_methods m ON m.id=t.method_id LEFT JOIN app_users u ON u.id=t.recorded_by WHERE t.order_id=$1 AND t.ledger_kind IS NOT NULL ORDER BY t.id`,
+          `SELECT t.package_receipt_id AS "packageReceiptId",t.id,t.ledger_kind AS kind,abs(t.value)::float AS amount,t.description,t.created_at AS "createdAt",m.name AS method,t.refund_of AS "refundOf",u.login AS author,(SELECT COALESCE(sum(abs(value)),0)::float FROM salon_transactions WHERE refund_of=t.id AND ledger_kind='refund') AS "refundedAmount" FROM salon_transactions t JOIN payment_methods m ON m.id=t.method_id LEFT JOIN app_users u ON u.id=t.recorded_by WHERE t.order_id=$1 AND t.ledger_kind IS NOT NULL ORDER BY t.id`,
           [id],
         ),
         query(
@@ -285,6 +286,20 @@ export class CustomerService {
         notes: notes.rows,
         payments: payments.rows,
         methods: methods.rows,
+        isPackage: !!row.package_use_id,
+        extrasBalance:
+          (extraCents -
+            payments.rows
+              .filter(
+                (p: { packageReceiptId: number | null }) => !p.packageReceiptId,
+              )
+              .reduce(
+                (s: number, p: { amount: number; kind: string }) =>
+                  s +
+                  (p.kind === 'refund' ? -1 : 1) * Math.round(p.amount * 100),
+                0,
+              )) /
+          100,
         treatmentTotal,
         extrasTotal: extraCents / 100,
         grandTotal: grandTotal / 100,
@@ -409,6 +424,22 @@ export class CustomerService {
           'Payments cannot be recorded for an unconfirmed or cancelled order.',
           409,
         )
+      if (order.package_use_id) {
+        const extra = (
+          await client.query(
+            `SELECT (SELECT COALESCE(sum(quantity*unit_price),0) FROM order_consumptions WHERE schedule_id=$1 AND voided_at IS NULL)-(SELECT COALESCE(sum(CASE WHEN ledger_kind='refund' THEN -value ELSE value END),0) FROM salon_transactions WHERE order_id=$1 AND package_receipt_id IS NULL AND ledger_kind IS NOT NULL) AS balance`,
+            [id],
+          )
+        ).rows[0]
+        if (
+          Math.round(data.amount * 100) >
+          Math.round(Number(extra.balance) * 100)
+        )
+          bookingError(
+            'Record package payments in the package panel. Individual payments cover extras only.',
+            409,
+          )
+      }
       const totals = (
         await client.query(
           `SELECT COALESCE(s.total_price,(SELECT sum(price) FROM salon_schedule_treatments WHERE schedule_id=s.id),0)+(SELECT COALESCE(sum(quantity*unit_price),0) FROM order_consumptions WHERE schedule_id=s.id AND voided_at IS NULL)-(SELECT COALESCE(sum(CASE WHEN ledger_kind='refund' THEN -abs(value) ELSE abs(value) END),0) FROM salon_transactions WHERE order_id=s.id AND ledger_kind IS NOT NULL) AS balance FROM salon_schedules s WHERE s.id=$1`,
@@ -479,7 +510,7 @@ export class CustomerService {
       }
       const source = (
         await client.query(
-          `SELECT *,value-(SELECT COALESCE(sum(abs(value)),0) FROM salon_transactions WHERE refund_of=t.id AND ledger_kind='refund') AS available FROM salon_transactions t WHERE id=$1 AND order_id=$2 AND ledger_kind IN ('payment','deposit') FOR UPDATE OF t`,
+          `SELECT *,value-(SELECT COALESCE(sum(abs(value)),0) FROM salon_transactions WHERE refund_of=t.id AND ledger_kind='refund') AS available FROM salon_transactions t WHERE id=$1 AND order_id=$2 AND package_receipt_id IS NULL AND ledger_kind IN ('payment','deposit') FOR UPDATE OF t`,
           [paymentId, id],
         )
       ).rows[0]
@@ -516,6 +547,16 @@ export class CustomerService {
       if (order.status === 'completed') return { id }
       if (!['confirmed', 'in_progress'].includes(order.status))
         bookingError('Only confirmed appointments can be completed.', 409)
+      if (order.package_use_id) {
+        const use = (
+          await client.query(
+            'SELECT u.state,p.valid_until>clock_timestamp() AS valid FROM package_uses u JOIN package_purchases p ON p.id=u.purchase_id WHERE u.id=$1',
+            [order.package_use_id],
+          )
+        ).rows[0]
+        if (!use?.valid || use.state !== 'reserved')
+          bookingError('Package utilization is unavailable or expired.', 409)
+      }
       const started = (
         await client.query(
           'SELECT $1::timestamptz<=clock_timestamp() AS started',

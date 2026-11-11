@@ -1,4 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import BirthdaysPage from '../pages/social/BirthdaysPage'
+import PromotionsPage from '../pages/social/PromotionsPage'
 import BookingPage from '../pages/booking/BookingPage'
 import CustomersPage from '../pages/dashboard/CustomersPage'
 import CustomerDetailPage from '../pages/dashboard/CustomerDetailPage'
@@ -38,6 +40,8 @@ export function AppRoutes() {
             element={<BookingSettingsPage />}
           />
           <Route path="usuarios" element={<UsersPage />} />
+          <Route path="social/aniversariantes" element={<BirthdaysPage />} />
+          <Route path="social/promocoes" element={<PromotionsPage />} />
           <Route path="clientes" element={<CustomersPage />} />
           <Route path="clientes/:id" element={<CustomerDetailPage />} />
           <Route path="financeiro" element={<FinancePage />} />

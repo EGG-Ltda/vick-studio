@@ -9,7 +9,8 @@
     "db:migrate": "node scripts/migrate.cjs",
     "test:password-reset": "npm run build && node --test tests/password-reset.integration.cjs",
     "test:booking": "npm run build && node --test tests/booking-origin.test.cjs tests/booking-deadline.test.cjs tests/booking.integration.cjs",
-    "test:customers": "npm run build && node --test tests/customer-migration.test.cjs tests/booking.integration.cjs"
+    "test:customers": "npm run build && node --test tests/customer-migration.test.cjs tests/booking.integration.cjs",
+    "test:social": "npm run build && node --test tests/booking-origin.test.cjs tests/booking-deadline.test.cjs tests/package-allocation.test.cjs tests/customer-migration.test.cjs tests/booking.integration.cjs tests/password-reset.integration.cjs"
   },
   "author": "",
   "license": "ISC",

@@ -1,6 +1,7 @@
 import z from 'zod'
-import { CpfSchema } from '../booking/schemas'
+import { CpfSchema, BirthDateSchema } from '../booking/schemas'
 export const ProfileSchema = z.object({
+  birthDate: BirthDateSchema.nullable().optional(),
   name: z.string().trim().min(3).max(255),
   cpf: CpfSchema,
   email: z.email().trim().toLowerCase().max(255),

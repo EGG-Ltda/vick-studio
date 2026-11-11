@@ -228,6 +228,7 @@ test(
         },
       )
       const registration = {
+        birthDate: '1990-05-20',
         name: 'Cliente Alice',
         cpf: cpf(234567890),
         email: 'alice@example.test',
@@ -833,6 +834,7 @@ test(
         cpf,
         bodyFor,
       })
+      await require('./social.cases.cjs')({t,request,requireStatus,db,master,professional,other,alice,bob,employeeId})
       await t.test(
         'availability respects disabled professionals and logout invalidates customer session',
         async () => {

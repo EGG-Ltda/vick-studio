@@ -23,9 +23,12 @@ type OrderLedger = {
     method: string
     author: string | null
     createdAt: string
+    packageReceiptId: number | null
     refundedAmount: number
   }[]
   methods: { id: number; name: string }[]
+  isPackage: boolean
+  extrasBalance: number
   treatmentTotal: number
   extrasTotal: number
   grandTotal: number
@@ -155,7 +158,10 @@ export function OrderManagement({
   }
   const refundable =
     data?.payments.filter(
-      (item) => item.kind !== 'refund' && item.amount > item.refundedAmount,
+      (item) =>
+        !item.packageReceiptId &&
+        item.kind !== 'refund' &&
+        item.amount > item.refundedAmount,
     ) ?? []
   const selectedRefund = refundable.find(
     (item) => item.id === Number(refund.paymentId),
@@ -358,61 +364,67 @@ export function OrderManagement({
                 </small>
               </article>
             ))}
-            {data.balance > 0 && (data.canManage || data.completedAt) && (
-              <form className="booking-form" onSubmit={receipt}>
-                <fieldset disabled={busy}>
-                  <legend>Registrar recebimento</legend>
-                  <label>
-                    Valor recebido (R$)
-                    <input
-                      required
-                      type="number"
-                      min="0.01"
-                      max={data.balance}
-                      step="0.01"
-                      value={payment.amount}
-                      onChange={(event) =>
-                        setPayment({ ...payment, amount: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Forma de pagamento
-                    <select
-                      required
-                      value={payment.methodId}
-                      onChange={(event) =>
-                        setPayment({ ...payment, methodId: event.target.value })
-                      }
-                    >
-                      <option value="">Selecione</option>
-                      {data.methods.map((method) => (
-                        <option key={method.id} value={method.id}>
-                          {method.name}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Descrição
-                    <input
-                      required
-                      maxLength={1023}
-                      value={payment.description}
-                      onChange={(event) =>
-                        setPayment({
-                          ...payment,
-                          description: event.target.value,
-                        })
-                      }
-                    />
-                  </label>
-                </fieldset>
-                <button className="primary-button" disabled={busy}>
-                  Registrar valor recebido
-                </button>
-              </form>
-            )}
+            {(data.isPackage ? data.extrasBalance : data.balance) > 0 &&
+              (data.canManage || data.completedAt) && (
+                <form className="booking-form" onSubmit={receipt}>
+                  <fieldset disabled={busy}>
+                    <legend>Registrar recebimento</legend>
+                    <label>
+                      {data.isPackage
+                        ? 'Valor recebido por consumos extras (R$)'
+                        : 'Valor recebido (R$)'}
+                      <input
+                        required
+                        type="number"
+                        min="0.01"
+                        max={data.isPackage ? data.extrasBalance : data.balance}
+                        step="0.01"
+                        value={payment.amount}
+                        onChange={(event) =>
+                          setPayment({ ...payment, amount: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Forma de pagamento
+                      <select
+                        required
+                        value={payment.methodId}
+                        onChange={(event) =>
+                          setPayment({
+                            ...payment,
+                            methodId: event.target.value,
+                          })
+                        }
+                      >
+                        <option value="">Selecione</option>
+                        {data.methods.map((method) => (
+                          <option key={method.id} value={method.id}>
+                            {method.name}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      Descrição
+                      <input
+                        required
+                        maxLength={1023}
+                        value={payment.description}
+                        onChange={(event) =>
+                          setPayment({
+                            ...payment,
+                            description: event.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </fieldset>
+                  <button className="primary-button" disabled={busy}>
+                    Registrar valor recebido
+                  </button>
+                </form>
+              )}
             {data.canRefund && refundable.length > 0 && (
               <form className="booking-form" onSubmit={reimbursement}>
                 <fieldset disabled={busy}>

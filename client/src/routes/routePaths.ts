@@ -8,6 +8,8 @@ export const routePaths = {
   schedule: '/dashboard/schedule',
   users: '/dashboard/usuarios',
   customers: '/dashboard/clientes',
+  birthdays: '/dashboard/social/aniversariantes',
+  promotions: '/dashboard/social/promocoes',
   finance: '/dashboard/financeiro',
   employees: '/dashboard/funcionarios',
   treatments: '/dashboard/servicos',

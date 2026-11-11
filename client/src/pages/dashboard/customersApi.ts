@@ -3,6 +3,7 @@ export { bookingRequest as customerRequest }
 export type Customer = {
   id: number
   name: string
+  birthDate: string | null
   cpf: string
   email: string | null
   phone: string | null

@@ -1,4 +1,5 @@
 export type BookingSettings = {
+  packageValidityMonths: number
   shortNoticeHours: number
   enabled: boolean
   depositDays: number
@@ -44,6 +45,9 @@ export type BookingSlot = {
   instructions: string
 }
 export type BookingOrder = {
+  employeeId: number
+  packagePurchaseId: number | null
+  packageUseId: number | null
   id: number
   customerName: string
   employeeName: string

@@ -44,6 +44,7 @@ export function OrderChanges({
     [error, setError] = useState(''),
     [notice, setNotice] = useState('')
   const request = useRef<{ body: string; key: string } | null>(null)
+  const [acknowledgeLinkedImpact, setAcknowledgeLinkedImpact] = useState(false)
   useEffect(() => {
     const c = new AbortController()
     Promise.all([
@@ -102,6 +103,7 @@ export function OrderChanges({
       const body = {
         action: form.action,
         reason: form.reason,
+        acknowledgeLinkedImpact,
         ...(form.action === 'reschedule'
           ? {
               employeeId: Number(form.employeeId),
@@ -122,6 +124,7 @@ export function OrderChanges({
         'Alteração registrada. Nenhum pagamento ou estorno foi gerado automaticamente.',
       )
       setForm((f) => ({ ...f, reason: '' }))
+      setAcknowledgeLinkedImpact(false)
       request.current = null
       setRevision((r) => r + 1)
       onChanged()
@@ -152,6 +155,20 @@ export function OrderChanges({
         order.status !== 'completed' && (
           <form onSubmit={submit}>
             <fieldset disabled={busy}>
+              {order.groupId && form.action !== 'reschedule' && (
+                <label className="dependency-checkbox">
+                  <input
+                    required
+                    type="checkbox"
+                    checked={acknowledgeLinkedImpact}
+                    onChange={(e) =>
+                      setAcknowledgeLinkedImpact(e.target.checked)
+                    }
+                  />
+                  Revisei os atendimentos vinculados e entendo que esta ação não
+                  altera os demais nem gera estorno automático.
+                </label>
+              )}
               <label>
                 Ação
                 <select

@@ -11,7 +11,8 @@
     "test:booking": "npm run build && node --test tests/booking-origin.test.cjs tests/booking-deadline.test.cjs tests/booking.integration.cjs",
     "test:customers": "npm run build && node --test tests/customer-migration.test.cjs tests/booking.integration.cjs",
     "test:social": "npm run build && node --test tests/booking-origin.test.cjs tests/booking-deadline.test.cjs tests/package-allocation.test.cjs tests/customer-migration.test.cjs tests/booking.integration.cjs tests/password-reset.integration.cjs",
-    "test:access": "npm run test:social"
+    "test:access": "npm run test:social",
+    "test:dependencies": "npm run build && node --test tests/dependency-rules.test.cjs tests/booking.integration.cjs tests/password-reset.integration.cjs tests/customer-migration.test.cjs tests/booking-origin.test.cjs tests/booking-deadline.test.cjs tests/package-allocation.test.cjs"
   },
   "author": "",
   "license": "ISC",

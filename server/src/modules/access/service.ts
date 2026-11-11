@@ -78,7 +78,8 @@ export class AccessService {
   async profiles() {
     return (
       await this.query(
-        `SELECT r.role,r.version,json_agg(json_build_object('key',p.permission_key,'allowed',p.allowed,'delegatable',p.delegatable) ORDER BY p.permission_key) AS permissions FROM access_profiles r JOIN profile_permissions p ON p.role=r.role GROUP BY r.role,r.version ORDER BY r.role`,
+        `SELECT r.role,r.version,json_agg(json_build_object('key',p.permission_key,'allowed',p.allowed,'delegatable',p.delegatable) ORDER BY p.permission_key) AS permissions FROM access_profiles r JOIN profile_permissions p ON p.role=r.role WHERE p.permission_key=ANY($1::text[]) GROUP BY r.role,r.version ORDER BY r.role`,
+        [permissionCatalog.map((p) => p[0])],
       )
     ).rows
   }

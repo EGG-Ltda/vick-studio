@@ -36,7 +36,13 @@ test(
       created = false,
       base
     const password = randomBytes(16).toString('hex')
-    const request = async (method, route, cookie = '', body, extraHeaders={}) => {
+    const request = async (
+      method,
+      route,
+      cookie = '',
+      body,
+      extraHeaders = {},
+    ) => {
       const response = await fetch(base + '/api' + route, {
         method,
         headers: {
@@ -857,6 +863,19 @@ test(
         professional,
         other,
         alice,
+        employeeId,
+      })
+      await require('./dependencies.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        manager,
+        professional,
+        other,
+        alice,
+        bob,
         employeeId,
       })
       await t.test(

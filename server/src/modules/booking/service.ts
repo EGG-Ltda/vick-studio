@@ -16,6 +16,7 @@ import {
 import z from 'zod'
 import { customerDepositDeadline } from './deadline'
 import { recordDeposit } from '../customers/ledger'
+import { assertIndependent } from '../dependencies/rules'
 
 export function bookingError(message: string, statusCode = 400): never {
   throw Object.assign(new Error(message), { statusCode })
@@ -23,7 +24,7 @@ export function bookingError(message: string, statusCode = 400): never {
 const digest = (value: string) =>
   createHash('sha256').update(value).digest('hex')
 const settingsSelect = `SELECT package_validity_months AS "packageValidityMonths",enabled,deposit_days AS "depositDays",short_notice_hours AS "shortNoticeHours",deposit_type AS "depositType",deposit_value::float AS "depositValue",payment_instructions AS "paymentInstructions",timezone FROM booking_settings WHERE id=true`
-const bookingSelect = `SELECT s.package_use_id AS "packageUseId",(SELECT purchase_id FROM package_uses WHERE id=s.package_use_id) AS "packagePurchaseId",s.id,s.customer_id AS "customerId",p.name AS "customerName",s.status,
+const bookingSelect = `SELECT (SELECT group_id FROM booking_group_members WHERE schedule_id=s.id) AS "groupId",s.package_use_id AS "packageUseId",(SELECT purchase_id FROM package_uses WHERE id=s.package_use_id) AS "packagePurchaseId",s.id,s.customer_id AS "customerId",p.name AS "customerName",s.status,
  s.schedule_started_at AS "startsAt",s.schedule_ended_at AS "endsAt",s.total_price::float AS "totalPrice",
  s.deposit_required::float AS "depositRequired",s.deposit_received::float AS "depositReceived",
  s.deposit_due_at AS "depositDueAt",s.deposit_confirmed_at AS "depositConfirmedAt",u.login AS "depositConfirmedBy",
@@ -383,6 +384,8 @@ export class BookingService {
     data: z.infer<typeof BookingSchema>,
     account: { id: number; customerId: number },
     staffDeadline?: string,
+    existingClient?: IGenericDatabaseClient,
+    linked = false,
   ) {
     const fingerprint = digest(
       JSON.stringify({
@@ -393,7 +396,8 @@ export class BookingService {
       }),
     )
     try {
-      return await this.work.transaction(async (client) => {
+      const create = async (client: IGenericDatabaseClient) => {
+        await client.query('SELECT pg_advisory_xact_lock_shared(70440,1)', [])
         await client.query('SELECT pg_advisory_xact_lock(70422,$1)', [
           account.id,
         ])
@@ -411,6 +415,7 @@ export class BookingService {
             )
           return this.get(existing.id, client)
         }
+        if (!linked) await assertIndependent(client, data.treatmentIds)
         await client.query('SELECT pg_advisory_xact_lock(70421,$1)', [
           data.employeeId,
         ])
@@ -465,7 +470,10 @@ export class BookingService {
             [data.employeeId, schedule.id, treatment.id, treatment.price],
           )
         return this.get(schedule.id, client)
-      })
+      }
+      return existingClient
+        ? await create(existingClient)
+        : await this.work.transaction(create)
     } catch (error: any) {
       if (error.code === '23P01')
         bookingError('This time is no longer available.', 409)

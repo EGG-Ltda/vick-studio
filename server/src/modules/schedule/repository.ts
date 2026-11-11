@@ -26,6 +26,7 @@ export class ScheduleRepository implements IScheduleRepository {
     const query = `
       SELECT
         schedules.id,
+        (SELECT group_id FROM booking_group_members WHERE schedule_id=schedules.id) AS "groupId",
         schedules.customer_id AS "customerId",
         customer_person.name AS "customerName",
         employees.id AS "employeeId",

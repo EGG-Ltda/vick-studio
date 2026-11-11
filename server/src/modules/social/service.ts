@@ -16,6 +16,12 @@ import {
 } from './schemas'
 import { PaymentSchema, RefundSchema } from '../customers/schemas'
 import z from 'zod'
+import {
+  assertIndependent,
+  linkedPlan,
+  validateLinkedChange,
+  validatePlan,
+} from '../dependencies/rules'
 const promotionSelect = `SELECT p.id,p.title,p.description,p.conditions,p.art_id::int AS "artId",p.alt_text AS "altText",p.starts_on::text AS "startsOn",p.ends_on::text AS "endsOn",p.active,p.price::float AS price,
  COALESCE((SELECT json_agg(json_build_object('treatmentId',i.treatment_id,'quantity',i.quantity,'name',t.name,'durationMinutes',t.duration_minutes,'price',t.price::float) ORDER BY i.treatment_id) FROM promotion_items i JOIN salon_treatments t ON t.id=i.treatment_id WHERE i.promotion_id=p.id),'[]') AS items FROM promotions p`
 export class SocialService {
@@ -122,13 +128,16 @@ export class SocialService {
   async acquire(
     account: { id: number; customerId: number },
     data: z.infer<typeof AcquisitionSchema>,
+    existingClient?: IGenericDatabaseClient,
+    linked = false,
   ) {
     const ends: string[] = []
     const fingerprint = createHash('sha256')
       .update(JSON.stringify({ ...data, requestKey: undefined }))
       .digest('hex')
     try {
-      return await this.work.transaction(async (client) => {
+      const acquire = async (client: IGenericDatabaseClient) => {
+        await client.query('SELECT pg_advisory_xact_lock_shared(70440,1)', [])
         await client.query('SELECT pg_advisory_xact_lock(70422,$1)', [
           account.id,
         ])
@@ -171,6 +180,7 @@ export class SocialService {
           )
         )
           bookingError('Schedule every package procedure exactly once.')
+        if (!linked) await assertIndependent(client, required)
         const employeeIds = [
           ...new Set(data.appointments.map((a) => a.employeeId)),
         ].sort((a, b) => a - b)
@@ -258,7 +268,10 @@ export class SocialService {
           )
         }
         return { id: purchase.id }
-      })
+      }
+      return existingClient
+        ? await acquire(existingClient)
+        : await this.work.transaction(acquire)
     } catch (error) {
       if ((error as { code?: string }).code === '23P01')
         bookingError(
@@ -480,13 +493,42 @@ export class SocialService {
           new Date(row.schedule_started_at).getTime()) /
           60000,
       )
-    const slots = await this.booking.slots(
+    let slots = await this.booking.slots(
       employeeId,
       treatments.map((t: { treatment_id: number }) => t.treatment_id),
       date,
       undefined,
       { ignoreScheduleId: id, duration },
     )
+    const linkedClient = await this.db.getClient()
+    try {
+      const linked = await linkedPlan(linkedClient, id)
+      if (linked)
+        slots = slots.filter((slot) => {
+          try {
+            validatePlan(
+              linked.group.plan,
+              linked.members.map((m: any) =>
+                m.id === id
+                  ? {
+                      ...m,
+                      startsAt: slot.startsAt,
+                      endsAt: slot.endsAt,
+                      status: 'confirmed',
+                    }
+                  : m,
+              ),
+              true,
+            )
+            return true
+          } catch (e) {
+            if ((e as { statusCode?: number }).statusCode === 409) return false
+            throw e
+          }
+        })
+    } finally {
+      linkedClient.release()
+    }
     if (!use) return slots
     const others = (
       await this.query(
@@ -513,6 +555,11 @@ export class SocialService {
           client,
           false,
         )
+        const linked = await linkedPlan(client, id)
+        if (linked)
+          await client.query('SELECT pg_advisory_xact_lock(70441,$1)', [
+            linked.group.id,
+          ])
         const oldEmployees = (
           await client.query(
             'SELECT employee_id FROM salon_schedule_treatments WHERE schedule_id=$1 ORDER BY employee_id',
@@ -569,6 +616,15 @@ export class SocialService {
         }
         if (row.status === 'completed')
           bookingError('Completed appointments cannot be changed.', 409)
+        if (
+          linked &&
+          ['cancel', 'no_show', 'return_use'].includes(data.action) &&
+          !data.acknowledgeLinkedImpact
+        )
+          bookingError(
+            'Review the linked appointments and acknowledge the impact before continuing.',
+            409,
+          )
         const use = row.package_use_id
           ? (
               await client.query(
@@ -642,6 +698,7 @@ export class SocialService {
           )
           if (use && q.endsAt > use.valid_until)
             bookingError('Appointment exceeds package validity.', 409)
+          await validateLinkedChange(client, id, data.startsAt, q.endsAt)
           if (
             use &&
             (

@@ -28,6 +28,11 @@ function BookingSummary({ order }: { order: BookingOrder }) {
       <h3>
         Reserva #{order.id} · {order.employeeName}
       </h3>
+      {order.groupId && (
+        <span className="dependency-group-badge">
+          Conjunto de atendimentos #{order.groupId}
+        </span>
+      )}
       <p>{order.treatments?.map((treatment) => treatment.name).join(' + ')}</p>
       <p>
         {bookingDate(order.startsAt)} — {bookingDate(order.endsAt)} (Brasília)
@@ -373,8 +378,17 @@ export default function BookingPage() {
             {created ? (
               <section aria-live="polite">
                 <h2 ref={successHeading} tabIndex={-1}>
-                  Solicitação registrada
+                  {created.groupId
+                    ? 'Conjunto de atendimentos registrado'
+                    : 'Solicitação registrada'}
                 </h2>
+                {created.groupId && (
+                  <p>
+                    Todos os atendimentos do conjunto #{created.groupId} foram
+                    reservados juntos. Confira os horários e o sinal de cada um
+                    em “Meus agendamentos”.
+                  </p>
+                )}
                 <BookingSummary
                   order={
                     orders.find((order) => order.id === created.id) ?? created

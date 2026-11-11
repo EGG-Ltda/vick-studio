@@ -1,5 +1,5 @@
-import {useAuth} from '../../core/auth/useAuth'
-import {allowed} from '../../core/auth/permissions'
+import { useAuth } from '../../core/auth/useAuth'
+import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
 import type { CSSProperties } from 'react'
 import { listSchedules } from './calendarApi'
@@ -29,7 +29,7 @@ const today = () =>
     day: '2-digit',
   }).format(new Date())
 export default function SchedulePage() {
-  const {user}=useAuth()
+  const { user } = useAuth()
   const [date, setDate] = useState(today),
     [schedules, setSchedules] = useState<Schedule[]>([]),
     [catalog, setCatalog] = useState<BookingCatalog | null>(null),
@@ -155,7 +155,7 @@ export default function SchedulePage() {
               Tela cheia
             </button>
           )}
-          {!tv && allowed(user,'agenda.create') && (
+          {!tv && allowed(user, 'agenda.create') && (
             <button
               className="primary-button"
               onClick={() => setShowForm(true)}
@@ -274,6 +274,9 @@ export default function SchedulePage() {
                             {salonTime(schedule.endsAt)}
                           </span>
                           <strong>{schedule.customerName}</strong>
+                          {schedule.groupId && (
+                            <small>Vínculo #{schedule.groupId}</small>
+                          )}
                           <span>{schedule.treatmentName}</span>
                           <small>{bookingStatus(schedule.status)}</small>
                         </button>

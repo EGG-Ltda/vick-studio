@@ -9,6 +9,7 @@ export type ScheduleStatus =
   | 'cancelled'
 
 export type Schedule = {
+  groupId?: number | null
   id: number
   customerId: number
   customerName: string

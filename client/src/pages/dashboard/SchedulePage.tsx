@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CSSProperties, DragEvent, FormEvent } from 'react'
-import { listSchedules, type Schedule } from './calendarApi'
+import { createSchedule, listScheduleOptions, listSchedules, type Schedule, type ScheduleOptions } from './calendarApi'
 
 function uniqueSchedules(schedules: Schedule[]): Schedule[] {
   return Array.from(
@@ -60,12 +60,18 @@ function SchedulePage() {
     null,
   )
   const [showForm, setShowForm] = useState(false)
-  const [customerName, setCustomerName] = useState('')
+  const [customerId, setCustomerId] = useState('')
   const [employeeId, setEmployeeId] = useState('')
-  const [treatmentName, setTreatmentName] = useState('')
+  const [treatmentId, setTreatmentId] = useState('')
   const [startTime, setStartTime] = useState('09:00')
   const [durationMinutes, setDurationMinutes] = useState('60')
-  const nextLocalId = useRef(-1)
+  const [options,setOptions] = useState<ScheduleOptions>({customers:[],employees:[],treatments:[]})
+  const [saving,setSaving] = useState(false)
+  useEffect(() => {
+    let current=true
+    listScheduleOptions().then(data=>{if(current)setOptions(data)}).catch(()=>{if(current)setError('Não foi possível carregar os cadastros da agenda.')})
+    return ()=>{current=false}
+  },[])
 
   useEffect(() => {
     function handleEscape(event: KeyboardEvent) {
@@ -159,7 +165,7 @@ function SchedulePage() {
     setSelectedDate(new Date())
   }
 
-  function addSchedule(event: FormEvent<HTMLFormElement>) {
+  async function addSchedule(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const [hours, minutes] = startTime.split(':').map(Number)
     const startsAt = new Date(selectedDate)
@@ -168,32 +174,15 @@ function SchedulePage() {
       startsAt.getTime() + Number(durationMinutes) * 60 * 1000,
     )
 
-    const localId = nextLocalId.current
-    nextLocalId.current -= 1
-
-    setSchedules((currentSchedules) =>
-      uniqueSchedules([
-        ...currentSchedules,
-        {
-          id: localId,
-          customerId: localId,
-          customerName,
-          employeeId: Number(employeeId),
-          employeeName:
-            professionals.find(
-              (professional) => professional.id === Number(employeeId),
-            )?.name ?? '',
-          treatmentId: localId,
-          treatmentName,
-          startsAt: startsAt.toISOString(),
-          endsAt: endsAt.toISOString(),
-          status: 'scheduled',
-        },
-      ]),
-    )
-    setCustomerName('')
+    setSaving(true)
+    try {
+      const created=await createSchedule({customerId:Number(customerId),employeeId:Number(employeeId),treatmentId:Number(treatmentId),startsAt:startsAt.toISOString(),endsAt:endsAt.toISOString()})
+      setSchedules(current=>uniqueSchedules([...current,created]))
+    } catch {setError('Não foi possível salvar o agendamento. Verifique os dados e tente novamente.');return}
+    finally {setSaving(false)}
+    setCustomerId('')
     setEmployeeId('')
-    setTreatmentName('')
+    setTreatmentId('')
     setStartTime('09:00')
     setDurationMinutes('60')
     setShowForm(false)
@@ -248,7 +237,7 @@ function SchedulePage() {
       schedules.map((schedule) => [schedule.employeeId, schedule.employeeName]),
     ).entries(),
   ).map(([id, name]) => ({ id, name }))
-  const professionals = loadedProfessionals
+  const professionals = Array.from(new Map([...options.employees,...loadedProfessionals].map(item=>[item.id,item])).values())
   const displayProfessionals =
     professionals.length > 0
       ? professionals
@@ -310,11 +299,9 @@ function SchedulePage() {
         <form className="user-form" onSubmit={addSchedule}>
           <label>
             Cliente
-            <input
-              value={customerName}
-              onChange={(event) => setCustomerName(event.target.value)}
-              required
-            />
+            <select required value={customerId} onChange={event=>setCustomerId(event.target.value)}>
+              <option value="">Selecione</option>{options.customers.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
           </label>
           <label>
             Profissional
@@ -334,11 +321,9 @@ function SchedulePage() {
           </label>
           <label>
             Serviço
-            <input
-              value={treatmentName}
-              onChange={(event) => setTreatmentName(event.target.value)}
-              required
-            />
+            <select required value={treatmentId} onChange={event=>{setTreatmentId(event.target.value);const item=options.treatments.find(item=>item.id===Number(event.target.value));if(item)setDurationMinutes(String(item.duration))}}>
+              <option value="">Selecione</option>{options.treatments.map(item=><option key={item.id} value={item.id}>{item.name}</option>)}
+            </select>
           </label>
           <label>
             Horário
@@ -360,15 +345,15 @@ function SchedulePage() {
               required
             />
           </label>
-          <button type="submit" className="primary-button">
-            Adicionar
+          <button type="submit" className="primary-button" disabled={saving}>
+            {saving?'Salvando…':'Adicionar'}
           </button>
         </form>
       )}
 
       <div className="schedule-summary">
-        <span>{schedules.length} agendamentos</span>
-        <span>{completedCount} concluído</span>
+        <span>{new Set(schedules.map(schedule=>schedule.scheduleId)).size} agendamentos</span>
+        <span>{completedCount} procedimentos concluídos</span>
       </div>
 
       {error && <p role="alert">{error}</p>}

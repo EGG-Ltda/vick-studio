@@ -5,7 +5,8 @@
   "main": "app.js",
   "scripts": {
     "build": "tsc && tsc-alias",
-    "start": "node dist/app.js"
+    "start": "node dist/app.js",
+    "test:finance": "npm run build && node --test test/finance.integration.cjs"
   },
   "author": "",
   "license": "ISC",

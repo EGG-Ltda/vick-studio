@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { Navigate, useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import vickFlorezLogo from '../../assets/vick-florez-logo.png'
 import { useAuth } from '../../core/auth/useAuth'
 import { routePaths } from '../../routes/routePaths'
@@ -55,6 +55,10 @@ function LoginPage() {
 
   return (
     <main className="page login-page">
+      <Link className="login-back-link" to={routePaths.home}>
+        <span aria-hidden="true">←</span>
+        Voltar ao início
+      </Link>
       <svg
         className="login-art"
         viewBox="0 0 751 535"

@@ -1,0 +1,232 @@
+.customer-view {
+  max-width: 1200px;
+  min-width: 0;
+}
+.customer-view .booking-list > button {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: start;
+  width: 100%;
+  min-width: 0;
+  text-align: left;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.customer-view .booking-list .booking-status {
+  width: fit-content;
+}
+.customer-search {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  max-width: 600px;
+  font-size: 13px;
+  margin: 24px 0;
+}
+.customer-search input,
+.customer-section-heading select {
+  border: 1px solid #e7c9bc;
+  border-radius: 9px;
+  background: #fffaf6;
+  color: #633e39;
+  padding: 12px;
+  font: inherit;
+  min-height: 44px;
+}
+.customer-table-scroll {
+  overflow-x: auto;
+}
+.customer-link {
+  color: #a30635;
+  text-decoration: none;
+  font-weight: 600;
+}
+.customer-link:hover {
+  text-decoration: underline;
+}
+.customer-pagination {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin: 20px 0;
+  font-size: 13px;
+}
+.customer-pagination button {
+  min-height: 40px;
+  border: 1px solid #e7c9bc;
+  border-radius: 8px;
+  padding: 8px 14px;
+  background: #fffaf6;
+  color: #a30635;
+}
+.customer-pagination button:disabled {
+  opacity: 0.5;
+}
+.customer-muted {
+  color: #856f72;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.customer-empty {
+  padding: 24px;
+  background: #fffaf6;
+  border: 1px dashed #e7c9bc;
+  border-radius: 12px;
+}
+.customer-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin: 25px 0;
+}
+.customer-metrics article {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid #eadbd3;
+  border-radius: 14px;
+  background: #fffaf6;
+}
+.customer-metrics strong {
+  color: #a30635;
+  font-family: Georgia, serif;
+  font-size: 30px;
+}
+.customer-metrics span,
+.customer-metrics small {
+  color: #856f72;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.customer-section {
+  margin-top: 34px;
+  padding-top: 24px;
+  border-top: 1px solid #eadbd3;
+}
+.customer-section h2 {
+  color: #a30635;
+  font-family: Georgia, serif;
+  font-size: 25px;
+  font-weight: 400;
+}
+.customer-section-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.customer-section-heading label {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  font-size: 13px;
+}
+.customer-payment-list {
+  display: grid;
+  gap: 12px;
+}
+.customer-payment-list article,
+.customer-note {
+  background: #fffaf6;
+  border: 1px solid #eadbd3;
+  border-radius: 12px;
+  padding: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 13px;
+}
+.customer-note {
+  margin-top: 14px;
+}
+.customer-note p,
+.customer-payment-list p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  margin: 0;
+  line-height: 1.6;
+}
+.customer-note small {
+  color: #856f72;
+}
+.booking-form textarea {
+  width: 100%;
+  min-height: 100px;
+  padding: 12px;
+  box-sizing: border-box;
+  resize: vertical;
+  border: 1px solid #e7c9bc;
+  border-radius: 8px;
+  background: #fffaf6;
+  color: #633e39;
+  font: inherit;
+}
+.order-section {
+  margin-top: 25px;
+  padding-top: 20px;
+  border-top: 1px solid #eadbd3;
+}
+.order-section h3 {
+  font-family: Georgia, serif;
+  color: #a30635;
+  font-size: 22px;
+  font-weight: 400;
+}
+.order-line {
+  padding: 12px 0;
+  border-bottom: 1px solid #f0e4dd;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+.order-line small {
+  color: #856f72;
+}
+.order-line.voided {
+  opacity: 0.65;
+  text-decoration: line-through;
+}
+.order-money-summary {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 9px;
+  padding: 18px;
+  background: #f8eee5;
+  border-radius: 12px;
+}
+.order-money-summary strong {
+  color: #a30635;
+}
+.order-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 9px;
+  align-items: center;
+}
+.order-success {
+  padding: 12px;
+  background: #e8f4e8;
+  border-radius: 8px;
+  color: #316748;
+}
+@media (max-width: 760px) {
+  .customer-metrics {
+    grid-template-columns: 1fr;
+  }
+  .customer-section-heading {
+    align-items: flex-start;
+  }
+  .customer-section-heading label {
+    width: 100%;
+  }
+  .customer-pagination {
+    justify-content: center;
+  }
+  .customer-view .dashboard-view-header p {
+    overflow-wrap: anywhere;
+  }
+}

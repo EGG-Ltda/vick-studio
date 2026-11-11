@@ -2,11 +2,14 @@ import { apiRequest } from '../../core/api/http'
 
 export type ScheduleStatus =
   | 'scheduled'
+  | 'awaiting_deposit'
+  | 'confirmed'
   | 'in_progress'
   | 'completed'
   | 'cancelled'
 
 export type Schedule = {
+  groupId?: number | null
   id: number
   customerId: number
   customerName: string
@@ -16,6 +19,10 @@ export type Schedule = {
   treatmentName: string
   startsAt: string
   endsAt: string
+  depositDueAt?: string | null
+  depositRequired?: number | null
+  depositConfirmedAt?: string | null
+  cancellationReason?: string | null
   status: ScheduleStatus
 }
 

@@ -5,7 +5,7 @@ import {
   salonTxServiceId,
 } from '@/core/transactions'
 import { container } from '@/di/bindings'
-import { authHook } from '@/shared/middlewares/auth'
+import { authHook, salonAdminHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 
@@ -16,12 +16,16 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     Querystring: {
       page: string
     }
-  }>('/transactions', { preHandler: authHook }, async (req, res) => {
-    const page: number = parseInt(req.query.page)
-    const txs: SalonTx[] = await salonTxService.getAll(page)
+  }>(
+    '/transactions',
+    { preHandler: [authHook, salonAdminHook] },
+    async (req, res) => {
+      const page: number = parseInt(req.query.page)
+      const txs: SalonTx[] = await salonTxService.getAll(page)
 
-    return ok(res, txs)
-  })
+      return ok(res, txs)
+    },
+  )
 
   app.post<{
     Body: {
@@ -31,14 +35,18 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       description: string
       value: number
     }
-  }>('/transactions', { preHandler: authHook }, async (req, res) => {
-    const { success, data, error } = SalonTxCreateSchema.safeParse(req.body)
+  }>(
+    '/transactions',
+    { preHandler: [authHook, salonAdminHook] },
+    async (req, res) => {
+      const { success, data, error } = SalonTxCreateSchema.safeParse(req.body)
 
-    if (!success) {
-      return fail(res, 'Invalid body', 400, error.message)
-    }
+      if (!success) {
+        return fail(res, 'Invalid body', 400, error.message)
+      }
 
-    const tx: SalonTx = await salonTxService.create(data)
-    return ok(res, tx)
-  })
+      const tx: SalonTx = await salonTxService.create(data)
+      return ok(res, tx)
+    },
+  )
 }

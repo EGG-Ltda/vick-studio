@@ -1,5 +1,14 @@
-import { databaseServiceId, IDatabaseService, IGenericDatabaseClient } from '@/core/db'
-import { IScheduleRepository, Schedule, ScheduleCreate, ScheduleSchema } from '@/core/schedule'
+import {
+  databaseServiceId,
+  IDatabaseService,
+  IGenericDatabaseClient,
+} from '@/core/db'
+import {
+  IScheduleRepository,
+  Schedule,
+  ScheduleCreate,
+  ScheduleSchema,
+} from '@/core/schedule'
 import { inject, injectable } from 'inversify'
 
 @injectable()
@@ -8,27 +17,37 @@ export class ScheduleRepository implements IScheduleRepository {
     @inject(databaseServiceId) private readonly dbService: IDatabaseService,
   ) {}
 
-  public async list(start: Date, end: Date, providedClient?: IGenericDatabaseClient): Promise<Schedule[]> {
+  public async list(
+    start: Date,
+    end: Date,
+    providedClient?: IGenericDatabaseClient,
+  ): Promise<Schedule[]> {
     const client = providedClient ?? (await this.dbService.getClient())
     const query = `
       SELECT
         schedules.id,
+        (SELECT group_id FROM booking_group_members WHERE schedule_id=schedules.id) AS "groupId",
         schedules.customer_id AS "customerId",
         customer_person.name AS "customerName",
-        schedules.employee_id AS "employeeId",
+        employees.id AS "employeeId",
+        employees.user_id AS "employeeUserId",
         employee_person.name AS "employeeName",
         services.id AS "serviceId",
-        services.name AS "serviceName",
+        schedule_services.treatment_name AS "serviceName",
         schedules.schedule_started_at AS "startsAt",
         schedules.schedule_ended_at AS "endsAt",
-        'scheduled' AS status
+        schedules.status AS status,
+        schedules.deposit_due_at AS "depositDueAt",
+        schedules.deposit_required::float AS "depositRequired",
+        schedules.deposit_confirmed_at AS "depositConfirmedAt",
+        schedules.cancellation_reason AS "cancellationReason"
       FROM salon_schedules schedules
       JOIN customers customers ON customers.id = schedules.customer_id
       JOIN persons customer_person ON customer_person.id = customers.person_id
-      JOIN salon_schedule_services schedule_services ON schedule_services.schedule_id = schedules.id
+      JOIN salon_schedule_treatments schedule_services ON schedule_services.schedule_id = schedules.id
       JOIN employees employees ON employees.id = schedule_services.employee_id
       JOIN persons employee_person ON employee_person.id = employees.person_id
-      JOIN salon_services services ON services.id = schedule_services.service_id
+      JOIN salon_treatments services ON services.id = schedule_services.treatment_id
       WHERE schedules.schedule_started_at < $2
         AND schedules.schedule_ended_at > $1
       ORDER BY schedules.schedule_started_at ASC;
@@ -42,32 +61,13 @@ export class ScheduleRepository implements IScheduleRepository {
     }
   }
 
-  public async create(data: ScheduleCreate, client: IGenericDatabaseClient): Promise<Schedule> {
-    const scheduleResult = await client.query(
-      `
-        INSERT INTO salon_schedules
-          (customer_id, schedule_started_at, schedule_ended_at, no_services, created_at)
-        VALUES ($1, $2, $3, 1, NOW())
-        RETURNING id;
-      `,
-      [data.customerId, data.startsAt, data.endsAt],
+  public async create(
+    data: ScheduleCreate,
+    client: IGenericDatabaseClient,
+  ): Promise<Schedule> {
+    throw Object.assign(
+      new Error('Use the staff booking flow with a specific deposit deadline.'),
+      { statusCode: 409 },
     )
-    const scheduleId = scheduleResult.rows[0].id as number
-
-    const serviceResult = await client.query(
-      `
-        INSERT INTO salon_schedule_services (employee_id, schedule_id, service_id, price)
-        SELECT $1, $2, id, price FROM salon_services WHERE id = $3;
-      `,
-      [data.employeeId, scheduleId, data.serviceId],
-    )
-    if (serviceResult.rowCount !== 1) {
-      throw new Error('Service not found')
-    }
-
-    const created = await this.list(data.startsAt, data.endsAt, client)
-    const result = created.find((schedule) => schedule.id === scheduleId)
-    if (!result) throw new Error('Schedule could not be created')
-    return result
   }
 }

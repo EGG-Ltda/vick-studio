@@ -1,6 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 import BirthdaysPage from '../pages/social/BirthdaysPage'
 import PromotionsPage from '../pages/social/PromotionsPage'
+import {
+  DashboardIndex,
+  NoAccessPage,
+  PermissionRoute,
+} from './PermissionRoute'
+import ProfilesPage from '../pages/access/ProfilesPage'
 import BookingPage from '../pages/booking/BookingPage'
 import CustomersPage from '../pages/dashboard/CustomersPage'
 import CustomerDetailPage from '../pages/dashboard/CustomerDetailPage'
@@ -33,20 +39,24 @@ export function AppRoutes() {
       </Route>
       <Route element={<ProtectedRoute />}>
         <Route path={routePaths.dashboard} element={<DashboardPage />}>
-          <Route index element={<Navigate to="schedule" replace />} />
-          <Route path="schedule" element={<SchedulePage />} />
-          <Route
-            path="configuracoes-agenda"
-            element={<BookingSettingsPage />}
-          />
-          <Route path="usuarios" element={<UsersPage />} />
-          <Route path="social/aniversariantes" element={<BirthdaysPage />} />
-          <Route path="social/promocoes" element={<PromotionsPage />} />
-          <Route path="clientes" element={<CustomersPage />} />
-          <Route path="clientes/:id" element={<CustomerDetailPage />} />
-          <Route path="financeiro" element={<FinancePage />} />
-          <Route path="funcionarios" element={<EmployeesPage />} />
-          <Route path="servicos" element={<TreatmentsPage />} />
+          <Route index element={<DashboardIndex />} />
+          <Route path="sem-acesso" element={<NoAccessPage />} />
+          <Route element={<PermissionRoute />}>
+            <Route path="permissoes-perfis" element={<ProfilesPage />} />
+            <Route path="schedule" element={<SchedulePage />} />
+            <Route
+              path="configuracoes-agenda"
+              element={<BookingSettingsPage />}
+            />
+            <Route path="usuarios" element={<UsersPage />} />
+            <Route path="social/aniversariantes" element={<BirthdaysPage />} />
+            <Route path="social/promocoes" element={<PromotionsPage />} />
+            <Route path="clientes" element={<CustomersPage />} />
+            <Route path="clientes/:id" element={<CustomerDetailPage />} />
+            <Route path="financeiro" element={<FinancePage />} />
+            <Route path="funcionarios" element={<EmployeesPage />} />
+            <Route path="servicos" element={<TreatmentsPage />} />
+          </Route>
         </Route>
       </Route>
       <Route path="*" element={<Navigate to={routePaths.home} replace />} />

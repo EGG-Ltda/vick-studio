@@ -1,3 +1,4 @@
+import { allowed } from '../../core/auth/permissions'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../../core/auth/useAuth'
@@ -13,6 +14,7 @@ export function PackagePayments({
   onBusyChange: (busy: boolean) => void
 }) {
   const { user } = useAuth()
+  const canView = allowed(user, 'packages.payments')
   const [data, setData] = useState<PackagePurchase | null>(null),
     [methods, setMethods] = useState<{ id: number; name: string }[]>([]),
     [revision, setRevision] = useState(0),
@@ -27,7 +29,7 @@ export function PackagePayments({
   })
   const request = useRef<{ body: string; key: string } | null>(null)
   useEffect(() => {
-    if (!user?.canManagePasswords) return
+    if (!canView) return
     const c = new AbortController()
     Promise.all([
       bookingRequest<PackagePurchase>(`/social/packages/${id}`, {
@@ -48,7 +50,7 @@ export function PackagePayments({
         if (!c.signal.aborted) setError(e.message)
       })
     return () => c.abort()
-  }, [id, revision, user?.canManagePasswords])
+  }, [id, revision, canView])
   async function submit(e: FormEvent) {
     e.preventDefault()
     setBusy(true)
@@ -89,13 +91,7 @@ export function PackagePayments({
       onBusyChange(false)
     }
   }
-  if (!user?.canManagePasswords)
-    return (
-      <p>
-        Os recebimentos do pacote são registrados por ADMIN ou MASTER. A comanda
-        mostra somente o valor distribuído para este atendimento.
-      </p>
-    )
+  if (!canView) return null
   return (
     <section className="package-panel">
       <h2>Recebimentos do pacote #{id}</h2>

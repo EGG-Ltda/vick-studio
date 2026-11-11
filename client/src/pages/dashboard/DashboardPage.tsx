@@ -1,3 +1,4 @@
+import { allowed, pagePermissions } from '../../core/auth/permissions'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import { BirthdayNotice } from '../social/BirthdayNotice'
@@ -21,11 +22,16 @@ const navigation: { label: string; path: string; icon: SalonIconName }[] = [
     icon: 'agenda',
   },
   { label: 'Usuários', path: routePaths.users, icon: 'usuarios' },
+  {
+    label: 'Funcionalidades por perfil',
+    path: routePaths.permissions,
+    icon: 'usuarios',
+  },
 ]
 
 function DashboardPage() {
   const navigate = useNavigate()
-  const { signOut } = useAuth()
+  const { signOut, user } = useAuth()
   const { pathname } = useLocation()
   const socialActive = [
     routePaths.customers,
@@ -60,61 +66,73 @@ function DashboardPage() {
         </div>
         <p className="salon-nav-caption">Gestão do estúdio</p>
         <nav aria-label="Navegação principal">
-          {navigation.map((item) => (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              onClick={() => setSocialOpen(false)}
-            >
-              <SalonIcon name={item.icon} />
-              <span>{item.label}</span>
-              <span className="salon-nav-arrow" aria-hidden="true">
-                ›
-              </span>
-            </NavLink>
-          ))}
-          <div
-            className={`social-sidebar${socialActive ? ' social-sidebar-active' : ''}`}
-          >
-            <button
-              className="social-sidebar-toggle"
-              type="button"
-              aria-expanded={socialOpen}
-              aria-controls="social-sidebar-links"
-              onClick={() => setSocialOpen((open) => !open)}
-            >
-              <SalonIcon name="social" />
-              <span>Social</span>
-              <svg
-                className="social-sidebar-chevron"
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                aria-hidden="true"
+          {navigation
+            .filter((item) => allowed(user, pagePermissions[item.path]))
+            .map((item) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => setSocialOpen(false)}
               >
-                <path d="m9 5 7 7-7 7" />
-              </svg>
-            </button>
-            {socialOpen && (
-              <div className="social-sidebar-links" id="social-sidebar-links">
-                <NavLink to={routePaths.customers}>
-                  <SalonIcon name="clientes" />
-                  <span>Clientes</span>
-                </NavLink>
-                <NavLink to={routePaths.birthdays}>
-                  <SalonIcon name="aniversarios" />
-                  <span>Aniversariantes</span>
-                </NavLink>
-                <NavLink to={routePaths.promotions}>
-                  <SalonIcon name="promocoes" />
-                  <span>Promoções e pacotes</span>
-                </NavLink>
-              </div>
-            )}
-          </div>
+                <SalonIcon name={item.icon} />
+                <span>{item.label}</span>
+                <span className="salon-nav-arrow" aria-hidden="true">
+                  ›
+                </span>
+              </NavLink>
+            ))}
+          {['clients.view', 'birthdays.view', 'promotions.view'].some((key) =>
+            allowed(user, key),
+          ) && (
+            <div
+              className={`social-sidebar${socialActive ? ' social-sidebar-active' : ''}`}
+            >
+              <button
+                className="social-sidebar-toggle"
+                type="button"
+                aria-expanded={socialOpen}
+                aria-controls="social-sidebar-links"
+                onClick={() => setSocialOpen((open) => !open)}
+              >
+                <SalonIcon name="social" />
+                <span>Social</span>
+                <svg
+                  className="social-sidebar-chevron"
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  aria-hidden="true"
+                >
+                  <path d="m9 5 7 7-7 7" />
+                </svg>
+              </button>
+              {socialOpen && (
+                <div className="social-sidebar-links" id="social-sidebar-links">
+                  {allowed(user, 'clients.view') && (
+                    <NavLink to={routePaths.customers}>
+                      <SalonIcon name="clientes" />
+                      <span>Clientes</span>
+                    </NavLink>
+                  )}
+                  {allowed(user, 'birthdays.view') && (
+                    <NavLink to={routePaths.birthdays}>
+                      <SalonIcon name="aniversarios" />
+                      <span>Aniversariantes</span>
+                    </NavLink>
+                  )}
+                  {allowed(user, 'promotions.view') && (
+                    <NavLink to={routePaths.promotions}>
+                      <SalonIcon name="promocoes" />
+                      <span>Promoções e pacotes</span>
+                    </NavLink>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
         </nav>
         <div className="salon-sidebar-footer">
           <p>
@@ -144,7 +162,7 @@ function DashboardPage() {
           </span>
         </header>
         <div id="salon-content" className="salon-content" tabIndex={-1}>
-          <BirthdayNotice />
+          {allowed(user, 'birthdays.view') && <BirthdayNotice />}
           <Outlet />
         </div>
       </main>

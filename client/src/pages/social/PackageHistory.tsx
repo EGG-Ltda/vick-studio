@@ -61,7 +61,10 @@ export function PackageHistory({
           <h3>{p.title}</h3>
           {p.price !== null && (
             <p>
-              Total: {money(p.price)} · Efetivamente pago: {money(p.totalPaid)}
+              Total: {money(p.price)}{' '}
+              {p.canViewFinancial && (
+                <>· Efetivamente pago: {money(p.totalPaid)}</>
+              )}
             </p>
           )}
           <p>
@@ -100,7 +103,8 @@ export function PackageHistory({
               </small>
             </div>
           ) : (
-            p.price !== null && (
+            p.price !== null &&
+            p.canViewFinancial && (
               <p>Nenhum recebimento registrado para este pacote.</p>
             )
           )}

@@ -1,6 +1,8 @@
 import { createContext } from 'react'
 
 export type AuthUser = {
+  role: 'MASTER' | 'ADMIN' | 'OPERATIONAL' | 'DISABLED'
+  permissions: string[]
   id: number
   login: string
   email: string
@@ -11,6 +13,7 @@ export type AuthUser = {
 }
 
 type AuthContextValue = {
+  refreshAccess: () => Promise<void>
   isAuthenticated: boolean
   isLoading: boolean
   user: AuthUser | null

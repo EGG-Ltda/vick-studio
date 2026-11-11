@@ -2,9 +2,9 @@ import { FastifyInstance } from 'fastify'
 import z from 'zod'
 import { container } from '@/di/bindings'
 import { databaseServiceId, unitOfWorkServiceId } from '@/core/db'
-import { authHook, passwordAdminHook } from '@/shared/middlewares/auth'
+import { authHook, salonAdminHook } from '@/shared/middlewares/auth'
 import { ok } from '@/shared/utils/response'
-import { canManagePasswords } from '@/shared/utils/user'
+import { salonWide, can } from '@/core/access'
 import { bookingError } from '../booking/service'
 import { isBookingOriginAllowed } from '../booking/origin'
 import { SocialService } from './service'
@@ -16,7 +16,7 @@ export default async function routes(app: FastifyInstance) {
     container.get(unitOfWorkServiceId),
   )
   const secured = { preHandler: [authHook] },
-    admin = { preHandler: [authHook, passwordAdminHook] }
+    admin = { preHandler: [authHook, salonAdminHook] }
   const parse = <T>(schema: z.ZodType<T>, value: unknown): T => {
     const p = schema.safeParse(value)
     if (!p.success)
@@ -59,7 +59,7 @@ export default async function routes(app: FastifyInstance) {
     const rows = (
       await s.query(
         `SELECT count(*)::int AS count FROM customers c JOIN persons p ON p.id=c.person_id WHERE extract(month FROM p.born_at)=extract(month FROM now() AT TIME ZONE 'America/Sao_Paulo') AND extract(day FROM p.born_at)=extract(day FROM now() AT TIME ZONE 'America/Sao_Paulo') AND ($1::boolean OR EXISTS(SELECT 1 FROM salon_schedules a JOIN salon_schedule_treatments t ON t.schedule_id=a.id JOIN employees e ON e.id=t.employee_id WHERE a.customer_id=c.id AND e.user_id=$2 AND e.is_active))`,
-        [canManagePasswords(req.authUser), req.authUser.id],
+        [salonWide(req.authUser), req.authUser.id],
       )
     ).rows[0]
     return ok(res, {
@@ -209,7 +209,7 @@ export default async function routes(app: FastifyInstance) {
       if (!row) bookingError('Package not found.', 404)
       return ok(
         res,
-        (await s.purchases(row.customer_id, req.authUser)).find(
+        (await s.purchases(row.customer_id, req.authUser, true)).find(
           (p: any) => p.id === id(req.params.id),
         ),
       )

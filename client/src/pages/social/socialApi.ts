@@ -30,6 +30,7 @@ export type PackageUse = {
   employeeName: string
 }
 export type PackagePurchase = {
+  canViewFinancial:boolean
   id: number
   title: string
   conditions: string | null

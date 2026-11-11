@@ -347,7 +347,7 @@ test(
           assert.equal(fullSession.body.data.mustChangePassword, false)
           assert.equal(
             (await request('GET', '/users', fullSession.cookie)).status,
-            200,
+            403,
           )
           assert.equal(
             (await request('GET', '/auth/session', limitedSession.cookie))
@@ -403,10 +403,10 @@ test(
                 '/users?page=0',
                 changed.cookie,
               )
-              assert.ok(
-                regular.body.data.items.every(
-                  (user) => user.canResetPassword === false,
-                ),
+              assert.equal(regular.status, 403)
+              assert.equal(
+                (await request('GET', '/auth/session', changed.cookie)).status,
+                200,
               )
             }
           }

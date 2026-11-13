@@ -5,8 +5,7 @@ import react from '@vitejs/plugin-react'
 export default defineConfig({
   plugins: [react()],
   server: {
-    proxy: {
-      '/api': 'http://localhost:3000',
-    },
+    // Proxy real comentado: esta branch deve funcionar sem backend.
+    // proxy: { '/api': 'http://localhost:3000' },
   },
 })

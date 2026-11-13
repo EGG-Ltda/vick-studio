@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { AuthContext } from './authContext'
 import type { AuthUser } from './authContext'
 import {
+  ACCESS_CHANGED_EVENT,
   apiRequest,
   SESSION_EXPIRED_EVENT,
   PASSWORD_CHANGE_REQUIRED_EVENT,
@@ -48,8 +49,31 @@ function AuthProvider({ children }: AuthProviderProps) {
     }
   }, [])
 
+  const userId = user?.id
+  useEffect(() => {
+    if (!userId) return
+    const c = new AbortController()
+    const refresh = () =>
+      apiRequest<AuthUser>('/auth/session', { signal: c.signal })
+        .then((d) => {
+          if (!c.signal.aborted) setUser(d)
+        })
+        .catch(() => {})
+    window.addEventListener(ACCESS_CHANGED_EVENT, refresh)
+    window.addEventListener('focus', refresh)
+    const timer = setInterval(() => void refresh(), 30000)
+    return () => {
+      c.abort()
+      clearInterval(timer)
+      window.removeEventListener(ACCESS_CHANGED_EVENT, refresh)
+      window.removeEventListener('focus', refresh)
+    }
+  }, [userId])
   const value = useMemo(
     () => ({
+      refreshAccess: async () => {
+        setUser(await apiRequest<AuthUser>('/auth/session'))
+      },
       isAuthenticated: user !== null,
       isLoading,
       user,
@@ -78,7 +102,8 @@ function AuthProvider({ children }: AuthProviderProps) {
       },
       signOut: async () => {
         try {
-          await fetch('/api/auth/signout', {
+          await apiRequest('/auth/signout', {
+            // fetch real removido desta simulação; o transporte original está comentado em http.ts.
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',

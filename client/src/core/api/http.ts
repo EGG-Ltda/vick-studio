@@ -1,3 +1,4 @@
+import { mockRequest } from '../../mocks/api'
 export type ApiResponse<T> = {
   data: T
   success: boolean
@@ -5,6 +6,7 @@ export type ApiResponse<T> = {
   code?: string
 }
 
+export const ACCESS_CHANGED_EVENT = 'vick:access-changed'
 export const SESSION_EXPIRED_EVENT = 'vick:session-expired'
 export const PASSWORD_CHANGE_REQUIRED_EVENT = 'vick:password-change-required'
 
@@ -12,6 +14,9 @@ export async function apiRequest<T>(
   path: string,
   options?: RequestInit,
 ): Promise<T> {
+  return mockRequest<T>(path, options)
+  /* Integração HTTP real comentada nesta branch de demonstração.
+
   const headers = new Headers(options?.headers)
   if (options?.body != null && !headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json')
@@ -48,6 +53,8 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok || !payload.success) {
+    if (payload.code === 'PERMISSION_DENIED')
+      window.dispatchEvent(new Event(ACCESS_CHANGED_EVENT))
     if (payload.code === 'PASSWORD_CHANGE_REQUIRED') {
       window.dispatchEvent(new Event(PASSWORD_CHANGE_REQUIRED_EVENT))
     }
@@ -55,4 +62,5 @@ export async function apiRequest<T>(
   }
 
   return payload.data
+  */
 }

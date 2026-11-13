@@ -7,7 +7,8 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:mocks": "node --experimental-strip-types --test tests/mocks.test.mjs"
   },
   "dependencies": {
     "react": "^19.2.8",

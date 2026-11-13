@@ -1,15 +1,22 @@
+import { useAuth } from '../../core/auth/useAuth'
+import { allowed } from '../../core/auth/permissions'
+import { apiRequest } from '../../core/api/http'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
 
 import { listTreatments, saveTreatment } from '../../core/api/treatments'
 import type { Treatment } from '../../core/api/treatments'
+import type { Dependency } from '../../core/api/treatments'
+import { DependencyEditor } from '../dependencies/DependencyEditor'
 
 function TreatmentsPage() {
+  const { user } = useAuth()
   const [treatments, setTreatments] = useState<Treatment[]>([])
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [dependencies, setDependencies] = useState<Dependency[]>([])
   useEffect(() => {
     const controller = new AbortController()
     listTreatments(false, controller.signal)
@@ -26,7 +33,7 @@ function TreatmentsPage() {
   }, [])
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [hideDisabled, setHideDisabled] = useState(false)
+  const [hideDisabled, setHideDisabled] = useState(true)
   const [form, setForm] = useState({
     name: '',
     description: '',
@@ -38,11 +45,13 @@ function TreatmentsPage() {
     setError('')
     setForm({ name: '', description: '', duration: '', price: '' })
     setEditingId(null)
+    setDependencies([])
     setShowForm(false)
   }
   function editTreatment(treatment: Treatment) {
     setError('')
     setEditingId(treatment.id)
+    setDependencies(treatment.dependencies ?? [])
     setForm({
       name: treatment.name,
       description: treatment.description,
@@ -62,6 +71,7 @@ function TreatmentsPage() {
           description: form.description.trim(),
           durationMinutes: Number(form.duration),
           price: Number(form.price),
+          dependencies,
           isActive:
             treatments.find((item) => item.id === editingId)?.isActive ?? true,
         },
@@ -74,6 +84,7 @@ function TreatmentsPage() {
       )
       setForm({ name: '', description: '', duration: '', price: '' })
       setEditingId(null)
+      setDependencies([])
       setShowForm(false)
     } catch (error) {
       setError(
@@ -89,12 +100,17 @@ function TreatmentsPage() {
     setSaving(true)
     setError('')
     try {
-      const saved = await saveTreatment(
-        { ...treatment, isActive: !treatment.isActive },
-        treatment.id,
+      const saved = await apiRequest<Treatment>(
+        `/treatments/${treatment.id}/status`,
+        {
+          method: 'PATCH',
+          body: JSON.stringify({ isActive: !treatment.isActive }),
+        },
       )
       setTreatments((current) =>
-        current.map((item) => (item.id === saved.id ? saved : item)),
+        current.map((item) =>
+          item.id === saved.id ? { ...item, ...saved } : item,
+        ),
       )
     } catch (error) {
       setError(
@@ -114,17 +130,20 @@ function TreatmentsPage() {
           <h1>Serviços</h1>
           <p>Configure os serviços oferecidos pelo estúdio.</p>
         </div>
-        <button
-          className="primary-button"
-          type="button"
-          disabled={saving}
-          onClick={() => {
-            setError('')
-            setShowForm(true)
-          }}
-        >
-          <span aria-hidden="true">＋</span> Novo serviço
-        </button>
+        {allowed(user, 'services.manage') && (
+          <button
+            className="primary-button"
+            type="button"
+            disabled={saving}
+            onClick={() => {
+              setError('')
+              setDependencies([])
+              setShowForm(true)
+            }}
+          >
+            <span aria-hidden="true">＋</span> Novo serviço
+          </button>
+        )}
       </header>
       {error && !showForm && <p role="alert">{error}</p>}
       {loading && <p role="status">Carregando serviços…</p>}
@@ -186,6 +205,13 @@ function TreatmentsPage() {
                 />
               </label>
             </fieldset>
+            <DependencyEditor
+              value={dependencies}
+              onChange={setDependencies}
+              treatments={treatments}
+              editingId={editingId}
+              disabled={saving}
+            />
             {error && <p role="alert">{error}</p>}
             <div className="modal-actions">
               <button type="button" onClick={closeForm} disabled={saving}>
@@ -207,14 +233,16 @@ function TreatmentsPage() {
           <h2>Catálogo de serviços</h2>
           <span>Experiências pensadas para cada cliente.</span>
         </div>
-        <label className="treatment-filter">
-          <input
-            type="checkbox"
-            checked={hideDisabled}
-            onChange={(event) => setHideDisabled(event.target.checked)}
-          />
-          Esconder serviços desabilitados
-        </label>
+        {allowed(user, 'services.inactive') && (
+          <label className="treatment-filter">
+            <input
+              type="checkbox"
+              checked={hideDisabled}
+              onChange={(event) => setHideDisabled(event.target.checked)}
+            />
+            Esconder serviços desabilitados
+          </label>
+        )}
       </div>
       {!loading &&
         !error &&
@@ -237,22 +265,26 @@ function TreatmentsPage() {
                 {treatment.isActive ? 'Disponível' : 'Indisponível'}
               </span>
               <div className="treatment-card-actions">
-                <button
-                  type="button"
-                  disabled={saving}
-                  onClick={() => editTreatment(treatment)}
-                  aria-label={`Editar ${treatment.name}`}
-                >
-                  Editar
-                </button>
-                <button
-                  type="button"
-                  aria-label={`${treatment.isActive ? 'Desabilitar' : 'Habilitar'} ${treatment.name}`}
-                  disabled={saving}
-                  onClick={() => void toggleTreatment(treatment)}
-                >
-                  {treatment.isActive ? 'Desabilitar' : 'Habilitar'}
-                </button>
+                {allowed(user, 'services.manage') && (
+                  <button
+                    type="button"
+                    disabled={saving}
+                    onClick={() => editTreatment(treatment)}
+                    aria-label={`Editar ${treatment.name}`}
+                  >
+                    Editar
+                  </button>
+                )}
+                {allowed(user, 'services.status') && (
+                  <button
+                    type="button"
+                    aria-label={`${treatment.isActive ? 'Desabilitar' : 'Habilitar'} ${treatment.name}`}
+                    disabled={saving}
+                    onClick={() => void toggleTreatment(treatment)}
+                  >
+                    {treatment.isActive ? 'Desabilitar' : 'Habilitar'}
+                  </button>
+                )}
               </div>
             </article>
           ))}

@@ -1,3 +1,4 @@
+import { PublicPromotions } from '../social/PublicPromotions'
 import { useEffect, useState } from 'react'
 import { listTreatments } from '../../core/api/treatments'
 import type { PublicTreatment } from '../../core/api/treatments'
@@ -36,7 +37,7 @@ function HomePage() {
   }, [])
 
   function goToServices() {
-    document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' })
+    navigate('/agendar')
   }
 
   return (
@@ -132,6 +133,7 @@ function HomePage() {
           ))}
         </div>
       </section>
+      <PublicPromotions />
       <section className="home-anchor-section" id="sobre" aria-label="Sobre" />
       <footer className="home-anchor-section" id="contato" aria-label="Contato" />
     </main>

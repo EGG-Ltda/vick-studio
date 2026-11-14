@@ -23,6 +23,7 @@ export function publicUser(user: AppUser): PublicAppUser {
     id: user.id,
     login: user.login,
     email: user.email,
+    calendarColor: user.calendarColor,
     isActive: user.isActive,
     isAdmin: user.isAdmin,
     isMaster: isMaster(user),

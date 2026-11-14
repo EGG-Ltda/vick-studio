@@ -97,13 +97,15 @@ export default async function bookingRoutes(app: FastifyInstance) {
           id,
           name,
           treatmentIds,
+          calendarColor,
           hours,
         }: {
           id: number
           name: string
+          calendarColor: string
           treatmentIds: number[]
           hours: unknown[]
-        }) => ({ id, name, treatmentIds, hours }),
+        }) => ({ id, name, treatmentIds, calendarColor, hours }),
       ),
       treatments: treatments.rows,
     })

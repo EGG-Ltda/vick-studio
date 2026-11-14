@@ -33,7 +33,7 @@ export class UserRepository implements IUserRepository {
         id,
         login,
         hash_password AS "hashPassword",
-        email,
+        email, calendar_color AS "calendarColor",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -68,7 +68,7 @@ export class UserRepository implements IUserRepository {
         id,
         login,
         hash_password AS "hashPassword",
-        email,
+        email, calendar_color AS "calendarColor",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -92,7 +92,7 @@ export class UserRepository implements IUserRepository {
         id,
         login,
         hash_password AS "hashPassword",
-        email,
+        email, calendar_color AS "calendarColor",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -116,12 +116,12 @@ export class UserRepository implements IUserRepository {
     client: IGenericDatabaseClient,
   ): Promise<any> {
     const query: string = `
-      INSERT INTO app_users (login, email, hash_password, role, is_active, must_change_password, created_at)
-      VALUES ($1, $2, $3, $4, $5, true, NOW())
+      INSERT INTO app_users (login, email, hash_password, role, is_active, must_change_password, created_at, calendar_color)
+      VALUES ($1, $2, $3, $4, $5, true, NOW(), $6)
       RETURNING
         id,
         login,
-        email,
+        email, calendar_color AS "calendarColor",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -136,6 +136,7 @@ export class UserRepository implements IUserRepository {
         user.password,
         user.role === 'DISABLED' ? 'OPERATIONAL' : user.role,
         user.role !== 'DISABLED',
+        user.calendarColor,
       ])
       .then((result) => result.rows[0])
   }
@@ -149,12 +150,13 @@ export class UserRepository implements IUserRepository {
       SET
         login = $1,
         email = $2,
+        calendar_color = COALESCE($4, calendar_color),
         updated_at = NOW()
       WHERE
         id = $3
       RETURNING id,
         login,
-        email,
+        email, calendar_color AS "calendarColor",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -163,7 +165,12 @@ export class UserRepository implements IUserRepository {
     `
 
     return client
-      .query(query, [data.login, data.email, data.id])
+      .query(query, [
+        data.login,
+        data.email,
+        data.id,
+        data.calendarColor ?? null,
+      ])
       .then((result) => result.rows[0])
   }
 
@@ -212,7 +219,7 @@ export class UserRepository implements IUserRepository {
           password_version = password_version + 1, updated_at = NOW()
       WHERE id = $1 AND password_version = $2
         AND is_active = true AND removed_at IS NULL
-      RETURNING id, login, email, is_active AS "isActive", role,is_admin AS "isAdmin",
+      RETURNING id, login, email, calendar_color AS "calendarColor", is_active AS "isActive", role,is_admin AS "isAdmin",
         must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt", updated_at AS "updatedAt", removed_at AS "removedAt";
     `,

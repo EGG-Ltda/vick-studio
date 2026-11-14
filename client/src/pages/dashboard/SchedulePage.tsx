@@ -1,3 +1,4 @@
+import { calendarStyle } from './calendarColors'
 import { useAuth } from '../../core/auth/useAuth'
 import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
@@ -55,11 +56,11 @@ export default function SchedulePage() {
           }),
         ])
         if (!controller.signal.aborted) {
-          const grouped = new Map<number, Schedule>()
+          const grouped = new Map<string, Schedule>()
           for (const item of items) {
-            const existing = grouped.get(item.id)
+            const existing = grouped.get(`${item.id}-${item.employeeId}`)
             grouped.set(
-              item.id,
+              `${item.id}-${item.employeeId}`,
               existing
                 ? {
                     ...existing,
@@ -86,10 +87,12 @@ export default function SchedulePage() {
       }
     }
     void load()
+    window.addEventListener('focus', load)
     const timer = setInterval(() => void load(), 30000)
     return () => {
       controller.abort()
       clearInterval(timer)
+      window.removeEventListener('focus', load)
     }
   }, [date, revision])
   useEffect(() => {
@@ -106,14 +109,29 @@ export default function SchedulePage() {
     setLoading(true)
   }
   const professionalMap = new Map(
-    (catalog?.employees ?? []).map((employee) => [employee.id, employee.name]),
+    (catalog?.employees ?? []).map((employee) => [
+      employee.id,
+      { name: employee.name, calendarColor: employee.calendarColor },
+    ]),
   )
   for (const schedule of schedules)
-    professionalMap.set(schedule.employeeId, schedule.employeeName)
-  const professionals = [...professionalMap].map(([id, name]) => ({ id, name }))
+    professionalMap.set(schedule.employeeId, {
+      name: schedule.employeeName,
+      calendarColor: schedule.calendarColor,
+    })
+  const professionals = [...professionalMap].map(([id, professional]) => ({
+    id,
+    ...professional,
+  }))
   const columns = professionals.length
     ? professionals
-    : [{ id: 0, name: 'Nenhuma profissional cadastrada' }]
+    : [
+        {
+          id: 0,
+          name: 'Nenhuma profissional cadastrada',
+          calendarColor: undefined,
+        },
+      ]
   const hours = schedules.map((schedule) =>
     Number(salonTime(schedule.startsAt).slice(0, 2)),
   )
@@ -212,9 +230,21 @@ export default function SchedulePage() {
           <button onClick={() => setDate(today())}>Hoje</button>
         </div>
         <p>
-          {schedules.filter((s) => s.status !== 'cancelled').length} reservas
-          ativas ·{' '}
-          {schedules.filter((s) => s.status === 'awaiting_deposit').length}{' '}
+          {
+            new Set(
+              schedules
+                .filter((s) => s.status !== 'cancelled')
+                .map((s) => s.id),
+            ).size
+          }{' '}
+          reservas ativas ·{' '}
+          {
+            new Set(
+              schedules
+                .filter((s) => s.status === 'awaiting_deposit')
+                .map((s) => s.id),
+            ).size
+          }{' '}
           aguardando sinal
         </p>
       </div>
@@ -243,7 +273,13 @@ export default function SchedulePage() {
               <SalonIcon name="agenda" />
             </div>
             {columns.map((professional) => (
-              <div className="professional-heading" key={professional.id}>
+              <div
+                className="professional-heading"
+                key={professional.id}
+                style={
+                  calendarStyle(professional.calendarColor) as CSSProperties
+                }
+              >
                 <strong>{professional.name}</strong>
               </div>
             ))}
@@ -264,10 +300,15 @@ export default function SchedulePage() {
                       )
                       .map((schedule) => (
                         <button
-                          key={schedule.id}
+                          key={`${schedule.id}-${schedule.employeeId}`}
                           type="button"
                           onClick={() => setOrderId(schedule.id)}
-                          className={`appointment appointment-${schedule.status.replaceAll('_', '-')}`}
+                          className={`appointment employee-appointment appointment-${schedule.status.replaceAll('_', '-')}`}
+                          style={
+                            calendarStyle(
+                              schedule.calendarColor,
+                            ) as CSSProperties
+                          }
                         >
                           <span className="appointment-time">
                             {salonTime(schedule.startsAt)} –{' '}
@@ -278,7 +319,12 @@ export default function SchedulePage() {
                             <small>Vínculo #{schedule.groupId}</small>
                           )}
                           <span>{schedule.treatmentName}</span>
-                          <small>{bookingStatus(schedule.status)}</small>
+                          <span>{schedule.employeeName}</span>
+                          <small
+                            className={`appointment-status status-${schedule.status}`}
+                          >
+                            {bookingStatus(schedule.status)}
+                          </small>
                         </button>
                       ))}
                   </div>
@@ -300,7 +346,8 @@ export default function SchedulePage() {
             .map((schedule) => (
               <button
                 key={schedule.id}
-                className="cancelled"
+                className="cancelled employee-cancelled"
+                style={calendarStyle(schedule.calendarColor) as CSSProperties}
                 type="button"
                 onClick={() => setOrderId(schedule.id)}
               >
@@ -313,6 +360,9 @@ export default function SchedulePage() {
                 <span>
                   {cancellationText(schedule.cancellationReason ?? null)}
                 </span>
+                <small className="appointment-status status-cancelled">
+                  Cancelado
+                </small>
                 <small>Abrir comanda e motivo do cancelamento</small>
               </button>
             ))}

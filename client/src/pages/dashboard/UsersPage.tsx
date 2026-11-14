@@ -3,6 +3,13 @@ import { allowed, roleLabels } from '../../core/auth/permissions'
 import { UserPermissionsModal } from '../access/UserPermissionsModal'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import type { CSSProperties } from 'react'
+import {
+  CALENDAR_PALETTE,
+  DEFAULT_CALENDAR_COLOR,
+  normalizeCalendarColor,
+  calendarStyle,
+} from './calendarColors'
 import {
   createUser,
   disableUser,
@@ -37,6 +44,7 @@ function UsersPage() {
   const [login, setLogin] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [calendarColor, setCalendarColor] = useState(DEFAULT_CALENDAR_COLOR)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -74,6 +82,7 @@ function UsersPage() {
     setRole(user?.role ?? 'OPERATIONAL')
     setLogin(user?.login ?? '')
     setEmail(user?.email ?? '')
+    setCalendarColor(normalizeCalendarColor(user?.calendarColor))
     setPassword('')
     setError('')
     setNotice('')
@@ -86,7 +95,12 @@ function UsersPage() {
     setError('')
     setNotice('')
     try {
-      const input = { login: login.trim(), email: email.trim(), role }
+      const input = {
+        login: login.trim(),
+        email: email.trim(),
+        role,
+        calendarColor,
+      }
       if (editing) await updateUser(editing.id, input)
       else await createUser({ ...input, password })
       setShowForm(false)
@@ -326,6 +340,52 @@ function UsersPage() {
                 configuradas em Funcionalidades por perfil.
               </small>
             </label>
+            <fieldset className="employee-color-picker" disabled={busy}>
+              <legend>Cor na Agenda</legend>
+              <p className="form-hint">
+                Identifica os agendamentos do funcionário vinculado a este
+                usuário.
+              </p>
+              <label className="employee-color-custom">
+                Cor personalizada
+                <input
+                  type="color"
+                  value={calendarColor}
+                  onChange={(event) =>
+                    setCalendarColor(event.target.value.toUpperCase())
+                  }
+                />
+                <span>{calendarColor}</span>
+              </label>
+              <div
+                className="employee-color-palette"
+                aria-label="Cores sugeridas"
+              >
+                {CALENDAR_PALETTE.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    aria-label={`Usar cor ${color}`}
+                    aria-pressed={calendarColor === color}
+                    style={{ background: color }}
+                    onClick={() => setCalendarColor(color)}
+                  />
+                ))}
+              </div>
+              <div
+                className="employee-color-preview"
+                style={calendarStyle(calendarColor) as CSSProperties}
+              >
+                <strong>{login || 'Profissional'}</strong>
+                <span>09:00 – 10:00 · Prévia na Agenda</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalendarColor(DEFAULT_CALENDAR_COLOR)}
+              >
+                Usar cor padrão
+              </button>
+            </fieldset>
             {!editing && (
               <label>
                 Senha temporária

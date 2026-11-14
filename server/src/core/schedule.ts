@@ -1,6 +1,7 @@
 import { IGenericDatabaseClient } from '@/core/db'
 import { ServiceIdentifier } from 'inversify'
 import z from 'zod'
+import { CalendarColorSchema, DEFAULT_CALENDAR_COLOR } from './user'
 
 export const ScheduleStatusSchema = z.enum([
   'scheduled',
@@ -27,6 +28,7 @@ export const ScheduleSchema = z.object({
   employeeId: z.number(),
   employeeUserId: z.number(),
   employeeName: z.string(),
+  calendarColor: CalendarColorSchema.default(DEFAULT_CALENDAR_COLOR),
   serviceId: z.number(),
   serviceName: z.string(),
   startsAt: z.date(),

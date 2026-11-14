@@ -865,6 +865,16 @@ test(
         alice,
         employeeId,
       })
+      await require('./calendar-colors.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        manager,
+        professional,
+        employeeId,
+      })
       await require('./dependencies.cases.cjs')({
         t,
         request,

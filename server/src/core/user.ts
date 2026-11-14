@@ -2,11 +2,18 @@ import { IGenericDatabaseClient } from '@/core/db'
 import { ServiceIdentifier } from 'inversify'
 import z from 'zod'
 
+export const CalendarColorSchema = z
+  .string()
+  .regex(/^#[0-9a-fA-F]{6}$/, 'Invalid calendar color.')
+  .transform((color) => color.toUpperCase())
+export const DEFAULT_CALENDAR_COLOR = '#A51545'
+
 export const AppUserSchema = z.object({
   id: z.int().positive(),
   login: z.string().trim().min(1).max(255),
   hashPassword: z.string().optional(),
   email: z.email(),
+  calendarColor: CalendarColorSchema.default(DEFAULT_CALENDAR_COLOR),
   role: z.enum(['MASTER', 'ADMIN', 'OPERATIONAL']).default('OPERATIONAL'),
   permissions: z.array(z.string()).default([]),
   isActive: z.boolean(),
@@ -57,6 +64,7 @@ export const AppUserCreateSchema = z.object({
   role: AssignmentRoleSchema.default('OPERATIONAL'),
   login: z.string().trim().min(1).max(255),
   email: z.email(),
+  calendarColor: CalendarColorSchema.default(DEFAULT_CALENDAR_COLOR),
   password: PasswordSchema,
 })
 
@@ -65,6 +73,7 @@ export const AppUserUpdateSchema = z.object({
   id: z.int().positive(),
   login: z.string().trim().min(1).max(255),
   email: z.email(),
+  calendarColor: CalendarColorSchema.optional(),
 })
 
 export const USER_PAGE_SIZE = 20

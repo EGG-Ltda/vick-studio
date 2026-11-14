@@ -16,6 +16,7 @@ export type BookingTreatment = {
   durationMinutes: number
 }
 export type BookingEmployee = {
+  calendarColor?: string
   id: number
   name: string
   treatmentIds: number[]

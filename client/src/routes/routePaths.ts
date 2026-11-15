@@ -12,6 +12,7 @@ export const routePaths = {
   birthdays: '/dashboard/social/aniversariantes',
   promotions: '/dashboard/social/promocoes',
   finance: '/dashboard/financeiro',
+  products: '/dashboard/produtos',
   employees: '/dashboard/funcionarios',
   treatments: '/dashboard/servicos',
 } as const

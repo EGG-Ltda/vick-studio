@@ -13,6 +13,7 @@ import {
   RefundSchema,
 } from './schemas'
 import z from 'zod'
+import { recognizeProducts, reverseProduct } from '../inventory/ledger'
 
 const scope = `($1::boolean OR EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active))`
 const profileSelect = `SELECT c.id,p.born_at::text AS "birthDate",p.name,p.cpf_cnpj AS cpf,COALESCE(a.email,c.contact_email) AS email,COALESCE(a.phone,c.contact_phone) AS phone,c.created_at AS "createdAt" FROM customers c JOIN persons p ON p.id=c.person_id LEFT JOIN customer_accounts a ON a.customer_id=c.id`
@@ -257,7 +258,7 @@ export class CustomerService {
       const financial = can(actor, 'finance.view') && mutable
       const [extras, notes, payments, methods] = await Promise.all([
         query(
-          `SELECT x.id,x.description,x.quantity,x.unit_price::float AS "unitPrice",(x.quantity*x.unit_price)::float AS total,x.created_at AS "createdAt",x.voided_at AS "voidedAt",x.void_reason AS "voidReason",u.login AS author FROM order_consumptions x JOIN app_users u ON u.id=x.created_by WHERE x.schedule_id=$1 ORDER BY x.id`,
+          `SELECT x.id,x.product_id AS "productId",x.product_kind AS "productKind",x.stock_returned AS "stockReturned",x.description,x.quantity,x.unit_price::float AS "unitPrice",(x.quantity*x.unit_price)::float AS total,x.created_at AS "createdAt",x.voided_at AS "voidedAt",x.void_reason AS "voidReason",u.login AS author FROM order_consumptions x JOIN app_users u ON u.id=x.created_by WHERE x.schedule_id=$1 ORDER BY x.id`,
           [id],
         ),
         query(
@@ -299,7 +300,16 @@ export class CustomerService {
         extras: extras.rows,
         notes: notes.rows,
         canViewFinancial: financial,
+        canVoidProducts:
+          mutable &&
+          can(actor, 'orders.products') &&
+          can(actor, 'orders.consumptions'),
         canAddNote: can(actor, 'orders.notes'),
+        canAddProduct:
+          can(actor, 'orders.products') &&
+          can(actor, 'orders.consumptions') &&
+          mutable &&
+          ['awaiting_deposit', 'confirmed', 'in_progress'].includes(row.status),
         payments: financial ? payments.rows : [],
         methods: methods.rows,
         isPackage: !!row.package_use_id,
@@ -357,6 +367,7 @@ export class CustomerService {
       ).rows[0]
       if (existing) {
         if (
+          existing.product_id ||
           existing.description !== data.description ||
           existing.quantity !== data.quantity ||
           Number(existing.unit_price) !== data.unitPrice
@@ -391,19 +402,35 @@ export class CustomerService {
     id: number,
     itemId: number,
     reason: string,
+    restock?: boolean,
   ) {
     return this.work.transaction(async (client) => {
       const order = await this.authorizeOrder(actor, id, client, true, true)
-      if (
+      const item = (
+        await client.query(
+          'SELECT * FROM order_consumptions WHERE id=$1 AND schedule_id=$2 FOR UPDATE',
+          [itemId, id],
+        )
+      ).rows[0]
+      if (!item || item.voided_at)
+        bookingError('Consumption item not found or already voided.', 409)
+      if (item.product_id) {
+        if (!can(actor, 'orders.products'))
+          bookingError('Product permission is required.', 403)
+        if (restock === undefined)
+          bookingError('Specify whether the item returned to stock.')
+        await reverseProduct(client, item, actor.id, reason, restock)
+      } else if (
         !['awaiting_deposit', 'confirmed', 'in_progress'].includes(order.status)
       )
         bookingError('This order is closed for consumption changes.', 409)
       const result = await client.query(
-        'UPDATE order_consumptions SET voided_at=now(),voided_by=$3,void_reason=$4 WHERE id=$2 AND schedule_id=$1 AND voided_at IS NULL RETURNING id',
-        [id, itemId, actor.id, reason],
+        'UPDATE order_consumptions SET voided_at=now(),voided_by=$3,void_reason=$4,stock_returned=$5 WHERE id=$2 AND schedule_id=$1 AND voided_at IS NULL RETURNING id',
+        [id, itemId, actor.id, reason, restock ?? null],
       )
       if (!result.rows.length)
         bookingError('Consumption item not found or already voided.', 409)
+      await recognizeProducts(client, id, actor.id)
       return result.rows[0]
     })
   }
@@ -499,6 +526,7 @@ export class CustomerService {
         'INSERT INTO salon_schedule_transactions(schedule_id,transaction_id,created_at) VALUES($1,$2,now())',
         [id, tx.id],
       )
+      await recognizeProducts(client, id, actor.id)
       return tx
     })
   }

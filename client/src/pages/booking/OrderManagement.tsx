@@ -1,12 +1,18 @@
+import { OrderProducts } from '../inventory/OrderProducts'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { bookingDate, bookingRequest, money } from './bookingApi'
 import '../dashboard/customers.css'
 type OrderLedger = {
+  canAddProduct: boolean
+  canVoidProducts: boolean
   canViewFinancial: boolean
   canAddNote: boolean
   extras: {
     id: number
+    productId: number | null
+    productKind: string | null
+    stockReturned: boolean | null
     description: string
     quantity: number
     unitPrice: number
@@ -70,6 +76,7 @@ export function OrderManagement({
     [refund, setRefund] = useState({ paymentId: '', amount: '', reason: '' }),
     [voiding, setVoiding] = useState<number | null>(null),
     [voidReason, setVoidReason] = useState(''),
+    [restock, setRestock] = useState(false),
     [completeReview, setCompleteReview] = useState(false)
   const request = useRef<{ body: string; key: string } | null>(null)
   useEffect(() => {
@@ -216,20 +223,36 @@ export function OrderManagement({
               <strong>
                 {item.quantity} × {item.description} · {money(item.total)}
               </strong>
+              {item.productId && (
+                <small>
+                  {item.productKind === 'courtesy'
+                    ? 'Cortesia do salão · sem cobrança'
+                    : 'Produto do estoque'}
+                </small>
+              )}
               <small>
                 Unitário: {money(item.unitPrice)} · {item.author} ·{' '}
                 {bookingDate(item.createdAt)}
               </small>
               {item.voidedAt ? (
-                <small>Cancelado: {item.voidReason}</small>
+                <small>
+                  Cancelado: {item.voidReason}
+                  {item.productId
+                    ? item.stockReturned
+                      ? ' · Retornou ao estoque'
+                      : ' · Sem retorno ao estoque'
+                    : ''}
+                </small>
               ) : (
-                data.canAddConsumption && (
+                (data.canAddConsumption ||
+                  (item.productId && data.canVoidProducts)) && (
                   <button
                     type="button"
                     disabled={busy}
                     onClick={() => {
                       setVoiding(item.id)
                       setVoidReason('')
+                      setRestock(false)
                     }}
                   >
                     Cancelar item
@@ -245,7 +268,13 @@ export function OrderManagement({
                 event.preventDefault()
                 void mutate(
                   `/consumptions/${voiding}/void`,
-                  { reason: voidReason },
+                  {
+                    reason: voidReason,
+                    ...(data.extras.find((item) => item.id === voiding)
+                      ?.productId
+                      ? { restock }
+                      : {}),
+                  },
                   'Item cancelado, mantendo o registro no histórico.',
                   () => setVoiding(null),
                 )
@@ -262,6 +291,24 @@ export function OrderManagement({
                   disabled={busy}
                 />
               </label>
+              {data.extras.find((item) => item.id === voiding)?.productId && (
+                <>
+                  <label className="inventory-check">
+                    <input
+                      type="checkbox"
+                      checked={restock}
+                      onChange={(e) => setRestock(e.target.checked)}
+                    />
+                    O item foi devolvido em condições de voltar ao estoque
+                  </label>
+                  <p className="booking-note">
+                    Cancelar a cobrança não devolve dinheiro automaticamente. Se
+                    já houve pagamento, registre o estorno em Recebimentos e
+                    estornos. Cortesias consumidas não devem retornar ao
+                    estoque.
+                  </p>
+                </>
+              )}
               <button disabled={busy} type="submit">
                 Confirmar cancelamento do item
               </button>
@@ -282,16 +329,28 @@ export function OrderManagement({
               histórico.
             </p>
           )}
+          {data.canAddProduct && (
+            <OrderProducts
+              id={id}
+              onBusyChange={onBusyChange}
+              onAdded={() => {
+                void bookingRequest<OrderLedger>(`/orders/${id}`)
+                  .then(setData)
+                  .catch((cause) => setError(cause.message))
+                onUpdated()
+              }}
+            />
+          )}
           {data.canAddConsumption && (
             <form className="booking-form" onSubmit={consumption}>
               <fieldset disabled={busy}>
-                <legend>Adicionar consumo</legend>
+                <legend>Consumo avulso sem controle de estoque</legend>
                 <label>
                   Descrição
                   <input
                     required
                     maxLength={255}
-                    placeholder="Ex.: chocolate, café, produto"
+                    placeholder="Descreva um item não cadastrado no estoque"
                     value={extra.description}
                     onChange={(event) =>
                       setExtra({ ...extra, description: event.target.value })

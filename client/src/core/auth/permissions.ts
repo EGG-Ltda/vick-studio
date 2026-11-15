@@ -12,6 +12,7 @@ export const pagePermissions: Record<string, string> = {
   '/dashboard/schedule': 'agenda.view',
   '/dashboard/clientes': 'clients.view',
   '/dashboard/financeiro': 'finance.view',
+  '/dashboard/produtos': 'products.view',
   '/dashboard/funcionarios': 'employees.view',
   '/dashboard/servicos': 'services.view',
   '/dashboard/configuracoes-agenda': 'booking.settings',

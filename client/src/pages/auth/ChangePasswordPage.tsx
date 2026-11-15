@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Navigate, useNavigate } from 'react-router-dom'
@@ -70,7 +71,7 @@ function ChangePasswordPage() {
           <fieldset disabled={busy}>
             <label>
               Nova senha
-              <input
+              <SalonInput
                 type="password"
                 autoComplete="new-password"
                 required
@@ -83,7 +84,7 @@ function ChangePasswordPage() {
             </label>
             <label>
               Confirmar nova senha
-              <input
+              <SalonInput
                 type="password"
                 autoComplete="new-password"
                 required

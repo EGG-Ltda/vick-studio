@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useEffect, useState } from 'react'
 import { inventoryRequest } from './inventoryApi'
 import type { Page, Supplier } from './inventoryApi'
@@ -38,7 +39,7 @@ export function SupplierPicker({
       <legend>Fornecedor {label ? `selecionado: ${label}` : ''}</legend>
       <label>
         Buscar fornecedor
-        <input
+        <SalonInput
           value={search}
           onChange={(e) => {
             setSearch(e.target.value)

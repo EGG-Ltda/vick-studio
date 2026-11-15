@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import type {
@@ -163,7 +165,7 @@ function ProcedureChoice({
       )}
       <label>
         Profissional para {node.name}
-        <select
+        <SalonSelect
           required
           value={employee}
           disabled={disabled || !!node.blocked}
@@ -178,11 +180,11 @@ function ProcedureChoice({
               {e.name}
             </option>
           ))}
-        </select>
+        </SalonSelect>
       </label>
       <label>
         Data de {node.name}
-        <input
+        <SalonInput
           type="date"
           required
           min={salonDay(new Date().toISOString())}
@@ -197,7 +199,7 @@ function ProcedureChoice({
       {staff && (
         <label>
           Prazo do sinal · {node.name} (Brasília)
-          <input
+          <SalonInput
             type="datetime-local"
             required
             disabled={disabled}

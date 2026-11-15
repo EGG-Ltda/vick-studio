@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { allowed } from '../../core/auth/permissions'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -118,7 +120,7 @@ export function PackagePayments({
             <fieldset disabled={busy}>
               <label>
                 Tipo de lançamento
-                <select
+                <SalonSelect
                   value={form.refundOf}
                   onChange={(e) =>
                     setForm({
@@ -145,12 +147,12 @@ export function PackagePayments({
                         Estornar recebimento #{r.id} · {money(r.amount)}
                       </option>
                     ))}
-                </select>
+                </SalonSelect>
               </label>
               {!form.refundOf && (
                 <label>
                   Forma de pagamento
-                  <select
+                  <SalonSelect
                     required
                     value={form.methodId}
                     onChange={(e) =>
@@ -163,12 +165,12 @@ export function PackagePayments({
                         {m.name}
                       </option>
                     ))}
-                  </select>
+                  </SalonSelect>
                 </label>
               )}
               <label>
                 Valor (R$)
-                <input
+                <SalonInput
                   type="number"
                   required
                   min="0.01"
@@ -180,7 +182,7 @@ export function PackagePayments({
               </label>
               <label>
                 {form.refundOf ? 'Motivo do estorno' : 'Descrição'}
-                <input
+                <SalonInput
                   required
                   minLength={3}
                   maxLength={1000}

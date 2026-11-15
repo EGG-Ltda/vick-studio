@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { OrderProducts } from '../inventory/OrderProducts'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -282,7 +284,7 @@ export function OrderManagement({
             >
               <label>
                 Motivo do cancelamento do item
-                <input
+                <SalonInput
                   required
                   minLength={3}
                   maxLength={1000}
@@ -294,7 +296,7 @@ export function OrderManagement({
               {data.extras.find((item) => item.id === voiding)?.productId && (
                 <>
                   <label className="inventory-check">
-                    <input
+                    <SalonInput
                       type="checkbox"
                       checked={restock}
                       onChange={(e) => setRestock(e.target.checked)}
@@ -347,7 +349,7 @@ export function OrderManagement({
                 <legend>Consumo avulso sem controle de estoque</legend>
                 <label>
                   Descrição
-                  <input
+                  <SalonInput
                     required
                     maxLength={255}
                     placeholder="Descreva um item não cadastrado no estoque"
@@ -359,7 +361,7 @@ export function OrderManagement({
                 </label>
                 <label>
                   Quantidade
-                  <input
+                  <SalonInput
                     required
                     type="number"
                     min="1"
@@ -373,7 +375,7 @@ export function OrderManagement({
                 </label>
                 <label>
                   Valor unitário (R$)
-                  <input
+                  <SalonInput
                     required
                     type="number"
                     min="0"
@@ -439,7 +441,7 @@ export function OrderManagement({
                         {data.isPackage
                           ? 'Valor recebido por consumos extras (R$)'
                           : 'Valor recebido (R$)'}
-                        <input
+                        <SalonInput
                           required
                           type="number"
                           min="0.01"
@@ -458,7 +460,7 @@ export function OrderManagement({
                       </label>
                       <label>
                         Forma de pagamento
-                        <select
+                        <SalonSelect
                           required
                           value={payment.methodId}
                           onChange={(event) =>
@@ -474,11 +476,11 @@ export function OrderManagement({
                               {method.name}
                             </option>
                           ))}
-                        </select>
+                        </SalonSelect>
                       </label>
                       <label>
                         Descrição
-                        <input
+                        <SalonInput
                           required
                           maxLength={1023}
                           value={payment.description}
@@ -502,7 +504,7 @@ export function OrderManagement({
                     <legend>Registrar estorno</legend>
                     <label>
                       Recebimento original
-                      <select
+                      <SalonSelect
                         required
                         value={refund.paymentId}
                         onChange={(event) =>
@@ -520,11 +522,11 @@ export function OrderManagement({
                             {money(item.amount - item.refundedAmount)}
                           </option>
                         ))}
-                      </select>
+                      </SalonSelect>
                     </label>
                     <label>
                       Valor devolvido (R$)
-                      <input
+                      <SalonInput
                         required
                         type="number"
                         min="0.01"
@@ -543,7 +545,7 @@ export function OrderManagement({
                     </label>
                     <label>
                       Motivo
-                      <input
+                      <SalonInput
                         required
                         minLength={3}
                         maxLength={1000}

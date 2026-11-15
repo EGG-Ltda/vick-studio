@@ -1,3 +1,4 @@
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { bookingRequest } from '../booking/bookingApi'
@@ -55,7 +56,7 @@ export default function BirthdaysPage() {
       </header>
       <label className="social-month">
         Mês
-        <select
+        <SalonSelect
           value={month}
           onChange={(e) => {
             setLoading(true)
@@ -72,7 +73,7 @@ export default function BirthdaysPage() {
               }).format(new Date(Date.UTC(2024, i, 1)))}
             </option>
           ))}
-        </select>
+        </SalonSelect>
       </label>
       {error && (
         <p role="alert" className="booking-error">

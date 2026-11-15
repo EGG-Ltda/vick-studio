@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useAuth } from '../../core/auth/useAuth'
 import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
@@ -277,7 +279,7 @@ export default function CustomerDetailPage() {
                           birthDate: 'Data de nascimento',
                         }[field]
                       }
-                      <input
+                      <SalonInput
                         required={field !== 'birthDate'}
                         max={
                           field === 'birthDate'
@@ -329,7 +331,7 @@ export default function CustomerDetailPage() {
               <h2>Agendamentos e atendimentos</h2>
               <label>
                 Exibir
-                <select
+                <SalonSelect
                   value={view}
                   onChange={(event) => {
                     setView(event.target.value)
@@ -340,7 +342,7 @@ export default function CustomerDetailPage() {
                   <option value="upcoming">Futuros</option>
                   <option value="past">Anteriores</option>
                   <option value="completed">Procedimentos realizados</option>
-                </select>
+                </SalonSelect>
               </label>
             </div>
             {historyLoading && <p role="status">Carregando histórico…</p>}

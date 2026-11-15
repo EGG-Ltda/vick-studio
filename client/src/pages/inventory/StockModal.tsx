@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
@@ -98,7 +100,7 @@ export function StockModal({
             <legend>Movimentar estoque</legend>
             <label>
               Tipo
-              <select
+              <SalonSelect
                 value={kind}
                 onChange={(e) => {
                   setKind(e.target.value)
@@ -111,13 +113,13 @@ export function StockModal({
                 <option value="supplier_return">Devolução ao fornecedor</option>
                 <option value="loss">Perda / vencimento / dano</option>
                 <option value="adjustment">Ajuste de inventário</option>
-              </select>
+              </SalonSelect>
             </label>
             <label>
               {kind === 'adjustment'
                 ? 'Variação do estoque (ex.: -2 ou 3)'
                 : 'Quantidade'}
-              <input
+              <SalonInput
                 required
                 type="number"
                 min={kind === 'adjustment' ? '-100000' : '1'}
@@ -133,7 +135,7 @@ export function StockModal({
                   {kind === 'supplier_return'
                     ? 'Crédito acordado por unidade devolvida (R$)'
                     : 'Custo real por unidade (R$)'}
-                  <input
+                  <SalonInput
                     required
                     type="number"
                     min="0"
@@ -151,7 +153,7 @@ export function StockModal({
               )}
             <label>
               Motivo
-              <input
+              <SalonInput
                 required
                 minLength={3}
                 maxLength={1000}

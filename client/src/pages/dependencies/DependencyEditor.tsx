@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import type { Dependency, Treatment } from '../../core/api/treatments'
 import './dependencies.css'
 export function DependencyEditor({
@@ -32,7 +34,7 @@ export function DependencyEditor({
         <article className="dependency-rule" key={i}>
           <label>
             Serviço obrigatório
-            <select
+            <SalonSelect
               value={d.requiredTreatmentId}
               onChange={(e) =>
                 update(i, { requiredTreatmentId: Number(e.target.value) })
@@ -55,11 +57,11 @@ export function DependencyEditor({
                     {!t.isActive ? ' (inativo)' : ''}
                   </option>
                 ))}
-            </select>
+            </SalonSelect>
           </label>
           <label>
             Ordem
-            <select
+            <SalonSelect
               value={d.position}
               onChange={(e) =>
                 update(i, {
@@ -69,11 +71,11 @@ export function DependencyEditor({
             >
               <option value="before">Antes do serviço principal</option>
               <option value="after">Depois do serviço principal</option>
-            </select>
+            </SalonSelect>
           </label>
           <label>
             Datas
-            <select
+            <SalonSelect
               value={String(d.sameDay)}
               onChange={(e) =>
                 update(i, { sameDay: e.target.value === 'true' })
@@ -81,10 +83,10 @@ export function DependencyEditor({
             >
               <option value="true">Obrigatoriamente no mesmo dia</option>
               <option value="false">Permitir dias diferentes</option>
-            </select>
+            </SalonSelect>
           </label>
           <label className="dependency-checkbox">
-            <input
+            <SalonInput
               type="checkbox"
               checked={d.consecutive}
               onChange={(e) =>
@@ -101,7 +103,7 @@ export function DependencyEditor({
           <div className="dependency-interval">
             <label>
               Intervalo mínimo (minutos)
-              <input
+              <SalonInput
                 type="number"
                 min="0"
                 max="525600"
@@ -115,7 +117,7 @@ export function DependencyEditor({
             </label>
             <label>
               Intervalo máximo (minutos)
-              <input
+              <SalonInput
                 type="number"
                 min={d.minMinutes}
                 max="525600"

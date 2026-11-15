@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useAuth } from '../../core/auth/useAuth'
 import { allowed } from '../../core/auth/permissions'
 import { apiRequest } from '../../core/api/http'
@@ -158,7 +159,7 @@ function TreatmentsPage() {
             <fieldset disabled={saving} className="treatment-form-fields">
               <label>
                 Nome
-                <input
+                <SalonInput
                   autoFocus
                   maxLength={255}
                   value={form.name}
@@ -181,7 +182,7 @@ function TreatmentsPage() {
               </label>
               <label>
                 Duração (min)
-                <input
+                <SalonInput
                   type="number"
                   min="1"
                   value={form.duration}
@@ -193,7 +194,7 @@ function TreatmentsPage() {
               </label>
               <label>
                 Preço
-                <input
+                <SalonInput
                   type="number"
                   min="0.01"
                   step="0.01"
@@ -235,7 +236,7 @@ function TreatmentsPage() {
         </div>
         {allowed(user, 'services.inactive') && (
           <label className="treatment-filter">
-            <input
+            <SalonInput
               type="checkbox"
               checked={hideDisabled}
               onChange={(event) => setHideDisabled(event.target.checked)}

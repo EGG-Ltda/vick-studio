@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useAuth } from '../../core/auth/useAuth'
 import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
@@ -162,7 +163,7 @@ export function BookingOrderModal({
               >
                 <label>
                   Valor do sinal recebido (R$)
-                  <input
+                  <SalonInput
                     required
                     type="number"
                     min={order.depositRequired}

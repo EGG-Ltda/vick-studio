@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useEffect, useState } from 'react'
 import { useAuth } from '../../core/auth/useAuth'
 import { allowed } from '../../core/auth/permissions'
@@ -141,7 +142,7 @@ export default function ProductsPage() {
         {tab === 'settlements' ? (
           <label>
             Mês de referência
-            <input
+            <SalonInput
               type="month"
               min="2000-01"
               max="2099-12"
@@ -159,7 +160,7 @@ export default function ProductsPage() {
         ) : (
           <label>
             Buscar {tab === 'products' ? 'produto ou fornecedor' : 'fornecedor'}
-            <input
+            <SalonInput
               type="search"
               placeholder="Digite um nome"
               maxLength={100}
@@ -174,7 +175,7 @@ export default function ProductsPage() {
         )}
         {tab === 'products' && (
           <label className="inventory-check">
-            <input
+            <SalonInput
               type="checkbox"
               checked={inactive}
               onChange={(e) => {

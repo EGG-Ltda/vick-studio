@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useAuth } from '../../core/auth/useAuth'
 import { allowed, roleLabels } from '../../core/auth/permissions'
 import { UserPermissionsModal } from '../access/UserPermissionsModal'
@@ -231,7 +233,7 @@ function UsersPage() {
             <fieldset className="password-reset-fields" disabled={busy}>
               <label>
                 Senha temporária
-                <input
+                <SalonInput
                   type="password"
                   required
                   minLength={8}
@@ -246,7 +248,7 @@ function UsersPage() {
               </label>
               <label>
                 Confirmar senha temporária
-                <input
+                <SalonInput
                   type="password"
                   required
                   minLength={8}
@@ -296,7 +298,7 @@ function UsersPage() {
           >
             <label>
               Login
-              <input
+              <SalonInput
                 autoFocus
                 value={login}
                 onChange={(event) => setLogin(event.target.value)}
@@ -310,7 +312,7 @@ function UsersPage() {
             </label>
             <label>
               E-mail
-              <input
+              <SalonInput
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -322,7 +324,7 @@ function UsersPage() {
             </label>
             <label>
               Perfil de acesso
-              <select
+              <SalonSelect
                 value={role}
                 onChange={(e) => setRole(e.target.value as User['role'])}
                 disabled={
@@ -334,7 +336,7 @@ function UsersPage() {
                     {label}
                   </option>
                 ))}
-              </select>
+              </SalonSelect>
               <small>
                 Somente Master pode atribuir perfis. As permissões são
                 configuradas em Funcionalidades por perfil.
@@ -348,7 +350,7 @@ function UsersPage() {
               </p>
               <label className="employee-color-custom">
                 Cor personalizada
-                <input
+                <SalonInput
                   type="color"
                   value={calendarColor}
                   onChange={(event) =>
@@ -389,7 +391,7 @@ function UsersPage() {
             {!editing && (
               <label>
                 Senha temporária
-                <input
+                <SalonInput
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -435,7 +437,7 @@ function UsersPage() {
           <span>Consulte e gerencie os usuários cadastrados.</span>
         </div>
         <label className="users-filter">
-          <input
+          <SalonInput
             type="checkbox"
             checked={hideDisabled}
             disabled={busy}

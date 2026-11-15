@@ -1,3 +1,4 @@
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useState } from 'react'
 import type { BookingCatalog } from '../booking/bookingApi'
 import { bookingRequest, money, bookingDate } from '../booking/bookingApi'
@@ -60,7 +61,7 @@ export function PackageBooking({
       {notice && <p role="status">{notice}</p>}
       <label>
         Pacote disponível
-        <select
+        <SalonSelect
           value={selected}
           onChange={(e) => {
             setSelected(e.target.value)
@@ -73,7 +74,7 @@ export function PackageBooking({
               {p.title} · {money(p.price)}
             </option>
           ))}
-        </select>
+        </SalonSelect>
       </label>
       {p && (
         <>

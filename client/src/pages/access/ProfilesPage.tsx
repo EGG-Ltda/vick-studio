@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../../core/auth/useAuth'
@@ -219,7 +220,7 @@ export default function ProfilesPage() {
                           {!eligible && <small>Restrito à administração</small>}
                         </div>
                         <label>
-                          <input
+                          <SalonInput
                             type="checkbox"
                             aria-label={`Habilitar ${c.label}`}
                             checked={g.allowed}
@@ -232,7 +233,7 @@ export default function ProfilesPage() {
                         </label>
                         {role === 'OPERATIONAL' && (
                           <label>
-                            <input
+                            <SalonInput
                               type="checkbox"
                               aria-label={`Permitir que Admin ajuste ${c.label}`}
                               checked={g.delegatable}

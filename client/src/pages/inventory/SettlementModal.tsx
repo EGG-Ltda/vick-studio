@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
@@ -138,7 +140,7 @@ export function SettlementModal({
             <legend>Registrar pagamento realizado</legend>
             <label>
               Valor pago (R$)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="0.01"
@@ -150,7 +152,7 @@ export function SettlementModal({
             </label>
             <label>
               Forma de pagamento
-              <select
+              <SalonSelect
                 required
                 value={method}
                 onChange={(e) => setMethod(e.target.value)}
@@ -161,11 +163,11 @@ export function SettlementModal({
                     {m.name}
                   </option>
                 ))}
-              </select>
+              </SalonSelect>
             </label>
             <label>
               Descrição / referência
-              <input
+              <SalonInput
                 required
                 minLength={3}
                 maxLength={1000}

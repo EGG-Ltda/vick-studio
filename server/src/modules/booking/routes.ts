@@ -172,7 +172,10 @@ export default async function bookingRoutes(app: FastifyInstance) {
     const parsed = EmployeeSchema.safeParse(req.body)
     if (!parsed.success) bookingError(employeeValidationMessage(parsed.error))
     try {
-      return ok(res, await service.saveEmployee(parsed.data))
+      return ok(
+        res,
+        await service.saveEmployee(parsed.data, undefined, req.authUser.id),
+      )
     } catch (error: any) {
       if (error.code === '23505')
         bookingError('Employee or CPF is already registered.', 409)
@@ -188,7 +191,10 @@ export default async function bookingRoutes(app: FastifyInstance) {
       if (!parsed.success) bookingError(employeeValidationMessage(parsed.error))
       if (!Number.isSafeInteger(id) || id <= 0)
         bookingError('Invalid employee ID.')
-      return ok(res, await service.saveEmployee(parsed.data, id))
+      return ok(
+        res,
+        await service.saveEmployee(parsed.data, id, req.authUser.id),
+      )
     },
   )
   app.get(

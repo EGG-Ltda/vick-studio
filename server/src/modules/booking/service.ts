@@ -16,6 +16,8 @@ import {
 import z from 'zod'
 import { customerDepositDeadline } from './deadline'
 import { recordDeposit } from '../customers/ledger'
+import { validateUpcomingAvailability } from '../availability/validation'
+import { WorkingDaySchema } from '../availability/schemas'
 import { assertIndependent } from '../dependencies/rules'
 
 export function bookingError(message: string, statusCode = 400): never {
@@ -152,17 +154,54 @@ export class BookingService {
       await this.query(
         `SELECT e.id,p.name,p.cpf_cnpj AS cpf,e.user_id AS "userId",u.email,u.calendar_color AS "calendarColor",e.is_active AS active,
       COALESCE((SELECT json_agg(treatment_id) FROM employee_salon_treatments WHERE employee_id=e.id),'[]') AS "treatmentIds",
-      COALESCE((SELECT json_agg(json_build_object('weekday',weekday,'opensAt',opens_at,'closesAt',closes_at) ORDER BY weekday) FROM employee_booking_hours WHERE employee_id=e.id),'[]') AS hours
+      COALESCE((SELECT json_agg(json_build_object('weekday',weekday,'opensAt',opens_at,'closesAt',closes_at,'lunchStart',lunch_start) ORDER BY weekday) FROM employee_booking_hours WHERE employee_id=e.id),'[]') AS hours
       FROM employees e JOIN persons p ON p.id=e.person_id JOIN app_users u ON u.id=e.user_id
       WHERE ($1=false OR (e.is_active AND u.is_active AND u.removed_at IS NULL AND EXISTS(SELECT 1 FROM employee_booking_hours h WHERE h.employee_id=e.id))) ORDER BY p.name`,
         [publicOnly],
       )
     ).rows
   }
-  async saveEmployee(data: z.infer<typeof EmployeeSchema>, id?: number) {
+  async saveEmployee(
+    data: z.infer<typeof EmployeeSchema>,
+    id?: number,
+    actorId?: number,
+  ) {
     return this.work.transaction(async (client) => {
       // Same lock as booking creation prevents disabling/reassignment mid-reservation.
       if (id) await client.query('SELECT pg_advisory_xact_lock(70421,$1)', [id])
+      const oldHours = id
+        ? (
+            await client.query(
+              'SELECT weekday,opens_at,closes_at,lunch_start FROM employee_booking_hours WHERE employee_id=$1 ORDER BY weekday',
+              [id],
+            )
+          ).rows.map((h: any) => ({
+            weekday: h.weekday,
+            opensAt: h.opens_at.slice(0, 5),
+            closesAt: h.closes_at.slice(0, 5),
+            lunchStart: h.lunch_start?.slice(0, 5) ?? null,
+          }))
+        : []
+      const hours = (
+        data.hours ??
+        data.weekdays.map((weekday) => ({
+          weekday,
+          opensAt: data.opensAt,
+          closesAt: data.closesAt,
+          lunchStart:
+            data.lunchStart === undefined
+              ? (oldHours.find((h: any) => h.weekday === weekday)?.lunchStart ??
+                null)
+              : data.lunchStart,
+        }))
+      )
+        .map((h) => {
+          const parsed = WorkingDaySchema.safeParse(h)
+          if (!parsed.success)
+            bookingError('Invalid working hours or lunch interval.')
+          return parsed.data
+        })
+        .sort((a, b) => a.weekday - b.weekday)
       const user = (
         await client.query(
           'SELECT id FROM app_users WHERE id=$1 AND is_active AND removed_at IS NULL FOR SHARE',
@@ -223,11 +262,23 @@ export class BookingService {
         'DELETE FROM employee_booking_hours WHERE employee_id=$1',
         [id],
       )
-      for (const day of data.weekdays)
+      for (const day of hours)
         await client.query(
-          'INSERT INTO employee_booking_hours(employee_id,weekday,opens_at,closes_at) VALUES($1,$2,$3,$4)',
-          [id, day, data.opensAt, data.closesAt],
+          'INSERT INTO employee_booking_hours(employee_id,weekday,opens_at,closes_at,lunch_start) VALUES($1,$2,$3,$4,$5)',
+          [id, day.weekday, day.opensAt, day.closesAt, day.lunchStart],
         )
+      if (JSON.stringify(oldHours) !== JSON.stringify(hours)) {
+        await validateUpcomingAvailability(client, id)
+        await client.query(
+          "INSERT INTO employee_availability_events(employee_id,actor_id,action,previous_data,current_data) VALUES($1,$2,'working_hours',$3,$4)",
+          [
+            id,
+            actorId ?? data.userId,
+            JSON.stringify(oldHours),
+            JSON.stringify(hours),
+          ],
+        )
+      }
       return { id }
     })
   }
@@ -322,6 +373,18 @@ export class BookingService {
     ).rows.length
     if (!open)
       bookingError('This time is outside the professional working hours.', 409)
+    if (
+      (
+        await client.query(
+          'SELECT 1 FROM employee_calendar_blocks($1,$2,$3) LIMIT 1',
+          [employeeId, startsAt, timing.finish],
+        )
+      ).rows.length
+    )
+      bookingError(
+        'This period is blocked by lunch, approved leave or vacation.',
+        409,
+      )
     const conflict = (
       await client.query(
         `SELECT 1 FROM salon_schedule_treatments t JOIN salon_schedules s ON s.id=t.schedule_id WHERE t.employee_id=$1 AND s.status<>'cancelled' AND s.id<>$4 AND s.schedule_started_at<$3 AND s.schedule_ended_at>$2 LIMIT 1`,

@@ -2,6 +2,27 @@ import type { AppUser } from './user'
 import { MASTER_USER_ID } from './config'
 export const permissionCatalog = [
   ['agenda.view', 'Agenda', 'Consultar agenda', true, []],
+  [
+    'availability.view',
+    'Disponibilidade',
+    'Consultar solicitações e avisos próprios',
+    true,
+    ['agenda.view'],
+  ],
+  [
+    'availability.request',
+    'Disponibilidade',
+    'Solicitar almoço, ausência e férias',
+    true,
+    ['availability.view'],
+  ],
+  [
+    'availability.manage',
+    'Disponibilidade',
+    'Gerenciar solicitações da equipe',
+    false,
+    ['availability.view', 'employees.view'],
+  ],
   ['agenda.create', 'Agenda', 'Criar agendamentos', true, ['agenda.view']],
   [
     'agenda.change',

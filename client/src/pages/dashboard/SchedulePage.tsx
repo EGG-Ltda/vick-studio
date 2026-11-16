@@ -1,3 +1,8 @@
+import { AbsenceModal } from '../availability/AbsenceModal'
+import { absenceKind } from '../availability/availabilityApi'
+import type { AvailabilityBlock } from '../availability/availabilityApi'
+import { useSearchParams } from 'react-router-dom'
+import '../availability/availability.css'
 import { SalonInput } from '../../components/selection/SalonInput'
 import { calendarStyle } from './calendarColors'
 import { useAuth } from '../../core/auth/useAuth'
@@ -32,6 +37,9 @@ const today = () =>
   }).format(new Date())
 export default function SchedulePage() {
   const { user } = useAuth()
+  const [params, setParams] = useSearchParams()
+  const [showAbsence, setShowAbsence] = useState(false)
+  const [blocks, setBlocks] = useState<AvailabilityBlock[]>([])
   const [date, setDate] = useState(today),
     [schedules, setSchedules] = useState<Schedule[]>([]),
     [catalog, setCatalog] = useState<BookingCatalog | null>(null),
@@ -50,11 +58,19 @@ export default function SchedulePage() {
       try {
         const start = new Date(date + 'T00:00:00-03:00'),
           end = new Date(start.getTime() + 86400000)
-        const [items, data] = await Promise.all([
+        const [items, data, unavailable] = await Promise.all([
           listSchedules(start, end),
           bookingRequest<BookingCatalog>('/booking/catalog', {
             signal: controller.signal,
           }),
+          bookingRequest<AvailabilityBlock[]>(
+            '/availability/blocks?' +
+              new URLSearchParams({
+                start: start.toISOString(),
+                end: end.toISOString(),
+              }),
+            { signal: controller.signal },
+          ),
         ])
         if (!controller.signal.aborted) {
           const grouped = new Map<string, Schedule>()
@@ -73,6 +89,7 @@ export default function SchedulePage() {
           }
           setSchedules([...grouped.values()])
           setCatalog(data)
+          setBlocks(unavailable)
           setError('')
         }
       } catch (cause) {
@@ -154,6 +171,14 @@ export default function SchedulePage() {
           </p>
         </div>
         <div className="schedule-actions">
+          {user?.role === 'OPERATIONAL' &&
+            allowed(user, 'availability.view') && (
+              <button type="button" onClick={() => setShowAbsence(true)}>
+                {allowed(user, 'availability.request')
+                  ? 'Solicitar ausência'
+                  : 'Meus pedidos'}
+              </button>
+            )}
           <button
             type="button"
             aria-pressed={tv}
@@ -184,6 +209,22 @@ export default function SchedulePage() {
           )}
         </div>
       </header>
+      {(showAbsence || params.get('solicitacoes') === '1') &&
+        user?.role === 'OPERATIONAL' &&
+        allowed(user, 'availability.view') && (
+          <AbsenceModal
+            canRequest={allowed(user, 'availability.request')}
+            initialTab={params.get('solicitacoes') ? 'history' : 'new'}
+            onClose={() => {
+              setShowAbsence(false)
+              setParams({})
+            }}
+            onChanged={() => {
+              setRevision((r) => r + 1)
+              window.dispatchEvent(new Event('availability-updated'))
+            }}
+          />
+        )}
       {showForm && catalog && (
         <SalonModal
           title="Novo agendamento"
@@ -290,7 +331,60 @@ export default function SchedulePage() {
               <div className="calendar-row" key={time}>
                 <time>{time}</time>
                 {columns.map((professional) => (
-                  <div className="calendar-cell" key={professional.id}>
+                  <div
+                    className={
+                      'calendar-cell' +
+                      (blocks.some(
+                        (b) =>
+                          b.employeeId === professional.id &&
+                          Date.parse(b.startsAt) <
+                            Date.parse(date + 'T' + time + ':00-03:00') +
+                              3600000 &&
+                          Date.parse(b.endsAt) >
+                            Date.parse(date + 'T' + time + ':00-03:00'),
+                      )
+                        ? ' is-unavailable'
+                        : '')
+                    }
+                    key={professional.id}
+                  >
+                    {blocks
+                      .filter(
+                        (b) =>
+                          b.employeeId === professional.id &&
+                          Date.parse(b.startsAt) <
+                            Date.parse(date + 'T' + time + ':00-03:00') +
+                              3600000 &&
+                          Date.parse(b.endsAt) >
+                            Date.parse(date + 'T' + time + ':00-03:00') &&
+                          (salonTime(b.startsAt).slice(0, 2) ===
+                            time.slice(0, 2) ||
+                            (time === timeSlots[0] &&
+                              Date.parse(b.startsAt) <
+                                Date.parse(date + 'T' + time + ':00-03:00'))),
+                      )
+                      .map((b, i) => (
+                        <div
+                          className="schedule-block"
+                          key={
+                            b.kind + '-' + (b.requestId ?? 'regular') + '-' + i
+                          }
+                        >
+                          <strong>
+                            {b.kind === 'lunch'
+                              ? 'Almoço'
+                              : absenceKind[b.kind]}
+                          </strong>
+                          <span>
+                            {b.kind === 'vacation'
+                              ? 'Indisponível neste dia'
+                              : salonTime(b.startsAt) +
+                                ' – ' +
+                                salonTime(b.endsAt)}
+                          </span>
+                          <small>{b.employeeName}</small>
+                        </div>
+                      ))}
                     {schedules
                       .filter(
                         (schedule) =>

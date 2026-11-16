@@ -20,7 +20,12 @@ export type BookingEmployee = {
   id: number
   name: string
   treatmentIds: number[]
-  hours: { weekday: number; opensAt: string; closesAt: string }[]
+  hours: {
+    weekday: number
+    opensAt: string
+    closesAt: string
+    lunchStart?: string | null
+  }[]
 }
 export type BookingCatalog = {
   settings: BookingSettings

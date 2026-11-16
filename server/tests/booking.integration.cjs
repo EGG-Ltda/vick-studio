@@ -900,6 +900,19 @@ test(
         bob,
         employeeId,
       })
+      // Keep the real public-booking rate limit enabled; start a new window for availability scenarios.
+      await delay(60000)
+      await require('./availability.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        manager,
+        professional,
+        alice,
+        cpf,
+      })
       await t.test(
         'availability respects disabled professionals and logout invalidates customer session',
         async () => {

@@ -24,6 +24,41 @@
   font-family: Georgia, serif;
   color: #981547;
 }
+.booking-header {
+  flex-wrap: wrap;
+}
+.booking-home-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 44px;
+  padding: 10px 16px;
+  border: 1px solid #dbb3c4;
+  border-radius: 10px;
+  background: #fff7fa;
+  color: #941445;
+  font: 500 13px Arial, sans-serif;
+  line-height: 1.4;
+  text-decoration: none;
+}
+.booking-home-link:hover {
+  background: #f8e4ed;
+  border-color: #b54273;
+}
+.booking-home-link:focus-visible {
+  outline: 2px solid #ae3d68;
+  outline-offset: 4px;
+}
+@media (max-width: 600px) {
+  .booking-header > span {
+    flex-basis: 100%;
+    order: 1;
+  }
+  .booking-home-link {
+    padding-inline: 12px;
+  }
+}
 .booking-container {
   width: 100%;
   max-width: 780px;

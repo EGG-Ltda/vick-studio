@@ -18,6 +18,7 @@ export default async function scheduleRoutes(
   app: FastifyInstance,
 ): Promise<void> {
   const scheduleService: IScheduleService = container.get(scheduleServiceId)
+  app.get('/schedules/options', {preHandler:authHook}, async(_req,res) => ok(res,await scheduleService.options()))
 
   app.get<{ Querystring: { start?: string; end?: string } }>(
     '/schedules',

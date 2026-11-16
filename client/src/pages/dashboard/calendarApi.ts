@@ -8,6 +8,7 @@ export type ScheduleStatus =
 
 export type Schedule = {
   id: number
+  scheduleId: number
   customerId: number
   customerName: string
   employeeId: number
@@ -18,6 +19,13 @@ export type Schedule = {
   endsAt: string
   status: ScheduleStatus
 }
+
+export type ScheduleOptions = {
+  customers: {id:number;name:string}[]
+  employees: {id:number;name:string}[]
+  treatments: {id:number;name:string;duration:number}[]
+}
+export function listScheduleOptions() { return apiRequest<ScheduleOptions>('/schedules/options') }
 
 export type CreateScheduleInput = {
   customerId: number

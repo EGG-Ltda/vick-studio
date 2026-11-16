@@ -19,6 +19,7 @@ export const ScheduleCreateSchema = z.object({
 
 export const ScheduleSchema = z.object({
   id: z.number(),
+  scheduleId: z.number(),
   customerId: z.number(),
   customerName: z.string(),
   employeeId: z.number(),
@@ -34,6 +35,7 @@ export type ScheduleCreate = z.infer<typeof ScheduleCreateSchema>
 export type Schedule = z.infer<typeof ScheduleSchema>
 
 export interface IScheduleRepository {
+  options(): Promise<ScheduleOptions>
   list(
     start: Date,
     end: Date,
@@ -46,8 +48,15 @@ export interface IScheduleRepository {
 }
 
 export interface IScheduleService {
+  options(): Promise<ScheduleOptions>
   list(start: Date, end: Date): Promise<Schedule[]>
   create(data: ScheduleCreate): Promise<Schedule>
+}
+
+export type ScheduleOptions = {
+  employees: {id:number;name:string}[]
+  customers: {id:number;name:string}[]
+  treatments: {id:number;name:string;duration:number}[]
 }
 
 export const scheduleRepositoryId: ServiceIdentifier<IScheduleRepository> =

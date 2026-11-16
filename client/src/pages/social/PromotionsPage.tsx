@@ -7,7 +7,7 @@ import { SalonModal } from '../../components/SalonModal'
 import { bookingRequest, money } from '../booking/bookingApi'
 import type { BookingCatalog } from '../booking/bookingApi'
 import type { Promotion } from './socialApi'
-import { dateOnly } from './socialApi'
+import { dateOnly, minimumPackagePayment } from './socialApi'
 import '../booking/booking.css'
 import './social.css'
 type Form = {
@@ -20,6 +20,7 @@ type Form = {
   endsOn: string
   active: boolean
   price: string
+  minimumPaymentPercent: string
   items: { treatmentId: number; quantity: number }[]
 }
 const empty: Form = {
@@ -32,6 +33,7 @@ const empty: Form = {
   endsOn: '',
   active: false,
   price: '',
+  minimumPaymentPercent: '100',
   items: [],
 }
 export default function PromotionsPage() {
@@ -103,7 +105,11 @@ export default function PromotionsPage() {
         `/social/promotions${editing ? '/' + editing : ''}`,
         {
           method: editing ? 'PUT' : 'POST',
-          body: JSON.stringify({ ...form, price: Number(form.price) }),
+          body: JSON.stringify({
+            ...form,
+            price: Number(form.price),
+            minimumPaymentPercent: Number(form.minimumPaymentPercent),
+          }),
         },
       )
       setEditing(false)
@@ -166,13 +172,29 @@ export default function PromotionsPage() {
                 <h2>{p.title}</h2>
                 <p>{p.description}</p>
                 <strong>{money(p.price)}</strong>
+                {p.minimumPaymentPercent === null ? (
+                  <p className="booking-alert">
+                    Configure o pagamento mínimo para liberar este pacote. A
+                    condição também será aplicada às aquisições antigas ainda
+                    não configuradas.
+                  </p>
+                ) : (
+                  <p>Pagamento mínimo: {p.minimumPaymentPercent}% do pacote.</p>
+                )}
                 <p>
                   {p.items.map((i) => `${i.quantity}× ${i.name}`).join(' + ')}
                 </p>
                 {allowed(user, 'promotions.manage') && (
                   <button
                     onClick={() => {
-                      setForm({ ...p, price: String(p.price) })
+                      setForm({
+                        ...p,
+                        price: String(p.price),
+                        minimumPaymentPercent:
+                          p.minimumPaymentPercent === null
+                            ? ''
+                            : String(p.minimumPaymentPercent),
+                      })
                       setFormError('')
                       setEditing(p.id)
                     }}
@@ -335,6 +357,31 @@ export default function PromotionsPage() {
                 />
               </label>
               <label>
+                Pagamento mínimo para realizar os atendimentos (%)
+                <SalonInput
+                  type="number"
+                  required
+                  min="0.01"
+                  max="100"
+                  step="0.01"
+                  value={form.minimumPaymentPercent}
+                  onChange={(e) =>
+                    setForm({ ...form, minimumPaymentPercent: e.target.value })
+                  }
+                />
+                <small>
+                  Use 100 para pagamento integral ou informe um percentual.
+                  Mínimo:{' '}
+                  {money(
+                    minimumPackagePayment(
+                      Number(form.price),
+                      Number(form.minimumPaymentPercent),
+                    ),
+                  )}
+                  . A reserva poderá ser feita antes do pagamento.
+                </small>
+              </label>
+              <label>
                 Condições de utilização
                 <textarea
                   required
@@ -357,10 +404,9 @@ export default function PromotionsPage() {
                 Ativar campanha (aparece na home somente durante a divulgação)
               </label>
               <p>
-                Todos os horários são escolhidos na aquisição. Sem sinal para
-                pacotes. Validade padrão:{' '}
-                {catalog?.settings.packageValidityMonths ?? 1} mês(es),
-                configurável em Configurações da agenda.
+                A cliente pode agendar um conjunto agora e o saldo depois.
+                Validade padrão: {catalog?.settings.packageValidityMonths ?? 1}{' '}
+                mês(es), configurável em Configurações da agenda.
               </p>
             </fieldset>
             {formError && (

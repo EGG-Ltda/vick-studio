@@ -132,6 +132,7 @@ module.exports = async ({
         endsOn: date(5),
         active: true,
         price: 150.01,
+        minimumPaymentPercent: 30,
         items: [
           { treatmentId: 1, quantity: 1 },
           { treatmentId: 2, quantity: 1 },
@@ -266,7 +267,14 @@ module.exports = async ({
       assert.equal(purchase.uses.length, 2)
       assert.equal(purchase.totalPaid, 0)
       assert.equal(
-        purchase.uses.reduce((s, u) => s + Math.round(u.price * 100), 0),
+        Number(
+          (
+            await db.query(
+              'SELECT sum(price)*100 AS cents FROM package_uses WHERE purchase_id=$1',
+              [purchase.id],
+            )
+          ).rows[0].cents,
+        ),
         15001,
       )
       assert.ok(

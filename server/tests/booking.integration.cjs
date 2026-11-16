@@ -900,6 +900,17 @@ test(
         bob,
         employeeId,
       })
+      await require('./partial-packages.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        professional,
+        alice,
+        bob,
+        cpf,
+      })
       // Keep the real public-booking rate limit enabled; start a new window for availability scenarios.
       await delay(60000)
       await require('./availability.cases.cjs')({

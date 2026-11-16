@@ -78,10 +78,11 @@ export function PackageHistory({
                 {u.name} · {packageUseLabel(u.state)}
               </strong>
               <p>
-                {bookingDate(u.startsAt)} · {u.employeeName} ·{' '}
-                {bookingStatus(u.status)}
+                {u.startsAt
+                  ? `${bookingDate(u.startsAt)} · ${u.employeeName} · ${bookingStatus(u.status)}`
+                  : 'Horário ainda não escolhido.'}
               </p>
-              {onOrder && (
+              {onOrder && !!u.scheduleId && (
                 <button onClick={() => onOrder(u.scheduleId)}>
                   Abrir comanda #{u.scheduleId}
                 </button>

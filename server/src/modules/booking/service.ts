@@ -292,7 +292,7 @@ export class BookingService {
     startsAt: string,
     client: IGenericDatabaseClient,
     staffDeadline?: string,
-    options?: { ignoreScheduleId?: number; duration?: number },
+    options?: { ignoreScheduleId?: number; duration?: number; noDeposit?:boolean },
   ) {
     const settings = (await client.query(settingsSelect, [])).rows[0]
     if (!settings.enabled && !staffDeadline && !options?.ignoreScheduleId)
@@ -354,7 +354,7 @@ export class BookingService {
       timing.now,
       settings.shortNoticeHours,
     )
-    const deadline = staffDeadline ? new Date(staffDeadline) : policy.deadline
+    const deadline = options?.noDeposit ? timing.start : staffDeadline ? new Date(staffDeadline) : policy.deadline
     if (
       timing.start <= timing.now ||
       deadline <= timing.now ||

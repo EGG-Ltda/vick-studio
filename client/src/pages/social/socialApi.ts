@@ -9,6 +9,7 @@ export type Promotion = {
   endsOn: string
   active: boolean
   price: number
+  minimumPaymentPercent: number | null
   items: {
     treatmentId: number
     quantity: number
@@ -30,7 +31,9 @@ export type PackageUse = {
   employeeName: string
 }
 export type PackagePurchase = {
-  canViewFinancial:boolean
+  minimumPaymentPercent: number | null
+  minimumPayment: number | null
+  canViewFinancial: boolean
   id: number
   title: string
   conditions: string | null
@@ -56,9 +59,11 @@ export const packageUseLabel = (state: string) =>
   ({
     reserved: 'Agendado',
     completed: 'Realizado',
-    available: 'Disponível para remarcar',
+    available: 'Disponível para agendar',
     cancelled: 'Cancelado · utilização retida',
     no_show: 'Falta · utilização retida',
     expired: 'Vencido e não realizado',
   })[state] ?? state
 export const dateOnly = (date: string) => date.split('-').reverse().join('/')
+export const minimumPackagePayment = (price: number, percent: number) =>
+  Math.ceil((Math.round(price * 100) * Math.round(percent * 100)) / 10000) / 100

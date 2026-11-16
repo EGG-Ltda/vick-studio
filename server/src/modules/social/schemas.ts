@@ -10,6 +10,12 @@ export const PromotionSchema = z
     endsOn: z.iso.date(),
     active: z.boolean(),
     price: z.number().positive().max(99999.99).multipleOf(0.01),
+    minimumPaymentPercent: z
+      .number()
+      .positive()
+      .max(100)
+      .multipleOf(0.01)
+      .optional(),
     items: z
       .array(
         z.object({

@@ -74,14 +74,14 @@ function LoginPage() {
             x2="0.78"
             y2="1"
           >
-            <stop stopColor="#b31843" />
-            <stop offset="0.52" stopColor="#87001f" />
-            <stop offset="1" stopColor="#5f0019" />
+            <stop stopColor="#ab1750" />
+            <stop offset="0.52" stopColor="#771038" />
+            <stop offset="1" stopColor="#540b27" />
           </linearGradient>
           <linearGradient id="login-art-ribbon" x1="0" y1="0" x2="1" y2="0.86">
-            <stop stopColor="#e9a7ad" />
-            <stop offset="0.48" stopColor="#d66d82" />
-            <stop offset="1" stopColor="#bd375c" />
+            <stop stopColor="#e9a7c0" />
+            <stop offset="0.48" stopColor="#d66d95" />
+            <stop offset="1" stopColor="#bd376a" />
           </linearGradient>
           <filter
             id="login-art-shadow"
@@ -94,7 +94,7 @@ function LoginPage() {
               dx="8"
               dy="8"
               stdDeviation="7"
-              floodColor="#7d4132"
+              floodColor="#7d324f"
               floodOpacity="0.24"
             />
           </filter>
@@ -112,7 +112,7 @@ function LoginPage() {
         <path
           d="M156 0C151 59 113 100 96 153C78 211 91 261 118 305C145 350 145 391 119 439C101 472 88 504 87 535"
           fill="none"
-          stroke="rgb(255 237 232 / 62%)"
+          stroke="rgb(252 235 241 / 62%)"
           strokeLinecap="round"
           strokeWidth="5"
         />

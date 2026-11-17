@@ -1,62 +1,139 @@
+import { useEffect, useState } from 'react'
+import { listTreatments } from '../../core/api/treatments'
+import type { PublicTreatment } from '../../core/api/treatments'
 import { useNavigate } from 'react-router-dom'
+import vickFlorezLogo from '../../assets/vick-florez-logo.webp'
 import { routePaths } from '../../routes/routePaths'
 
 function HomePage() {
   const navigate = useNavigate()
+  const [treatments, setTreatments] = useState<PublicTreatment[]>([])
+  const [catalogStatus, setCatalogStatus] = useState('Carregando serviços…')
+  useEffect(() => {
+    let controller: AbortController
+    function refresh() {
+      controller?.abort()
+      controller = new AbortController()
+      const signal = controller.signal
+      listTreatments(true, signal).then((items) => {
+        if (signal.aborted) return
+        setTreatments(items)
+        setCatalogStatus(items.length ? '' : 'Nenhum serviço disponível no momento.')
+      }).catch(() => {
+        if (signal.aborted) return
+        setTreatments([])
+        setCatalogStatus('Não foi possível carregar os serviços. Tente novamente em instantes.')
+      })
+    }
+    refresh()
+    window.addEventListener('focus', refresh)
+    const interval = window.setInterval(refresh, 30000)
+    return () => {
+      controller.abort()
+      window.removeEventListener('focus', refresh)
+      window.clearInterval(interval)
+    }
+  }, [])
+
+  function goToServices() {
+    document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' })
+  }
 
   return (
-    <main className="page public-home-page">
+    <main className="public-home-page">
+      <svg className="home-art" viewBox="0 0 1024 577" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="home-ribbon-wine" x1="0" y1="0" x2="0.72" y2="1">
+            <stop stopColor="#c32c4b" />
+            <stop offset="0.48" stopColor="#a1072b" />
+            <stop offset="1" stopColor="#67001b" />
+          </linearGradient>
+          <linearGradient id="home-ribbon-rose" x1="0" y1="0" x2="1" y2=".82">
+            <stop stopColor="#f0a7ad" />
+            <stop offset="1" stopColor="#d85068" />
+          </linearGradient>
+          <filter id="home-ribbon-shadow" x="-40%" y="-10%" width="190%" height="120%">
+            <feDropShadow dx="7" dy="8" stdDeviation="7" floodColor="#722d24" floodOpacity=".2" />
+          </filter>
+        </defs>
+        <path
+          d="M0 0H182C179 55 143 86 112 119C81 153 70 195 80 236C88 273 115 295 129 328C145 367 132 409 107 444C88 470 77 507 78 577H0Z"
+          fill="url(#home-ribbon-wine)"
+          filter="url(#home-ribbon-shadow)"
+        />
+        <path
+          d="M159 0C151 56 121 89 101 128C80 169 77 207 90 244C103 279 126 302 121 337C117 380 82 419 75 462C69 502 79 544 91 577H56C40 539 28 497 36 454C44 410 77 375 79 335C81 299 58 270 58 229C57 184 72 143 95 107C120 68 133 34 134 0Z"
+          fill="url(#home-ribbon-rose)"
+        />
+        <path
+          d="M180 0C171 61 132 94 104 132C79 167 67 208 73 246C81 294 108 318 106 356C104 409 62 453 45 508C39 529 37 551 37 577"
+          fill="none"
+          stroke="#e8b84a"
+          strokeLinecap="round"
+          strokeWidth="1.25"
+        />
+        <path
+          d="M159 0C151 55 117 91 95 130C72 171 70 216 86 255C100 290 119 315 114 352C109 393 77 429 67 468C58 507 66 544 78 577"
+          fill="none"
+          stroke="rgb(255 235 229 / 72%)"
+          strokeLinecap="round"
+          strokeWidth="2.8"
+        />
+      </svg>
+      <span className="home-dots" aria-hidden="true" />
+
       <header className="site-header">
-        <a className="brand" href={routePaths.home}>
-          Vick Studio
+        <a className="brand" href={routePaths.home} aria-label="Vick Florez - Início">
+          <img src={vickFlorezLogo} alt="Vick Florez" />
         </a>
-        <button
-          className="login-link"
-          type="button"
-          onClick={() => navigate(routePaths.login)}
-        >
-          Entrar
-        </button>
+        <nav className="home-navigation" aria-label="Navegação principal">
+          <a href="#servicos">Serviços</a>
+          <a href="#sobre">Sobre</a>
+          <a href="#contato">Contato</a>
+        </nav>
+        <div className="home-header-actions">
+          <button className="home-primary-action home-header-booking" type="button" onClick={goToServices}>
+            Agendar Agora <span aria-hidden="true">→</span>
+          </button>
+          <button
+            className="home-salon-action"
+            type="button"
+            aria-label="Área do Salão"
+            title="Entrar na Área do Salão"
+            onClick={() => navigate(routePaths.login)}
+          >
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" aria-hidden="true">
+              <circle cx="12" cy="8" r="3.5" />
+              <path d="M5 21v-2a7 7 0 0 1 14 0v2" />
+            </svg>
+          </button>
+        </div>
       </header>
 
       <section className="home-hero" aria-labelledby="home-title">
-        <p className="eyebrow">Test</p>
-        <h1 id="home-title">Test h1.</h1>
-        <p className="hero-description">Test description.</p>
-      </section>
-
-      <section className="ads-section" aria-labelledby="ads-title">
-        <div className="section-heading">
-          <div>
-            <p className="eyebrow">Anúncios</p>
-            <h2 id="ads-title">Anúncios h2</h2>
-          </div>
-          <span className="ads-count">número de anúncios</span>{' '}
-          {/*ajustar código para exibir o número real de anúncios conforme a variável adsCount */}
-        </div>
-
-        <div className="ads-grid">
-          <article className="ad-card ad-card-featured">
-            <span className="ad-label">Destaque</span>
-            {/*Substituir os anúncios das box para que ela possa criar sem alterar no código*/}
-            <h3>Título do anúncio</h3>
-            <p>Texto do anúncio</p>
-            <span className="ad-meta">Dia e hora</span>
-          </article>
-          <article className="ad-card">
-            <span className="ad-label">Serviço</span>
-            <h3>Título do anúncio</h3>
-            <p>Texto do anúncio</p>
-            <span className="ad-meta">Dia e hora</span>
-          </article>
-          <article className="ad-card">
-            <span className="ad-label">Oportunidade</span>
-            <h3>Título do anúncio</h3>
-            <p>Texto do anúncio</p>
-            <span className="ad-meta">Dia e hora</span>
-          </article>
+        <div className="home-hero-content">
+          <h1 id="home-title">Seu momento de florescer.</h1>
+          <p className="hero-description">Cuidado, beleza e bem-estar pensados para você.</p>
         </div>
       </section>
+
+      <section className="home-services-intro" id="servicos" aria-labelledby="services-title">
+        <span aria-hidden="true" />
+        <h2 id="services-title">Nossos serviços</h2>
+        {catalogStatus && <p role="status">{catalogStatus}</p>}
+        <div className="home-treatment-grid">
+          {treatments.map((treatment) => (
+            <article className="home-treatment-card" key={treatment.id}>
+              <h3>{treatment.name}</h3>
+              <p>{treatment.description}</p>
+              <strong>{treatment.price.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}</strong>
+              <p>{treatment.durationMinutes} minutos</p>
+            </article>
+          ))}
+        </div>
+      </section>
+      <section className="home-anchor-section" id="sobre" aria-label="Sobre" />
+      <footer className="home-anchor-section" id="contato" aria-label="Contato" />
     </main>
   )
 }

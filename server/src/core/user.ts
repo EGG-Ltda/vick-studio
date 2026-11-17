@@ -8,15 +8,47 @@ export const AppUserSchema = z.object({
   hashPassword: z.string().optional(),
   email: z.email(),
   isActive: z.boolean(),
+  isAdmin: z.boolean().default(false),
+  mustChangePassword: z.boolean().default(false),
+  passwordVersion: z.int().nonnegative().default(0),
   createdAt: z.date(),
   updatedAt: z.date().nullable(),
   removedAt: z.date().nullable(),
 })
 
+export const PasswordSchema = z
+  .string()
+  .min(8)
+  .max(32)
+  .refine(
+    (password) => Buffer.byteLength(password, 'utf8') <= 72,
+    'A senha deve ter no máximo 72 bytes em UTF-8.',
+  )
+
+export const TemporaryPasswordSchema = z
+  .object({
+    password: PasswordSchema,
+    confirmPassword: PasswordSchema,
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: 'As senhas não conferem.',
+    path: ['confirmPassword'],
+  })
+
+export const PasswordChangeSchema = z
+  .object({
+    newPassword: PasswordSchema,
+    confirmPassword: PasswordSchema,
+  })
+  .refine((data) => data.newPassword === data.confirmPassword, {
+    message: 'As senhas não conferem.',
+    path: ['confirmPassword'],
+  })
+
 export const AppUserCreateSchema = z.object({
   login: z.string().trim().min(1).max(255),
   email: z.email(),
-  password: z.string().min(8).max(32),
+  password: PasswordSchema,
 })
 
 export const AppUserUpdateSchema = z.object({
@@ -26,7 +58,11 @@ export const AppUserUpdateSchema = z.object({
 })
 
 export const USER_PAGE_SIZE = 20
-export type AppUserPage = { items: (AppUser & { isMaster: boolean })[]; hasNext: boolean }
+export type PublicAppUser = Omit<
+  AppUser,
+  'hashPassword' | 'passwordVersion'
+> & { isMaster: boolean; canManagePasswords: boolean }
+export type AppUserPage = { items: PublicAppUser[]; hasNext: boolean }
 
 export type AppUserCreate = z.infer<typeof AppUserCreateSchema>
 export type AppUserUpdate = z.infer<typeof AppUserUpdateSchema>
@@ -40,6 +76,13 @@ export interface IUserRepository {
   update(data: AppUserUpdate, client: IGenericDatabaseClient): Promise<any>
   disable(userId: number, client: IGenericDatabaseClient): Promise<boolean>
   enable(userId: number, client: IGenericDatabaseClient): Promise<boolean>
+  replacePassword(
+    userId: number,
+    expectedVersion: number,
+    hash: string,
+    mustChangePassword: boolean,
+    client: IGenericDatabaseClient,
+  ): Promise<AppUser | null>
 }
 
 export interface IUserService {
@@ -50,6 +93,12 @@ export interface IUserService {
   update(data: AppUserUpdate): Promise<any>
   disable(userId: number): Promise<void>
   enable(userId: number): Promise<void>
+  setTemporaryPassword(
+    actor: AppUser,
+    userId: number,
+    password: string,
+  ): Promise<void>
+  changeTemporaryPassword(user: AppUser, newPassword: string): Promise<AppUser>
 }
 
 export const userRepositoryId: ServiceIdentifier<IUserRepository> =

@@ -37,6 +37,7 @@ export class AuthService implements IAuthService {
       nbf: now,
       iat: now,
       'vick:topic': JWT_TOKEN_ACCESS_TOPIC,
+      'vick:passwordVersion': user.passwordVersion,
     }
 
     return {
@@ -59,6 +60,7 @@ export class AuthService implements IAuthService {
       iat: now,
       'vick:topic': JWT_TOKEN_REFRESH_TOPIC,
       'vick:userId': user.id,
+      'vick:passwordVersion': user.passwordVersion,
     }
 
     return {
@@ -109,7 +111,7 @@ export class AuthService implements IAuthService {
 
   private clearRevokedTokens(): void {
     this.revokedTokens.forEach((value, key) => {
-      const expiresAt = value + JWT_TOKEN_REFRESH_EXP
+      const expiresAt = value + JWT_TOKEN_REFRESH_EXP * 1000
 
       if (expiresAt <= Date.now()) {
         this.revokedTokens.delete(key)

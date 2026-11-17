@@ -44,7 +44,7 @@ test('financial records, filters, precision, security, reversals and Excel agree
     initializeDI()
     applicationPool=container.get(require('../dist/core/db').databaseServiceId).pool
     const authService=container.get(require('../dist/core/auth').authServiceId)
-    const cookie=(id)=>`accessToken=${authService.createAccessToken({id}).token}`
+    const cookie=(id)=>`accessToken=${authService.createAccessToken({id,passwordVersion:0}).token}`
     app=require('fastify')()
     app.register(require('@fastify/cookie'))
     app.register(require('../dist/modules/finance/routes').default,{prefix:'/api'})

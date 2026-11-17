@@ -10,10 +10,15 @@ import HomePage from '../pages/home/HomePage'
 import ProtectedRoute from './ProtectedRoute'
 import PublicRoute from './PublicRoute'
 import { routePaths } from './routePaths'
+import ChangePasswordPage from '../pages/auth/ChangePasswordPage'
 
 export function AppRoutes() {
   return (
     <Routes>
+      <Route
+        path={routePaths.changePassword}
+        element={<ChangePasswordPage />}
+      />
       <Route element={<PublicRoute />}>
         <Route path={routePaths.home} element={<HomePage />} />
         <Route path={routePaths.login} element={<LoginPage />} />

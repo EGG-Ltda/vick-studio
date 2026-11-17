@@ -6,7 +6,9 @@
   "scripts": {
     "build": "tsc && tsc-alias",
     "start": "node dist/app.js",
-    "test:finance": "npm run build && node --test test/finance.integration.cjs"
+    "test:finance": "npm run build && node --test test/finance.integration.cjs",
+    "db:migrate": "node scripts/migrate.cjs",
+    "test:password-reset": "npm run build && node --test tests/password-reset.integration.cjs"
   },
   "author": "",
   "license": "ISC",

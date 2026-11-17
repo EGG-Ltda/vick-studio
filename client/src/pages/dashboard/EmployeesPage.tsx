@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
+import { SalonModal } from '../../components/SalonModal'
 
 type Employee = {
   id: number
@@ -58,54 +59,75 @@ function EmployeesPage() {
     <section className="dashboard-view">
       <header className="dashboard-view-header">
         <div>
+          <span className="salon-eyebrow">Talentos que fazem florescer</span>
           <h1>Funcionários</h1>
           <p>Organize a equipe e a disponibilidade do estúdio.</p>
         </div>
         <button
           className="primary-button"
           type="button"
-          onClick={() => setShowForm(!showForm)}
+          onClick={() => setShowForm(true)}
         >
-          {showForm ? 'Cancelar' : 'Novo funcionário'}
+          <span aria-hidden="true">＋</span> Novo funcionário
         </button>
       </header>
       {showForm && (
-        <form className="user-form" onSubmit={addEmployee}>
-          <label>
-            Nome
-            <input
-              value={form.name}
-              onChange={(event) =>
-                setForm({ ...form, name: event.target.value })
-              }
-              required
-            />
-          </label>
-          <label>
-            Função
-            <input
-              value={form.role}
-              onChange={(event) =>
-                setForm({ ...form, role: event.target.value })
-              }
-              required
-            />
-          </label>
-          <label>
-            Telefone
-            <input
-              value={form.phone}
-              onChange={(event) =>
-                setForm({ ...form, phone: event.target.value })
-              }
-              required
-            />
-          </label>
-          <button className="primary-button" type="submit">
-            Adicionar
-          </button>
-        </form>
+        <SalonModal
+          title="Novo funcionário"
+          description="Adicione quem faz parte da história do seu salão."
+          onClose={() => setShowForm(false)}
+        >
+          <form className="user-form" onSubmit={addEmployee}>
+            <label>
+              Nome
+              <input
+                autoFocus
+                placeholder="Nome completo"
+                value={form.name}
+                onChange={(event) =>
+                  setForm({ ...form, name: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label>
+              Função
+              <input
+                value={form.role}
+                onChange={(event) =>
+                  setForm({ ...form, role: event.target.value })
+                }
+                required
+              />
+            </label>
+            <label>
+              Telefone
+              <input
+                value={form.phone}
+                onChange={(event) =>
+                  setForm({ ...form, phone: event.target.value })
+                }
+                required
+              />
+            </label>
+            <div className="modal-actions">
+              <button type="button" onClick={() => setShowForm(false)}>
+                Cancelar
+              </button>
+              <button className="primary-button" type="submit">
+                Cadastrar funcionário
+              </button>
+            </div>
+          </form>
+        </SalonModal>
       )}
+      <div className="list-toolbar">
+        <div>
+          <h2>Nossa equipe</h2>
+          <span>Profissionais que transformam cuidado em beleza.</span>
+        </div>
+        <span className="count-tag">{employees.length} profissionais</span>
+      </div>
       <div className="users-table-wrapper">
         <table className="users-table">
           <thead>
@@ -120,17 +142,28 @@ function EmployeesPage() {
           <tbody>
             {employees.map((employee) => (
               <tr key={employee.id}>
-                <td>{employee.name}</td>
-                <td>{employee.role}</td>
-                <td>{employee.phone}</td>
-                <td>
+                <td data-label="Nome">
+                  <div className="employee-identity">
+                    <span className="employee-avatar" aria-hidden="true">
+                      {employee.name
+                        .split(' ')
+                        .slice(0, 2)
+                        .map((part) => part[0])
+                        .join('')}
+                    </span>
+                    <strong className="table-person">{employee.name}</strong>
+                  </div>
+                </td>
+                <td data-label="Função">{employee.role}</td>
+                <td data-label="Telefone">{employee.phone}</td>
+                <td data-label="Status">
                   <span
                     className={`status-tag ${employee.active ? 'status-active' : 'status-inactive'}`}
                   >
                     {employee.active ? 'Ativo' : 'Inativo'}
                   </span>
                 </td>
-                <td>
+                <td data-label="Ação">
                   <button
                     type="button"
                     onClick={() => toggleEmployee(employee.id)}

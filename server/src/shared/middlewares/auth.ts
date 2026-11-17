@@ -5,8 +5,18 @@ import { container } from '@/di/bindings'
 import { fail } from '@/shared/utils/response'
 import { FastifyReply, FastifyRequest } from 'fastify'
 import { canManagePasswords } from '@/shared/utils/user'
+import { salonWide } from '@/core/access'
+import { isBookingOriginAllowed } from '@/modules/booking/origin'
+import { enforceRoutePermission } from './permissions'
 
 const authService: IAuthService = container.get(authServiceId)
+export async function salonAdminHook(
+  req: FastifyRequest,
+  res: FastifyReply,
+): Promise<void> {
+  if (!req.authUser || !salonWide(req.authUser))
+    return fail(res, 'Salon administrator access is required.', 403)
+}
 
 declare module 'fastify' {
   interface FastifyRequest {
@@ -43,6 +53,21 @@ async function authenticate(
   res: FastifyReply,
   allowPasswordChange: boolean,
 ): Promise<void> {
+  if (
+    req.headers.origin &&
+    !isBookingOriginAllowed(
+      req.headers.origin,
+      req.headers.host ?? '',
+      req.protocol,
+      process.env.NODE_ENV,
+      process.env.PUBLIC_ORIGIN,
+    )
+  )
+    return fail(
+      res,
+      'Cross-origin administrative requests are not allowed.',
+      403,
+    )
   const token: string = req.cookies['accessToken']
   if (!token) {
     return fail(res, 'Missing access token', 401)
@@ -68,15 +93,14 @@ async function authenticate(
     return fail(res, 'Sua senha foi alterada. Entre novamente.', 401)
   }
   if (user.mustChangePassword && !allowPasswordChange) {
-    res
-      .status(403)
-      .send({
-        success: false,
-        code: 'PASSWORD_CHANGE_REQUIRED',
-        message: 'Defina sua senha pessoal antes de continuar.',
-      })
+    res.status(403).send({
+      success: false,
+      code: 'PASSWORD_CHANGE_REQUIRED',
+      message: 'Defina sua senha pessoal antes de continuar.',
+    })
     return
   }
   req.tokenPayload = payload
   req.authUser = user
+  if (!allowPasswordChange) return enforceRoutePermission(req, res)
 }

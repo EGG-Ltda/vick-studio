@@ -4,10 +4,11 @@ import {
   ScheduleCreateSchema,
 } from '@/core/schedule'
 import { container } from '@/di/bindings'
-import { authHook } from '@/shared/middlewares/auth'
+import { authHook, salonAdminHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 import z from 'zod'
+import { salonWide, can } from '@/core/access'
 
 const ScheduleQuerySchema = z.object({
   start: z.coerce.date(),
@@ -18,7 +19,7 @@ export default async function scheduleRoutes(
   app: FastifyInstance,
 ): Promise<void> {
   const scheduleService: IScheduleService = container.get(scheduleServiceId)
-  app.get('/schedules/options', {preHandler:authHook}, async(_req,res) => ok(res,await scheduleService.options()))
+  app.get('/schedules/options', {preHandler:[authHook, salonAdminHook]}, async(_req,res) => ok(res,await scheduleService.options()))
 
   app.get<{ Querystring: { start?: string; end?: string } }>(
     '/schedules',
@@ -35,7 +36,13 @@ export default async function scheduleRoutes(
       }
       return ok(
         res,
-        await scheduleService.list(parsed.data.start, parsed.data.end),
+        (await scheduleService.list(parsed.data.start, parsed.data.end))
+          .filter(
+            (schedule) =>
+              salonWide(req.authUser) ||
+              schedule.employeeUserId === req.authUser.id,
+          )
+          .map(({ employeeUserId, ...schedule }) => schedule),
       )
     },
   )

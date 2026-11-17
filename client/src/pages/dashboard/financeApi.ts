@@ -91,7 +91,7 @@ export async function financeRequest<T>(
   options?: RequestInit,
 ): Promise<T> {
   try {
-    return await apiRequest<T>(`/finance/${path}`, options)
+    return await apiRequest<T>(`/finance-reports/${path}`, options)
   } catch {
     throw new Error(
       'Não foi possível concluir a operação financeira. Verifique os dados e suas permissões e tente novamente.',
@@ -99,7 +99,7 @@ export async function financeRequest<T>(
   }
 }
 export async function exportFinance(filters: FinanceFilters) {
-  const response = await fetch(`/api/finance/export?${financeQuery(filters)}`, {
+  const response = await fetch(`/api/finance-reports/export?${financeQuery(filters)}`, {
     credentials: 'include',
   })
   if (response.status === 401)

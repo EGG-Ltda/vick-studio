@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useNavigate } from 'react-router-dom'
@@ -223,7 +224,7 @@ function CalendarPage() {
             <h2>Agendar horário</h2>
             <label>
               Cliente (ID)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="1"
@@ -235,7 +236,7 @@ function CalendarPage() {
             </label>
             <label>
               Profissional (ID)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="1"
@@ -247,7 +248,7 @@ function CalendarPage() {
             </label>
             <label>
               Serviço (ID)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="1"
@@ -260,7 +261,7 @@ function CalendarPage() {
             <div className="time-fields">
               <label>
                 Início
-                <input
+                <SalonInput
                   required
                   type="time"
                   value={form.startsAt}
@@ -271,7 +272,7 @@ function CalendarPage() {
               </label>
               <label>
                 Fim
-                <input
+                <SalonInput
                   required
                   type="time"
                   value={form.endsAt}

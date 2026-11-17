@@ -1,52 +1,143 @@
-import { FastifyInstance, FastifyReply } from 'fastify'
-import { container } from '@/di/bindings'
-import { authHook } from '@/shared/middlewares/auth'
-import { ok, fail } from '@/shared/utils/response'
-import { FinanceService } from './service'
-import { financeFilterSchema, completeTreatmentSchema, productSchema, productSaleSchema, financeError } from '@/core/finance'
+import { FastifyInstance } from 'fastify'
 import z from 'zod'
-import { financeAccessHook } from '@/shared/middlewares/finance'
-
-export default async function financeRoutes(app: FastifyInstance) {
-  const service = container.get(FinanceService)
-  const guard = financeAccessHook
-  const read = {preHandler:[authHook,guard('read')]}
-  const write = {preHandler:[authHook,guard('write')]}
-  const parseFilter = (query: unknown) => {
-    const parsed=financeFilterSchema.safeParse(query)
-    if(!parsed.success) throw financeError('Invalid finance filters')
-    return parsed.data
-  }
-  const parse = <T>(schema:z.ZodType<T>,input:unknown):T => {
-    const parsed=schema.safeParse(input)
-    if(!parsed.success) throw financeError('Invalid finance input')
-    return parsed.data
-  }
-  app.get('/finance/access',{preHandler:authHook},async(req,res)=>ok(res,await service.repository.access(Number(req.tokenPayload.sub))))
-  app.get('/finance/options',read,async(_req,res)=>ok(res,await service.repository.options()))
-  app.get('/finance/pending',write,async(req,res)=>{const filter=parseFilter(req.query);return ok(res,await service.repository.pending(filter.start,filter.end))})
-  app.get('/finance/report',read,async(req,res)=>ok(res,await service.report(parseFilter(req.query))))
-  app.get('/finance/export',{preHandler:[authHook,guard('export')]},async(req,res)=>{
-    const filter=parseFilter(req.query)
-    const buffer=await service.workbook(filter)
-    return res.header('Content-Type','application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-      .header('Content-Disposition',`attachment; filename="financeiro_${filter.start}_${filter.end}.xlsx"`).send(Buffer.from(buffer))
+import { container } from '@/di/bindings'
+import {
+  databaseServiceId,
+  IDatabaseService,
+  unitOfWorkServiceId,
+  IDatabaseUnitOfWork,
+} from '@/core/db'
+import { authHook } from '@/shared/middlewares/auth'
+import { salonWide } from '@/core/access'
+import { ok } from '@/shared/utils/response'
+import { bookingError } from '../booking/service'
+export default async function routes(app: FastifyInstance) {
+  const db: IDatabaseService = container.get(databaseServiceId)
+  const work: IDatabaseUnitOfWork = container.get(unitOfWorkServiceId)
+  app.post('/finance/manual', { preHandler: authHook }, async (req, res) => {
+    const d = z
+      .object({
+        description: z.string().trim().min(1).max(1023),
+        amount: z.number().positive().max(99999.99).multipleOf(0.01),
+        isDebit: z.boolean(),
+        methodId: z.number().int().positive(),
+        typeId: z.number().int().positive(),
+        requestKey: z.uuid(),
+      })
+      .safeParse(req.body)
+    if (!d.success) bookingError('Invalid financial entry.')
+    const data = d.data
+    const result = await work.transaction(async (c) => {
+      await c.query('SELECT pg_advisory_xact_lock(70431,$1)', [req.authUser.id])
+      const existing = (
+        await c.query(
+          'SELECT * FROM salon_transactions WHERE order_id IS NULL AND recorded_by=$1 AND request_key=$2',
+          [req.authUser.id, data.requestKey],
+        )
+      ).rows[0]
+      if (existing) {
+        if (
+          Number(existing.value) !== data.amount ||
+          existing.description !== data.description ||
+          existing.method_id !== data.methodId ||
+          existing.type_id !== data.typeId ||
+          existing.is_debit !== data.isDebit
+        )
+          bookingError(
+            'Request key already used with different financial data.',
+            409,
+          )
+        return { id: existing.id }
+      }
+      if (
+        !(
+          await c.query(
+            'SELECT 1 FROM payment_methods m CROSS JOIN transaction_types t WHERE m.id=$1 AND m.removed_at IS NULL AND t.id=$2',
+            [data.methodId, data.typeId],
+          )
+        ).rows.length
+      )
+        bookingError('Invalid payment method or entry category.')
+      return (
+        await c.query(
+          'INSERT INTO salon_transactions(method_id,type_id,is_debit,description,value,created_at,recorded_by,request_key) VALUES($1,$2,$3,$4,$5,now(),$6,$7) RETURNING id',
+          [
+            data.methodId,
+            data.typeId,
+            data.isDebit,
+            data.description,
+            data.amount,
+            req.authUser.id,
+            data.requestKey,
+          ],
+        )
+      ).rows[0]
+    })
+    return ok(res, result)
   })
-  async function writeResult(work:()=>Promise<unknown>,res:FastifyReply) {
-    try{return ok(res,await work())}catch(error){
-      if((error as {code?:string}).code==='23505') return fail(res,'Financial record already exists',409)
-      if((error as {code?:string}).code==='23503') return fail(res,'Referenced financial entity not found',400)
-      throw error
+  app.get('/finance/options', { preHandler: authHook }, async (req, res) => {
+    const c = await db.getClient()
+    try {
+      return ok(res, {
+        methods: (
+          await c.query(
+            'SELECT id,name FROM payment_methods WHERE removed_at IS NULL ORDER BY name',
+            [],
+          )
+        ).rows,
+        types: (
+          await c.query(
+            'SELECT id,name FROM transaction_types ORDER BY name',
+            [],
+          )
+        ).rows,
+      })
+    } finally {
+      c.release()
     }
-  }
-  app.post('/finance/treatments',write,async(req,res)=>writeResult(()=>service.repository.complete(parse(completeTreatmentSchema,req.body),Number(req.tokenPayload.sub)),res))
-  app.post('/finance/products',write,async(req,res)=>writeResult(()=>service.repository.createProduct(parse(productSchema,req.body)),res))
-  app.post('/finance/sales',write,async(req,res)=>writeResult(()=>service.repository.sell(parse(productSaleSchema,req.body),Number(req.tokenPayload.sub)),res))
-  app.post<{Params:{category:string;id:string}}>('/finance/:category/:id/reverse',write,async(req,res)=>{
-    const category=parse(z.enum(['treatments','sales']),req.params.category)
-    const id=parse(z.coerce.number().int().positive(),req.params.id)
-    const {reason}=parse(z.object({reason:z.string().trim().min(5).max(500)}),req.body)
-    await service.repository.reverse(category,id,reason,Number(req.tokenPayload.sub))
-    return ok(res)
+  })
+  app.get('/finance', { preHandler: authHook }, async (req, res) => {
+    const parsed = z
+      .object({
+        from: z.iso.date(),
+        to: z.iso.date(),
+        page: z.coerce.number().int().min(0).max(100000).default(0),
+      })
+      .safeParse(req.query)
+    if (!parsed.success || parsed.data.to < parsed.data.from)
+      bookingError('Invalid finance interval.')
+    const { from, to, page } = parsed.data,
+      wide = salonWide(req.authUser),
+      client = await db.getClient()
+    try {
+      const amount = `round(abs(tx.value)*CASE WHEN $1::boolean THEN 1 ELSE COALESCE((SELECT sum(st.price) FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=tx.order_id AND e.user_id=$2 AND e.is_active)/NULLIF((SELECT sum(st.price) FROM salon_schedule_treatments st WHERE st.schedule_id=tx.order_id),0),0) END,2)`
+      const base = `FROM salon_transactions tx LEFT JOIN payment_methods m ON m.id=tx.method_id WHERE tx.created_at>=($3::date::timestamp AT TIME ZONE 'America/Sao_Paulo') AND tx.created_at<(($4::date+1)::timestamp AT TIME ZONE 'America/Sao_Paulo') AND ($1::boolean OR (tx.ledger_kind IS NOT NULL AND EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=tx.order_id AND e.user_id=$2 AND e.is_active)))`
+      const params = [wide, req.authUser.id, from, to]
+      const totals = (
+        await client.query(
+          `SELECT COALESCE(sum(${amount}) FILTER(WHERE NOT tx.is_debit),0)::float AS income,COALESCE(sum(${amount}) FILTER(WHERE tx.is_debit),0)::float AS expenses,count(*)::int AS total ${base}`,
+          params,
+        )
+      ).rows[0]
+      const items = (
+        await client.query(
+          `SELECT tx.id,tx.order_id AS "orderId",tx.description,tx.created_at AS "createdAt",tx.is_debit AS "isDebit",(${amount})::float AS amount,m.name AS method ${base} ORDER BY tx.created_at DESC,tx.id DESC LIMIT 20 OFFSET $5`,
+          [...params, page * 20],
+        )
+      ).rows
+      return ok(res, {
+        ...totals,
+        net: Math.round((totals.income - totals.expenses) * 100) / 100,
+        items,
+        page,
+        hasNext: (page + 1) * 20 < totals.total,
+        scope: wide ? 'all' : 'own',
+        note: wide
+          ? null
+          : 'Recebimentos e devoluções atribuídos aos seus atendimentos. Não representam comissão ou lucro líquido.',
+      })
+    } finally {
+      client.release()
+    }
   })
 }

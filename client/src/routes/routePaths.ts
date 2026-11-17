@@ -1,11 +1,18 @@
 export const routePaths = {
   home: '/',
+  booking: '/agendar',
+  bookingSettings: '/dashboard/configuracoes-agenda',
   login: '/login',
   changePassword: '/alterar-senha',
   dashboard: '/dashboard',
   schedule: '/dashboard/schedule',
   users: '/dashboard/usuarios',
+  permissions: '/dashboard/permissoes-perfis',
+  customers: '/dashboard/clientes',
+  birthdays: '/dashboard/social/aniversariantes',
+  promotions: '/dashboard/social/promocoes',
   finance: '/dashboard/financeiro',
+  products: '/dashboard/produtos',
   employees: '/dashboard/funcionarios',
   treatments: '/dashboard/servicos',
 } as const

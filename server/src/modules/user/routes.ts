@@ -10,42 +10,20 @@ import { container } from '@/di/bindings'
 import { authHook, passwordAdminHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
+import { can, isMaster } from '@/core/access'
 import { publicUser, canResetPassword } from '@/shared/utils/user'
 
 export default async function userRoutes(app: FastifyInstance): Promise<void> {
   const userService: IUserService = container.get(userServiceId)
 
-  // Get logged user
-  app.get('/users/@me', { preHandler: authHook }, async (req, res) => {
-    // const id: number = Number(req.tokenPayload['sub'])
-    // const user: AppUser = await userService.getById(id)
-    // if (!user) {
-    //   return fail(res, 'User not found', 404)
-    // }
-    // return ok(res, user)
-  })
-
-  // Update logged user
-  app.put(
-    '/users/@me',
-    { preHandler: authHook },
-    async (req, res): Promise<void> => {
-      // const id: number = Number(req.tokenPayload['sub'])
-      // const email: string = String(req.body.email)
-      // const user: AppUser = await userService.update(id, email)
-      // return ok(res, user)
-    },
+  app.get('/users/@me', { preHandler: authHook }, async (req, res) =>
+    ok(res, publicUser(req.authUser)),
   )
-
-  // Disable logged user
-  app.delete(
-    '/users/@me',
-    { preHandler: authHook },
-    async (req, res): Promise<void> => {
-      // const id: number = Number(req.tokenPayload['sub'])
-      // await userService.disable(id)
-      // return ok(res)
-    },
+  app.put('/users/@me', { preHandler: authHook }, async (req, res) =>
+    fail(res, 'Use the user-management and password-change endpoints.', 405),
+  )
+  app.delete('/users/@me', { preHandler: authHook }, async (req, res) =>
+    fail(res, 'Self-deactivation is not supported.', 405),
   )
 
   // Get all users
@@ -66,14 +44,25 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     const users = await userService.getAll(
       page,
       req.query.hideDisabled === 'true',
+      !isMaster(req.authUser),
     )
 
     return ok(res, {
       ...users,
-      items: users.items.map((user) => ({
-        ...user,
-        canResetPassword: canResetPassword(req.authUser, user),
-      })),
+      items: users.items
+        .filter(
+          (user) =>
+            isMaster(req.authUser) || user.assignedRole === 'OPERATIONAL',
+        )
+        .map((user) => ({
+          ...user,
+          canConfigurePermissions:
+            !user.isMaster &&
+            (isMaster(req.authUser) ||
+              (can(req.authUser, 'staff.permissions') &&
+                user.assignedRole === 'OPERATIONAL')),
+          canResetPassword: canResetPassword(req.authUser, user),
+        })),
     })
   })
 
@@ -92,7 +81,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      return ok(res, publicUser(await userService.create(data)))
+      return ok(res, publicUser(await userService.create(data, req.authUser)))
     } catch (error) {
       if ((error as { code?: string }).code === '23505')
         return fail(res, 'Login is already in use', 409)
@@ -122,7 +111,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
     }
 
     try {
-      const user = await userService.update(data)
+      const user = await userService.update(data, req.authUser)
       if (!user) return fail(res, 'User not found', 404)
       return ok(res, publicUser(user))
     } catch (error) {
@@ -147,7 +136,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       if (userId === Number(req.tokenPayload.sub)) {
         return fail(res, 'You cannot disable your own user account.', 409)
       }
-      await userService.disable(userId)
+      await userService.disable(userId, req.authUser)
 
       return ok(res)
     },
@@ -160,7 +149,7 @@ export default async function userRoutes(app: FastifyInstance): Promise<void> {
       const userId = Number(req.params.userId)
       if (!Number.isSafeInteger(userId) || userId <= 0)
         return fail(res, 'Invalid user', 400)
-      await userService.enable(userId)
+      await userService.enable(userId, req.authUser)
       return ok(res)
     },
   )

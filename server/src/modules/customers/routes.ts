@@ -153,6 +153,8 @@ export default async function customerRoutes(app: FastifyInstance) {
             z.object({ reason: z.string().trim().min(3).max(1000) }),
             req.body,
           ).reason,
+          parse(z.object({ restock: z.boolean().optional() }), req.body)
+            .restock,
         ),
       ),
   )

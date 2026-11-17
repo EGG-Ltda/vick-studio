@@ -7,6 +7,20 @@ export function routePermission(method: string, path: string): string | null {
     return 'profiles.manage'
   if (path === '/access/catalog') return 'users.view'
   if (/^\/access\/users\//.test(path)) return 'staff.permissions'
+  if (path.startsWith('/inventory')) {
+    if (path === '/inventory/access') return 'products.view'
+    if (
+      path.includes('settlements') ||
+      path.endsWith('/statement') ||
+      path.endsWith('/payment-methods')
+    )
+      return 'products.settlements'
+    if (path.includes('/suppliers')) return 'products.suppliers'
+    if (path.endsWith('/movements'))
+      return method === 'GET' ? 'products.view' : 'products.stock'
+    return method === 'GET' ? 'products.view' : 'products.manage'
+  }
+  if (/^\/orders\/[^/]+\/products$/.test(path)) return 'orders.products'
   if (path === '/finance') return 'finance.view'
   if (path.startsWith('/finance/')) return 'finance.manage'
   if (path === '/users/@me') return method === 'GET' ? null : 'users.manage'

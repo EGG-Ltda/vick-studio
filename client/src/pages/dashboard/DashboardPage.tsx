@@ -13,6 +13,7 @@ import './dashboard.css'
 const navigation: { label: string; path: string; icon: SalonIconName }[] = [
   { label: 'Agenda', path: routePaths.schedule, icon: 'agenda' },
 
+  { label: 'Produtos', path: routePaths.products, icon: 'servicos' },
   { label: 'Financeiro', path: routePaths.finance, icon: 'financeiro' },
   { label: 'Funcionários', path: routePaths.employees, icon: 'funcionarios' },
   { label: 'Serviços', path: routePaths.treatments, icon: 'servicos' },

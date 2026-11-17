@@ -875,6 +875,18 @@ test(
         professional,
         employeeId,
       })
+      await require('./inventory.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        manager,
+        professional,
+        other,
+        alice,
+        employeeId,
+      })
       await require('./dependencies.cases.cjs')({
         t,
         request,

@@ -15,6 +15,7 @@ import LoginPage from '../pages/auth/LoginPage'
 import DashboardPage from '../pages/dashboard/DashboardPage'
 import SchedulePage from '../pages/dashboard/SchedulePage'
 import UsersPage from '../pages/dashboard/UsersPage'
+import ProductsPage from '../pages/inventory/ProductsPage'
 import FinancePage from '../pages/dashboard/FinancePage'
 import EmployeesPage from '../pages/dashboard/EmployeesPage'
 import TreatmentsPage from '../pages/dashboard/TreatmentsPage'
@@ -53,6 +54,7 @@ export function AppRoutes() {
             <Route path="social/promocoes" element={<PromotionsPage />} />
             <Route path="clientes" element={<CustomersPage />} />
             <Route path="clientes/:id" element={<CustomerDetailPage />} />
+            <Route path="produtos" element={<ProductsPage />} />
             <Route path="financeiro" element={<FinancePage />} />
             <Route path="funcionarios" element={<EmployeesPage />} />
             <Route path="servicos" element={<TreatmentsPage />} />

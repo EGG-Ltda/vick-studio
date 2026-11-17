@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useState } from 'react'
 import { bookingRequest, money } from './bookingApi'
 import type { BookingCatalog, BookingOrder } from './bookingApi'
@@ -59,7 +61,7 @@ export function BookingForm({
         <>
           <label>
             Buscar cliente cadastrado
-            <input
+            <SalonInput
               value={search}
               placeholder="Nome, CPF, telefone ou e-mail"
               onChange={(e) => {
@@ -71,7 +73,7 @@ export function BookingForm({
           </label>
           <label>
             Cliente
-            <select
+            <SalonSelect
               required
               value={customer}
               onChange={(e) => setCustomer(e.target.value)}
@@ -82,7 +84,7 @@ export function BookingForm({
                   {c.name} · {c.email}
                 </option>
               ))}
-            </select>
+            </SalonSelect>
           </label>
           {error && (
             <p role="alert" className="booking-error">
@@ -100,7 +102,7 @@ export function BookingForm({
         >
           {catalog.treatments.map((t) => (
             <label key={t.id} className="booking-choice">
-              <input
+              <SalonInput
                 type="checkbox"
                 checked={roots.includes(t.id)}
                 onChange={(e) =>

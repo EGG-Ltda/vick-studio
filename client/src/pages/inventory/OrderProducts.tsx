@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { money } from '../booking/bookingApi'
@@ -99,7 +101,7 @@ export function OrderProducts({
           <fieldset disabled={busy}>
             <label>
               Produto
-              <select
+              <SalonSelect
                 required
                 value={productId}
                 onChange={(e) => setProductId(e.target.value)}
@@ -112,11 +114,11 @@ export function OrderProducts({
                     {p.stock} un.
                   </option>
                 ))}
-              </select>
+              </SalonSelect>
             </label>
             <label>
               Quantidade
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="1"

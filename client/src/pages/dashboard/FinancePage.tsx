@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
@@ -148,7 +150,7 @@ export default function FinancePage() {
       <div className="social-actions finance-period">
         <label>
           De{' '}
-          <input
+          <SalonInput
             type="date"
             required
             value={from}
@@ -162,7 +164,7 @@ export default function FinancePage() {
         </label>
         <label>
           Até{' '}
-          <input
+          <SalonInput
             type="date"
             required
             value={to}
@@ -284,7 +286,7 @@ export default function FinancePage() {
             <fieldset disabled={busy || !options}>
               <label>
                 Descrição
-                <input
+                <SalonInput
                   required
                   maxLength={1023}
                   value={form.description}
@@ -295,7 +297,7 @@ export default function FinancePage() {
               </label>
               <label>
                 Valor (R$)
-                <input
+                <SalonInput
                   required
                   type="number"
                   step="0.01"
@@ -307,7 +309,7 @@ export default function FinancePage() {
               </label>
               <label>
                 Tipo
-                <select
+                <SalonSelect
                   value={form.isDebit}
                   onChange={(e) =>
                     setForm({ ...form, isDebit: e.target.value })
@@ -315,11 +317,11 @@ export default function FinancePage() {
                 >
                   <option value="false">Entrada</option>
                   <option value="true">Saída</option>
-                </select>
+                </SalonSelect>
               </label>
               <label>
                 Forma de pagamento
-                <select
+                <SalonSelect
                   required
                   value={form.methodId}
                   onChange={(e) =>
@@ -332,11 +334,11 @@ export default function FinancePage() {
                       {m.name}
                     </option>
                   ))}
-                </select>
+                </SalonSelect>
               </label>
               <label>
                 Categoria
-                <select
+                <SalonSelect
                   required
                   value={form.typeId}
                   onChange={(e) => setForm({ ...form, typeId: e.target.value })}
@@ -347,7 +349,7 @@ export default function FinancePage() {
                       {m.name}
                     </option>
                   ))}
-                </select>
+                </SalonSelect>
               </label>
             </fieldset>
             {formError && <p role="alert">{formError}</p>}

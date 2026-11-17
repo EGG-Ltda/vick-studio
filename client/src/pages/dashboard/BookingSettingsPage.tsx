@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -68,7 +70,7 @@ export default function BookingSettingsPage() {
           <fieldset disabled={busy}>
             <legend>Agendamento online</legend>
             <label>
-              <input
+              <SalonInput
                 type="checkbox"
                 checked={settings.enabled}
                 onChange={(e) =>
@@ -79,7 +81,7 @@ export default function BookingSettingsPage() {
             </label>
             <label>
               Validade dos pacotes (meses)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="1"
@@ -101,7 +103,7 @@ export default function BookingSettingsPage() {
             </p>
             <label>
               Antecedência do sinal
-              <select
+              <SalonSelect
                 value={settings.depositDays}
                 onChange={(e) =>
                   setSettings({
@@ -115,7 +117,7 @@ export default function BookingSettingsPage() {
                     {days} {days === 1 ? 'dia' : 'dias'} antes
                   </option>
                 ))}
-              </select>
+              </SalonSelect>
             </label>
             <p>
               O prazo termina às 23h59 do dia limite, no horário de Brasília.
@@ -124,7 +126,7 @@ export default function BookingSettingsPage() {
             </p>
             <label>
               Prazo para reservas próximas (horas)
-              <input
+              <SalonInput
                 type="number"
                 required
                 min="1"
@@ -147,7 +149,7 @@ export default function BookingSettingsPage() {
             </p>
             <label>
               Forma de cálculo
-              <select
+              <SalonSelect
                 value={settings.depositType}
                 onChange={(e) =>
                   setSettings({
@@ -158,13 +160,13 @@ export default function BookingSettingsPage() {
               >
                 <option value="percent">Percentual do valor combinado</option>
                 <option value="fixed">Valor fixo em reais</option>
-              </select>
+              </SalonSelect>
             </label>
             <label>
               {settings.depositType === 'percent'
                 ? 'Percentual (%)'
                 : 'Valor do sinal (R$)'}
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="0.01"

@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
@@ -55,7 +57,7 @@ export function ProductEditor({
         <fieldset disabled={busy}>
           <label>
             Nome
-            <input
+            <SalonInput
               autoFocus
               required
               maxLength={255}
@@ -75,7 +77,7 @@ export function ProductEditor({
           </label>
           <label>
             Tipo do produto
-            <select
+            <SalonSelect
               value={form.kind}
               onChange={(e) =>
                 setForm({
@@ -89,7 +91,7 @@ export function ProductEditor({
             >
               <option value="consigned">Consignado para venda</option>
               <option value="courtesy">Cortesia comprada pelo salão</option>
-            </select>
+            </SalonSelect>
           </label>
           <SupplierPicker
             value={form.supplierId}
@@ -104,7 +106,7 @@ export function ProductEditor({
             <div className="inventory-form-grid">
               <label>
                 Preço de venda (R$)
-                <input
+                <SalonInput
                   required
                   type="number"
                   min="0.01"
@@ -118,7 +120,7 @@ export function ProductEditor({
               </label>
               <label>
                 Percentual do fornecedor (%)
-                <input
+                <SalonInput
                   required
                   type="number"
                   min="0"
@@ -137,7 +139,7 @@ export function ProductEditor({
           ) : (
             <label>
               Custo padrão de compra por unidade (R$)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="0"
@@ -155,7 +157,7 @@ export function ProductEditor({
             </label>
           )}
           <label className="inventory-check">
-            <input
+            <SalonInput
               type="checkbox"
               checked={form.active}
               onChange={(e) => setForm({ ...form, active: e.target.checked })}

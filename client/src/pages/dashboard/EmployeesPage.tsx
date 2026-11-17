@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { allowed } from '../../core/auth/permissions'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -145,7 +147,7 @@ export default function EmployeesPage() {
             <fieldset disabled={busy}>
               <label>
                 Nome completo
-                <input
+                <SalonInput
                   required
                   minLength={3}
                   maxLength={255}
@@ -156,7 +158,7 @@ export default function EmployeesPage() {
               {!editing && (
                 <label>
                   CPF
-                  <input
+                  <SalonInput
                     ref={cpfInput}
                     required
                     inputMode="numeric"
@@ -182,7 +184,7 @@ export default function EmployeesPage() {
               )}
               <label>
                 Usuário de acesso
-                <select
+                <SalonSelect
                   required
                   disabled={editing !== null}
                   value={form.userId || ''}
@@ -196,11 +198,11 @@ export default function EmployeesPage() {
                       {account.login} · {account.email}
                     </option>
                   ))}
-                </select>
+                </SalonSelect>
               </label>
               <label>
                 Disponível para reservas
-                <select
+                <SalonSelect
                   value={String(form.active)}
                   onChange={(e) =>
                     setForm({ ...form, active: e.target.value === 'true' })
@@ -208,13 +210,13 @@ export default function EmployeesPage() {
                 >
                   <option value="true">Sim</option>
                   <option value="false">Não</option>
-                </select>
+                </SalonSelect>
               </label>
               <fieldset className="employee-options-group">
                 <legend>Procedimentos habilitados</legend>
                 {treatments.map((treatment) => (
                   <label className="booking-choice" key={treatment.id}>
-                    <input
+                    <SalonInput
                       type="checkbox"
                       checked={form.treatmentIds.includes(treatment.id)}
                       onChange={(e) =>
@@ -238,7 +240,7 @@ export default function EmployeesPage() {
                   {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(
                     (day, index) => (
                       <label key={day}>
-                        <input
+                        <SalonInput
                           type="checkbox"
                           checked={form.weekdays.includes(index)}
                           onChange={(e) =>
@@ -260,7 +262,7 @@ export default function EmployeesPage() {
               </fieldset>
               <label>
                 Início do expediente (Brasília)
-                <input
+                <SalonInput
                   required
                   type="time"
                   value={form.opensAt}
@@ -271,7 +273,7 @@ export default function EmployeesPage() {
               </label>
               <label>
                 Fim do expediente (Brasília)
-                <input
+                <SalonInput
                   required
                   type="time"
                   value={form.closesAt}

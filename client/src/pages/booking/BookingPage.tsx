@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
@@ -251,7 +252,7 @@ export default function BookingPage() {
                     <>
                       <label>
                         Nome completo
-                        <input
+                        <SalonInput
                           required
                           autoComplete="name"
                           minLength={3}
@@ -264,7 +265,7 @@ export default function BookingPage() {
                       </label>
                       <label>
                         CPF
-                        <input
+                        <SalonInput
                           required
                           inputMode="numeric"
                           maxLength={14}
@@ -276,7 +277,7 @@ export default function BookingPage() {
                       </label>
                       <label>
                         Data de nascimento
-                        <input
+                        <SalonInput
                           required
                           type="date"
                           autoComplete="bday"
@@ -291,7 +292,7 @@ export default function BookingPage() {
                       </label>
                       <label>
                         Telefone
-                        <input
+                        <SalonInput
                           required
                           type="tel"
                           autoComplete="tel"
@@ -305,7 +306,7 @@ export default function BookingPage() {
                   )}
                   <label>
                     E-mail
-                    <input
+                    <SalonInput
                       required
                       type="email"
                       autoComplete="email"
@@ -318,7 +319,7 @@ export default function BookingPage() {
                   </label>
                   <label>
                     Senha
-                    <input
+                    <SalonInput
                       required
                       type="password"
                       minLength={8}

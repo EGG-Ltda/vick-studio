@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { customerRequest } from './customersApi'
@@ -49,7 +50,7 @@ export default function CustomersPage() {
       </header>
       <label className="customer-search">
         Buscar cliente
-        <input
+        <SalonInput
           type="search"
           placeholder="Nome, CPF, telefone ou e-mail"
           value={search}

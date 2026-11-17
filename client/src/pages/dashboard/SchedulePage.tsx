@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { calendarStyle } from './calendarColors'
 import { useAuth } from '../../core/auth/useAuth'
 import { allowed } from '../../core/auth/permissions'
@@ -213,7 +214,7 @@ export default function SchedulePage() {
           </button>
           <label>
             Data{' '}
-            <input
+            <SalonInput
               type="date"
               value={date}
               onChange={(e) => {

@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
@@ -49,7 +50,7 @@ export function SupplierEditor({
         <fieldset disabled={busy}>
           <label>
             Nome
-            <input
+            <SalonInput
               autoFocus
               required
               maxLength={255}
@@ -59,7 +60,7 @@ export function SupplierEditor({
           </label>
           <label>
             Contato
-            <input
+            <SalonInput
               maxLength={500}
               placeholder="Telefone ou e-mail"
               value={form.contact}
@@ -75,7 +76,7 @@ export function SupplierEditor({
             />
           </label>
           <label className="inventory-check">
-            <input
+            <SalonInput
               type="checkbox"
               checked={form.active}
               onChange={(e) => setForm({ ...form, active: e.target.checked })}

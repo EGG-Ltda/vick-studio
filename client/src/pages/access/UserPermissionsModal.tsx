@@ -1,3 +1,4 @@
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
@@ -149,7 +150,7 @@ export function UserPermissionsModal({
                     return (
                       <label className="access-individual-row" key={c.key}>
                         <span>{c.label}</span>
-                        <select
+                        <SalonSelect
                           value={value === null ? 'profile' : String(value)}
                           onChange={(e) => choose(c.key, e.target.value)}
                         >
@@ -159,7 +160,7 @@ export function UserPermissionsModal({
                           </option>
                           <option value="true">Habilitar</option>
                           <option value="false">Bloquear</option>
-                        </select>
+                        </SalonSelect>
                       </label>
                     )
                   })}

@@ -1,3 +1,5 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { allowed } from '../../core/auth/permissions'
@@ -157,7 +159,7 @@ export function OrderChanges({
             <fieldset disabled={busy}>
               {order.groupId && form.action !== 'reschedule' && (
                 <label className="dependency-checkbox">
-                  <input
+                  <SalonInput
                     required
                     type="checkbox"
                     checked={acknowledgeLinkedImpact}
@@ -171,7 +173,7 @@ export function OrderChanges({
               )}
               <label>
                 Ação
-                <select
+                <SalonSelect
                   value={form.action}
                   onChange={(e) => choose('action', e.target.value)}
                 >
@@ -187,13 +189,13 @@ export function OrderChanges({
                       Devolver utilização do pacote
                     </option>
                   )}
-                </select>
+                </SalonSelect>
               </label>
               {form.action === 'reschedule' && (
                 <>
                   <label>
                     Profissional
-                    <select
+                    <SalonSelect
                       required
                       value={form.employeeId}
                       onChange={(e) => choose('employeeId', e.target.value)}
@@ -214,11 +216,11 @@ export function OrderChanges({
                             {e.name}
                           </option>
                         ))}
-                    </select>
+                    </SalonSelect>
                   </label>
                   <label>
                     Novo dia
-                    <input
+                    <SalonInput
                       required
                       type="date"
                       min={new Date().toLocaleDateString('en-CA', {
@@ -230,7 +232,7 @@ export function OrderChanges({
                   </label>
                   <label>
                     Novo horário (Brasília)
-                    <select
+                    <SalonSelect
                       required
                       value={form.time}
                       disabled={slotsLoading}
@@ -255,7 +257,7 @@ export function OrderChanges({
                           </option>
                         )
                       })}
-                    </select>
+                    </SalonSelect>
                   </label>
                   <p>
                     A disponibilidade será validada antes de salvar. Se houver

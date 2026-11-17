@@ -1,3 +1,4 @@
+import { SalonInput } from '../../components/selection/SalonInput'
 import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -198,7 +199,7 @@ export default function PromotionsPage() {
             <fieldset disabled={busy}>
               <label>
                 Título
-                <input
+                <SalonInput
                   required
                   minLength={3}
                   maxLength={160}
@@ -220,7 +221,7 @@ export default function PromotionsPage() {
               </label>
               <label>
                 Arte da promoção (PNG, JPEG ou WebP, até 3 MB)
-                <input
+                <SalonInput
                   type="file"
                   accept="image/png,image/jpeg,image/webp"
                   onChange={(e) => void upload(e.target.files?.[0])}
@@ -235,7 +236,7 @@ export default function PromotionsPage() {
               )}
               <label>
                 Texto alternativo da imagem
-                <input
+                <SalonInput
                   required
                   minLength={3}
                   maxLength={255}
@@ -248,7 +249,7 @@ export default function PromotionsPage() {
               <div className="social-grid">
                 <label>
                   Início da divulgação
-                  <input
+                  <SalonInput
                     required
                     type="date"
                     value={form.startsOn}
@@ -259,7 +260,7 @@ export default function PromotionsPage() {
                 </label>
                 <label>
                   Fim da divulgação
-                  <input
+                  <SalonInput
                     required
                     type="date"
                     min={form.startsOn}
@@ -276,7 +277,7 @@ export default function PromotionsPage() {
                 return (
                   <div className="social-procedure" key={t.id}>
                     <label>
-                      <input
+                      <SalonInput
                         type="checkbox"
                         checked={!!i}
                         onChange={(e) =>
@@ -298,7 +299,7 @@ export default function PromotionsPage() {
                     {i && (
                       <label>
                         Quantidade
-                        <input
+                        <SalonInput
                           aria-label={`Quantidade de ${t.name}`}
                           type="number"
                           min="1"
@@ -323,7 +324,7 @@ export default function PromotionsPage() {
               })}
               <label>
                 Preço total do pacote (R$)
-                <input
+                <SalonInput
                   required
                   type="number"
                   min="0.01"
@@ -346,7 +347,7 @@ export default function PromotionsPage() {
                 />
               </label>
               <label className="social-check">
-                <input
+                <SalonInput
                   type="checkbox"
                   checked={form.active}
                   onChange={(e) =>

@@ -202,6 +202,12 @@ export default function BookingPage() {
           <img src={logo} alt="Vick Florez" />
         </Link>
         <span>Seu momento de florescer</span>
+        <Link to="/" className="booking-home-link">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+            <path d="m10 5-7 7 7 7M3 12h18" />
+          </svg>
+          Voltar para o início
+        </Link>
         {session && (
           <button type="button" disabled={busy} onClick={() => void logout()}>
             Sair da conta de cliente

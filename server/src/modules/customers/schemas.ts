@@ -24,6 +24,9 @@ export const PaymentSchema = z.object({
   requestKey: z.uuid(),
 })
 export const RefundSchema = z.object({
+  commissionScope: z
+    .enum(['proportional', 'services', 'extras'])
+    .default('proportional'),
   amount: z.number().positive().max(99999.99).multipleOf(0.01),
   reason: z.string().trim().min(3).max(1000),
   requestKey: z.uuid(),

@@ -3,6 +3,13 @@ import { can } from '@/core/access'
 // Every administrative route is mapped explicitly. Unknown authenticated routes fail closed.
 export function routePermission(method: string, path: string): string | null {
   if (path.startsWith('/api')) path = path.slice(4)
+  if (path.startsWith('/commissions')) {
+    if (path.endsWith('/rates') && method === 'PUT') return 'commissions.manage'
+    if (path.endsWith('/closings') && method === 'POST')
+      return 'commissions.settle'
+    if (path.endsWith('/annul')) return 'commissions.adjust'
+    return 'commissions.view'
+  }
   if (path.startsWith('/availability')) {
     if (path.endsWith('/blocks')) return 'agenda.view'
     if (path === '/availability/requests' && method === 'POST')

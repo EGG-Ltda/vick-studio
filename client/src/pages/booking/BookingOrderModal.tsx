@@ -15,6 +15,7 @@ import {
 import type { BookingOrder } from './bookingApi'
 import { OrderManagement } from './OrderManagement'
 import { LinkedAppointments } from '../dependencies/LinkedAppointments'
+import { OrderCommissions } from '../commissions/OrderCommissions'
 export function BookingOrderModal({
   id,
   onClose,
@@ -216,12 +217,27 @@ export function BookingOrderModal({
               id={id}
               onBusyChange={setBusy}
               onUpdated={() => {
+                setLedgerRevision((r) => r + 1)
                 void bookingRequest<BookingOrder>(`/booking/orders/${id}`)
                   .then(setOrder)
                   .catch((cause) => setError(cause.message))
                 onChanged()
               }}
             />
+            {allowed(user, 'commissions.view') && (
+              <OrderCommissions
+                id={id}
+                revision={`${ledgerRevision}-${order.status}`}
+                onBusyChange={setBusy}
+                onChanged={() => {
+                  setLedgerRevision((r) => r + 1)
+                  void bookingRequest<BookingOrder>(`/booking/orders/${id}`)
+                    .then(setOrder)
+                    .catch((e) => setError(e.message))
+                  onChanged()
+                }}
+              />
+            )}
           </>
         )}
       </div>

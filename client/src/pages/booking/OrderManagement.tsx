@@ -49,6 +49,7 @@ type OrderLedger = {
   canAddConsumption: boolean
   status: string
   canComplete: boolean
+  commissionPending: boolean
   canStart: boolean
   packagePayment: {
     configured: boolean
@@ -83,7 +84,12 @@ export function OrderManagement({
       description: 'Pagamento do atendimento',
     }),
     [note, setNote] = useState(''),
-    [refund, setRefund] = useState({ paymentId: '', amount: '', reason: '' }),
+    [refund, setRefund] = useState({
+      paymentId: '',
+      amount: '',
+      reason: '',
+      commissionScope: 'proportional',
+    }),
     [voiding, setVoiding] = useState<number | null>(null),
     [voidReason, setVoidReason] = useState(''),
     [restock, setRestock] = useState(false),
@@ -170,9 +176,19 @@ export function OrderManagement({
     event.preventDefault()
     void mutate(
       `/payments/${refund.paymentId}/refund`,
-      withKey({ amount: Number(refund.amount), reason: refund.reason }),
+      withKey({
+        amount: Number(refund.amount),
+        reason: refund.reason,
+        commissionScope: refund.commissionScope,
+      }),
       'Estorno registrado.',
-      () => setRefund({ paymentId: '', amount: '', reason: '' }),
+      () =>
+        setRefund({
+          paymentId: '',
+          amount: '',
+          reason: '',
+          commissionScope: 'proportional',
+        }),
     )
   }
   const refundable =
@@ -511,6 +527,31 @@ export function OrderManagement({
                   <fieldset disabled={busy}>
                     <legend>Registrar estorno</legend>
                     <label>
+                      Devolução referente a
+                      <SalonSelect
+                        value={refund.commissionScope}
+                        onChange={(e) =>
+                          setRefund({
+                            ...refund,
+                            commissionScope: e.target.value,
+                          })
+                        }
+                      >
+                        <option value="proportional">
+                          Divisão proporcional entre procedimentos e consumos
+                        </option>
+                        <option value="services">Somente procedimentos</option>
+                        <option value="extras">
+                          Somente consumos / produtos
+                        </option>
+                      </SalonSelect>
+                    </label>
+                    <p className="booking-note">
+                      A parcela devolvida dos procedimentos ajustará
+                      proporcionalmente as comissões. Devoluções de consumos não
+                      reduzem a comissão dos procedimentos.
+                    </p>
+                    <label>
                       Recebimento original
                       <SalonSelect
                         required
@@ -633,7 +674,15 @@ export function OrderManagement({
             )}
           </section>
           <section className="order-section">
+            {data.commissionPending && data.canManage && (
+              <p className="booking-alert">
+                Conclusão bloqueada: há porcentagens não configuradas. Um ADMIN
+                ou MASTER autorizado precisa preencher os percentuais de avulso
+                e pacote em Funcionários → Porcentagens.
+              </p>
+            )}
             {!data.completedAt &&
+              !data.commissionPending &&
               data.canManage &&
               !data.canComplete &&
               (!data.packagePayment || data.packagePayment.released) && (

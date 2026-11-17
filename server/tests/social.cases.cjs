@@ -570,6 +570,9 @@ module.exports = async ({
         "UPDATE salon_schedules SET schedule_started_at=now()-interval '10 days',schedule_ended_at=now()-interval '10 days'+interval '1 hour' WHERE id=$1",
         [first.scheduleId],
       )
+      await db.query(
+        'INSERT INTO employee_commission_rates(employee_id,treatment_id,standard_percent,package_percent,updated_by) SELECT employee_id,treatment_id,0,0,1 FROM employee_salon_treatments ON CONFLICT DO NOTHING',
+      )
       await send('/orders/' + first.scheduleId + '/complete', {})
       await send('/orders/' + first.scheduleId + '/complete', {})
       let p = await get('/social/packages/' + purchase.id)

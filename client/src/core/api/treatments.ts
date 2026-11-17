@@ -7,11 +7,31 @@ export type PublicTreatment = {
   price: number
   durationMinutes: number
 }
-export type Treatment = PublicTreatment & { isActive: boolean }
+export type Dependency = {
+  requiredTreatmentId: number
+  position: 'before' | 'after'
+  sameDay: boolean
+  consecutive: boolean
+  minMinutes: number
+  maxMinutes: number | null
+}
+export type Treatment = PublicTreatment & {
+  isActive: boolean
+  dependencies?: Dependency[]
+}
 
-export function listTreatments(publicCatalog: true, signal?: AbortSignal): Promise<PublicTreatment[]>
-export function listTreatments(publicCatalog?: false, signal?: AbortSignal): Promise<Treatment[]>
-export async function listTreatments(publicCatalog = false, signal?: AbortSignal) {
+export function listTreatments(
+  publicCatalog: true,
+  signal?: AbortSignal,
+): Promise<PublicTreatment[]>
+export function listTreatments(
+  publicCatalog?: false,
+  signal?: AbortSignal,
+): Promise<Treatment[]>
+export async function listTreatments(
+  publicCatalog = false,
+  signal?: AbortSignal,
+) {
   const treatments: PublicTreatment[] = []
   let page = 0
   let batch: PublicTreatment[]
@@ -27,8 +47,11 @@ export async function listTreatments(publicCatalog = false, signal?: AbortSignal
 }
 
 export function saveTreatment(data: Omit<Treatment, 'id'>, id?: number) {
-  return apiRequest<Treatment>(id === undefined ? '/treatments' : `/treatments/${id}`, {
-    method: id === undefined ? 'POST' : 'PUT',
-    body: JSON.stringify(data),
-  })
+  return apiRequest<Treatment>(
+    id === undefined ? '/treatments' : `/treatments/${id}`,
+    {
+      method: id === undefined ? 'POST' : 'PUT',
+      body: JSON.stringify(data),
+    },
+  )
 }

@@ -25,7 +25,7 @@ export function SalonModal({
     const previousFocus = document.activeElement
     dialog?.showModal()
     dialog
-      ?.querySelector<HTMLElement>('input:not(:disabled), select:not(:disabled)')
+      ?.querySelector<HTMLElement>('input:not(:disabled):not(.salon-selection-native), button.salon-selection-trigger:not(:disabled), select:not(:disabled):not(.salon-selection-native)')
       ?.focus()
     return () => {
       dialog?.close()

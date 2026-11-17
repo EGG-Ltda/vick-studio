@@ -53,7 +53,8 @@ export class FinanceRepository {
       JOIN employees e ON e.id=st.employee_id JOIN persons ep ON ep.id=e.person_id
       JOIN customers c ON c.id=s.customer_id JOIN persons cp ON cp.id=c.person_id
       JOIN salon_treatments t ON t.id=st.treatment_id
-      WHERE s.schedule_started_at >= $1::date AND s.schedule_started_at < $2::date + INTERVAL '1 day'
+      WHERE s.status = 'completed'
+        AND s.schedule_started_at >= $1::date AND s.schedule_started_at < $2::date + INTERVAL '1 day'
         AND NOT EXISTS (SELECT 1 FROM finance_treatment_records f WHERE f.schedule_item_id=st.id)
       ORDER BY s.schedule_started_at, st.id`, [start, end])).rows)
   }
@@ -89,8 +90,8 @@ export class FinanceRepository {
 
   async complete(input: z.infer<typeof completeTreatmentSchema>, userId: number) {
     return this.transaction(async (client) => {
-      const { rows } = await client.query(`SELECT st.*, s.customer_id, s.schedule_started_at,
-        ep.name AS employee_name, cp.name AS customer_name, t.name AS treatment_name,
+      const { rows } = await client.query(`SELECT st.*, s.customer_id, s.schedule_started_at, s.status AS order_status,
+        ep.name AS employee_name, cp.name AS customer_name, COALESCE(st.treatment_name,t.name) AS treatment_name,
         (st.price * 100)::bigint AS cents,
         ($2::date <= (CURRENT_TIMESTAMP AT TIME ZONE 'America/Sao_Paulo')::date
           AND $2::date >= s.schedule_started_at::date) AS valid_date
@@ -101,6 +102,7 @@ export class FinanceRepository {
       const item = rows[0]
       if (!item) throw financeError('Schedule item not found', 404)
       if (!item.valid_date) throw financeError('Invalid completion date')
+      if (item.order_status !== 'completed') throw financeError('Complete the order before recording its production', 409)
       if (input.actualStartedAt && new Intl.DateTimeFormat('en-CA', {timeZone:'America/Sao_Paulo'}).format(new Date(input.actualStartedAt)) !== input.performedOn)
         throw financeError('Actual attendance date must match completion date')
       const gross = safeMoney(item.cents) * input.quantity

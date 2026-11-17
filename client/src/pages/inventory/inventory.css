@@ -1,0 +1,211 @@
+.inventory-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  border-bottom: 1px solid #eccbd8;
+  padding-bottom: 16px;
+  margin-bottom: 24px;
+}
+.inventory-tabs button {
+  border-radius: 999px;
+  padding: 10px 18px;
+}
+.inventory-tabs button[aria-current='page'] {
+  color: #ffffff;
+  background: #9d1549;
+  border-color: #9d1549;
+}
+.inventory-toolbar {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 18px;
+  margin-bottom: 24px;
+}
+.inventory-toolbar > label:not(.inventory-check) {
+  display: grid;
+  gap: 8px;
+  min-width: 220px;
+  flex: 1;
+}
+.inventory-toolbar input:not([type='checkbox']) {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1px solid #e8bbcc;
+  border-radius: 10px;
+  background: #fefbfc;
+  color: #69384b;
+  box-sizing: border-box;
+}
+.inventory-check {
+  display: flex !important;
+  align-items: center;
+  gap: 9px;
+}
+.inventory-check input[type='checkbox'] {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: #9d1549;
+}
+.inventory-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 22px;
+}
+.inventory-card {
+  min-width: 0;
+  padding: 24px;
+  border: 1px solid #ebc8d5;
+  background: #fef6f9;
+  border-radius: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: start;
+  gap: 12px;
+}
+.inventory-card h2 {
+  font-size: 25px;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.inventory-card p {
+  margin: 0;
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+}
+.inventory-card-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+.inventory-kind {
+  padding: 5px 10px;
+  border-radius: 999px;
+  background: #f5e2e9;
+  color: #842248;
+  font-size: 11px;
+}
+.inventory-kind.courtesy {
+  background: #e7eee0;
+  color: #395535;
+}
+.inventory-stock {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 8px 0;
+}
+.inventory-stock strong {
+  font-size: 36px;
+  color: #9d1549;
+}
+.inventory-stock span,
+.inventory-description {
+  color: #905a6f;
+  font-size: 13px;
+}
+.inventory-card dl {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  margin: 0 0 12px;
+  font-size: 13px;
+}
+.inventory-card dd {
+  margin: 0;
+  font-weight: 600;
+  text-align: right;
+}
+.inventory-card-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: auto;
+}
+.inventory-closing-balance {
+  display: grid;
+  gap: 8px;
+  background: #f7e3eb;
+  padding: 16px;
+  border-radius: 10px;
+  box-sizing: border-box;
+  width: 100%;
+}
+.inventory-closing-balance strong {
+  font-size: 25px;
+  color: #9d1549;
+}
+.inventory-form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+.inventory-supplier-picker {
+  min-width: 0;
+  padding: 12px !important;
+  border: 1px solid #eac4d3 !important;
+  border-radius: 10px;
+}
+.inventory-supplier-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  max-height: 200px;
+  overflow: auto;
+}
+.inventory-supplier-options button[aria-pressed='true'] {
+  background: #9d1549;
+  color: #ffffff;
+}
+.inventory-inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin: 16px 0;
+}
+.inventory-ledger-line {
+  display: grid;
+  gap: 7px;
+  padding: 16px 0;
+  border-bottom: 1px solid #eacbd7;
+  overflow-wrap: anywhere;
+}
+.inventory-ledger-line small {
+  color: #8e596d;
+}
+.inventory-empty {
+  text-align: center;
+  padding: 50px 20px;
+  border: 1px dashed #deb2c3;
+  border-radius: 16px;
+}
+@media (max-width: 600px) {
+  .inventory-form-grid {
+    grid-template-columns: 1fr;
+  }
+  .inventory-card {
+    padding: 18px;
+  }
+  .inventory-toolbar > label:not(.inventory-check) {
+    min-width: 0;
+    width: 100%;
+    flex-basis: 100%;
+  }
+  .inventory-tabs button {
+    flex: 1;
+  }
+  .inventory-card dl {
+    grid-template-columns: 1fr;
+    gap: 6px;
+  }
+  .inventory-card dd {
+    text-align: left;
+    margin-bottom: 10px;
+  }
+}

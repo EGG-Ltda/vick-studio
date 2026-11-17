@@ -1,5 +1,17 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
+import { useAuth } from '../../core/auth/useAuth'
+import { allowed, roleLabels } from '../../core/auth/permissions'
+import { UserPermissionsModal } from '../access/UserPermissionsModal'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
+import type { CSSProperties } from 'react'
+import {
+  CALENDAR_PALETTE,
+  DEFAULT_CALENDAR_COLOR,
+  normalizeCalendarColor,
+  calendarStyle,
+} from './calendarColors'
 import {
   createUser,
   disableUser,
@@ -12,6 +24,9 @@ import type { User } from './usersApi'
 import { SalonModal } from '../../components/SalonModal'
 
 function UsersPage() {
+  const { user: actor } = useAuth()
+  const [permissionTarget, setPermissionTarget] = useState<number | null>(null)
+  const [role, setRole] = useState<User['role']>('OPERATIONAL')
   const [resetTarget, setResetTarget] = useState<User | null>(null)
   const [temporaryPassword, setTemporaryPasswordValue] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
@@ -31,6 +46,7 @@ function UsersPage() {
   const [login, setLogin] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [calendarColor, setCalendarColor] = useState(DEFAULT_CALENDAR_COLOR)
 
   useEffect(() => {
     const controller = new AbortController()
@@ -65,8 +81,10 @@ function UsersPage() {
 
   function openForm(user: User | null) {
     setEditing(user)
+    setRole(user?.role ?? 'OPERATIONAL')
     setLogin(user?.login ?? '')
     setEmail(user?.email ?? '')
+    setCalendarColor(normalizeCalendarColor(user?.calendarColor))
     setPassword('')
     setError('')
     setNotice('')
@@ -79,7 +97,12 @@ function UsersPage() {
     setError('')
     setNotice('')
     try {
-      const input = { login: login.trim(), email: email.trim() }
+      const input = {
+        login: login.trim(),
+        email: email.trim(),
+        role,
+        calendarColor,
+      }
       if (editing) await updateUser(editing.id, input)
       else await createUser({ ...input, password })
       setShowForm(false)
@@ -172,17 +195,29 @@ function UsersPage() {
           <h1>Usuários</h1>
           <p>Os acessos certos para cada pessoa da sua equipe.</p>
         </div>
-        <button
-          type="button"
-          className="primary-button"
-          disabled={busy}
-          onClick={() => openForm(null)}
-        >
-          <span aria-hidden="true">＋</span> Novo usuário
-        </button>
+        {allowed(actor, 'users.create') && (
+          <button
+            type="button"
+            className="primary-button"
+            disabled={busy}
+            onClick={() => openForm(null)}
+          >
+            <span aria-hidden="true">＋</span> Novo usuário
+          </button>
+        )}
       </header>
       {error && !showForm && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {permissionTarget !== null && (
+        <UserPermissionsModal
+          id={permissionTarget}
+          onClose={() => setPermissionTarget(null)}
+          onSaved={() => {
+            refresh()
+            setNotice('Acessos individuais atualizados.')
+          }}
+        />
+      )}
       {resetTarget && (
         <SalonModal
           title="Definir senha temporária"
@@ -198,7 +233,7 @@ function UsersPage() {
             <fieldset className="password-reset-fields" disabled={busy}>
               <label>
                 Senha temporária
-                <input
+                <SalonInput
                   type="password"
                   required
                   minLength={8}
@@ -213,7 +248,7 @@ function UsersPage() {
               </label>
               <label>
                 Confirmar senha temporária
-                <input
+                <SalonInput
                   type="password"
                   required
                   minLength={8}
@@ -263,7 +298,7 @@ function UsersPage() {
           >
             <label>
               Login
-              <input
+              <SalonInput
                 autoFocus
                 value={login}
                 onChange={(event) => setLogin(event.target.value)}
@@ -277,7 +312,7 @@ function UsersPage() {
             </label>
             <label>
               E-mail
-              <input
+              <SalonInput
                 type="email"
                 value={email}
                 onChange={(event) => setEmail(event.target.value)}
@@ -287,10 +322,76 @@ function UsersPage() {
                 autoComplete="email"
               />
             </label>
+            <label>
+              Perfil de acesso
+              <SalonSelect
+                value={role}
+                onChange={(e) => setRole(e.target.value as User['role'])}
+                disabled={
+                  busy || (editing?.isMaster && editing.id === actor?.id)
+                }
+              >
+                {Object.entries(roleLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </SalonSelect>
+              <small>
+                Somente Master pode atribuir perfis. As permissões são
+                configuradas em Funcionalidades por perfil.
+              </small>
+            </label>
+            <fieldset className="employee-color-picker" disabled={busy}>
+              <legend>Cor na Agenda</legend>
+              <p className="form-hint">
+                Identifica os agendamentos do funcionário vinculado a este
+                usuário.
+              </p>
+              <label className="employee-color-custom">
+                Cor personalizada
+                <SalonInput
+                  type="color"
+                  value={calendarColor}
+                  onChange={(event) =>
+                    setCalendarColor(event.target.value.toUpperCase())
+                  }
+                />
+                <span>{calendarColor}</span>
+              </label>
+              <div
+                className="employee-color-palette"
+                aria-label="Cores sugeridas"
+              >
+                {CALENDAR_PALETTE.map((color) => (
+                  <button
+                    key={color}
+                    type="button"
+                    aria-label={`Usar cor ${color}`}
+                    aria-pressed={calendarColor === color}
+                    style={{ background: color }}
+                    onClick={() => setCalendarColor(color)}
+                  />
+                ))}
+              </div>
+              <div
+                className="employee-color-preview"
+                style={calendarStyle(calendarColor) as CSSProperties}
+              >
+                <strong>{login || 'Profissional'}</strong>
+                <span>09:00 – 10:00 · Prévia na Agenda</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setCalendarColor(DEFAULT_CALENDAR_COLOR)}
+              >
+                Usar cor padrão
+              </button>
+            </fieldset>
             {!editing && (
               <label>
                 Senha temporária
-                <input
+                <SalonInput
                   type="password"
                   value={password}
                   onChange={(event) => setPassword(event.target.value)}
@@ -336,7 +437,7 @@ function UsersPage() {
           <span>Consulte e gerencie os usuários cadastrados.</span>
         </div>
         <label className="users-filter">
-          <input
+          <SalonInput
             type="checkbox"
             checked={hideDisabled}
             disabled={busy}
@@ -389,6 +490,9 @@ function UsersPage() {
                     {user.isMaster && (
                       <span className="master-tag">Master</span>
                     )}
+                    {user.assignedRole === 'OPERATIONAL' && (
+                      <span className="master-tag">Operacional</span>
+                    )}
                     {user.isAdmin && !user.isMaster && (
                       <span className="master-tag">Admin</span>
                     )}
@@ -410,14 +514,25 @@ function UsersPage() {
                   </td>
                   <td data-label="Ações">
                     <div className="users-actions">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        aria-label={`Editar ${user.login}`}
-                        onClick={() => openForm(user)}
-                      >
-                        Editar
-                      </button>
+                      {user.canConfigurePermissions && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setPermissionTarget(user.id)}
+                        >
+                          Permissões
+                        </button>
+                      )}
+                      {allowed(actor, 'users.manage') && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={`Editar ${user.login}`}
+                          onClick={() => openForm(user)}
+                        >
+                          Editar
+                        </button>
+                      )}
                       {user.canResetPassword && (
                         <button
                           type="button"
@@ -435,25 +550,27 @@ function UsersPage() {
                           Redefinir senha
                         </button>
                       )}
-                      <button
-                        type="button"
-                        className="user-status-button"
-                        disabled={
-                          busy ||
-                          (user.isMaster && user.isActive && !user.removedAt)
-                        }
-                        title={
-                          user.isMaster
-                            ? 'O administrador master não pode ser desabilitado.'
-                            : undefined
-                        }
-                        aria-label={`${user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'} ${user.login}`}
-                        onClick={() => void changeStatus(user)}
-                      >
-                        {user.isActive && !user.removedAt
-                          ? 'Desabilitar'
-                          : 'Reabilitar'}
-                      </button>
+                      {allowed(actor, 'users.manage') && (
+                        <button
+                          type="button"
+                          className="user-status-button"
+                          disabled={
+                            busy ||
+                            (user.isMaster && user.isActive && !user.removedAt)
+                          }
+                          title={
+                            user.isMaster
+                              ? 'O administrador master não pode ser desabilitado.'
+                              : undefined
+                          }
+                          aria-label={`${user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'} ${user.login}`}
+                          onClick={() => void changeStatus(user)}
+                        >
+                          {user.isActive && !user.removedAt
+                            ? 'Desabilitar'
+                            : 'Reabilitar'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

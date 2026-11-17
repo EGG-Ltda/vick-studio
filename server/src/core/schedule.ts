@@ -1,9 +1,12 @@
 import { IGenericDatabaseClient } from '@/core/db'
 import { ServiceIdentifier } from 'inversify'
 import z from 'zod'
+import { CalendarColorSchema, DEFAULT_CALENDAR_COLOR } from './user'
 
 export const ScheduleStatusSchema = z.enum([
   'scheduled',
+  'awaiting_deposit',
+  'confirmed',
   'in_progress',
   'completed',
   'cancelled',
@@ -18,17 +21,24 @@ export const ScheduleCreateSchema = z.object({
 })
 
 export const ScheduleSchema = z.object({
+  groupId: z.number().nullable().optional(),
   id: z.number(),
   scheduleId: z.number(),
   customerId: z.number(),
   customerName: z.string(),
   employeeId: z.number(),
+  employeeUserId: z.number(),
   employeeName: z.string(),
+  calendarColor: CalendarColorSchema.default(DEFAULT_CALENDAR_COLOR),
   serviceId: z.number(),
   serviceName: z.string(),
   startsAt: z.date(),
   endsAt: z.date(),
   status: ScheduleStatusSchema,
+  depositDueAt: z.date().nullable().optional(),
+  depositRequired: z.number().nullable().optional(),
+  depositConfirmedAt: z.date().nullable().optional(),
+  cancellationReason: z.string().nullable().optional(),
 })
 
 export type ScheduleCreate = z.infer<typeof ScheduleCreateSchema>

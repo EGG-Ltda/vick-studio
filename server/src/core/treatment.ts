@@ -1,8 +1,10 @@
 import { IGenericDatabaseClient } from '@/core/db'
 import { ServiceIdentifier } from 'inversify'
 import z from 'zod'
+import { DependenciesSchema } from '@/modules/dependencies/rules'
 
 export const TreatmentSchema = z.object({
+  dependencies: DependenciesSchema.default([]),
   id: z.int(),
   name: z.string().min(1).max(255),
   description: z.string().min(1).max(1023),
@@ -14,6 +16,7 @@ export const TreatmentSchema = z.object({
 })
 
 export const TreatmentCreateSchema = z.object({
+  dependencies: DependenciesSchema.default([]),
   name: z.string().min(1).max(255),
   description: z.string().min(1).max(1023),
   price: z.number().positive(),
@@ -21,6 +24,7 @@ export const TreatmentCreateSchema = z.object({
 })
 
 export const TreatmentUpdateSchema = z.object({
+  dependencies: DependenciesSchema.optional(),
   id: z.int(),
   name: z.string().min(1).max(255),
   description: z.string().min(1).max(1023),

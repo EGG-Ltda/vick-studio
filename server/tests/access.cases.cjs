@@ -98,7 +98,12 @@ module.exports = async ({
           'finance.view',
         ),
       )
-      await get('/access/profiles', manager.cookie, 403)
+      assert.deepEqual(
+        (await get('/access/profiles', manager.cookie)).profiles.map(
+          (p) => p.role,
+        ),
+        ['OPERATIONAL'],
+      )
       await get('/access/profiles', professional.cookie, 403)
       await get('/users', professional.cookie, 403)
       const password = randomBytes(12).toString('hex'),
@@ -171,6 +176,86 @@ module.exports = async ({
     },
   )
   await t.test(
+    'access: ADMIN manages only operational defaults and cannot change MASTER ceilings or administrator profiles',
+    async () => {
+      const op = original.profiles.find((p) => p.role === 'OPERATIONAL')
+      try {
+        const view = await get('/access/profiles', manager.cookie)
+        assert.deepEqual(
+          view.profiles.map((p) => p.role),
+          ['OPERATIONAL'],
+        )
+        assert.equal(
+          view.profiles[0].permissions.find((p) => p.key === 'services.view')
+            .editable,
+          true,
+        )
+        await saveProfile(
+          'ADMIN',
+          original.profiles.find((p) => p.role === 'ADMIN').permissions,
+          manager.cookie,
+          403,
+        )
+        await send(
+          'PUT',
+          '/access/profiles/MASTER',
+          { version: 1, permissions: [] },
+          manager.cookie,
+          400,
+        )
+        const denied = op.permissions.map((p) =>
+          p.key === 'services.view' ? { ...p, allowed: false } : p,
+        )
+        await saveProfile('OPERATIONAL', denied, manager.cookie)
+        await get('/treatments', professional.cookie, 403)
+        await get('/treatments', master.cookie)
+        const protectedChanges = denied.map((p) =>
+          p.key === 'services.view' ? { ...p, delegatable: false } : p,
+        )
+        await saveProfile('OPERATIONAL', protectedChanges, manager.cookie, 403)
+        const audit = await get('/access/audit', manager.cookie)
+        assert.ok(
+          audit.every(
+            (a) =>
+              a.targetRole === 'OPERATIONAL' || a.action === 'user_permissions',
+          ),
+        )
+        await db.query(
+          "INSERT INTO user_permission_overrides(user_id,permission_key,allowed,updated_by) VALUES(1,'agenda.view',false,1) ON CONFLICT(user_id,permission_key) DO UPDATE SET allowed=false",
+        )
+        assert.ok(
+          (await get('/auth/session')).permissions.includes('agenda.view'),
+        )
+        await get('/access/users/1', manager.cookie, 403)
+      } finally {
+        await db.query(
+          "DELETE FROM user_permission_overrides WHERE user_id=1 AND permission_key='agenda.view'",
+        )
+        await restore('OPERATIONAL')
+      }
+    },
+  )
+  await t.test(
+    'access: MASTER controls ADMIN configuration and permission-management access without restricting MASTER',
+    async () => {
+      const admin = original.profiles.find((p) => p.role === 'ADMIN')
+      try {
+        const settings = await get('/booking/settings', manager.cookie)
+        await send('PUT', '/booking/settings', settings, manager.cookie)
+        await saveProfile('ADMIN', deny(admin.permissions, 'booking.settings'))
+        await get('/booking/settings', manager.cookie, 403)
+        await get('/booking/settings', master.cookie)
+        await restore('ADMIN')
+        await saveProfile('ADMIN', deny(admin.permissions, 'staff.permissions'))
+        await get('/access/profiles', manager.cookie, 403)
+        await get('/access/audit', manager.cookie, 403)
+        await get('/access/profiles', master.cookie)
+      } finally {
+        await restore('ADMIN')
+      }
+    },
+  )
+  await t.test(
     'access: ADMIN delegates only permitted employee functions and cannot edit any administrator or MASTER',
     async () => {
       await get('/access/users/1', manager.cookie, 403)
@@ -218,23 +303,80 @@ module.exports = async ({
       await get('/treatments', professional.cookie)
     },
   )
-  await t.test('access: financial-view delegation adjusts dependent actions and rejects inconsistent requests',async()=>{
-    const target=await get('/access/users/3',manager.cookie)
-    const keys=['finance.view','agenda.deposit','orders.payments','clients.financial']
-    try{
-      await send('PUT','/access/users/3',{profileVersion:target.profileVersion,changes:[{key:'finance.view',allowed:false}]},manager.cookie,400)
-      assert.ok((await get('/auth/session',professional.cookie)).permissions.includes('finance.view'))
-      await send('PUT','/access/users/3',{profileVersion:target.profileVersion,changes:keys.map(key=>({key,allowed:false}))},manager.cookie)
-      await get('/finance?'+period,professional.cookie,403)
-      assert.equal((await get('/customers/'+alice.body.data.customerId,professional.cookie)).totalPaid,null)
-    }finally{await send('PUT','/access/users/3',{profileVersion:target.profileVersion,changes:keys.map(key=>({key,allowed:null}))},manager.cookie)}
-  })
-  await t.test('access: administrative cross-origin requests are rejected and self profile never leaks credentials',async()=>{
-    requireStatus(await request('GET','/access/profiles',master.cookie,undefined,{Origin:'https://untrusted.example.test'}),403)
-    const self=await get('/users/@me',professional.cookie)
-    assert.equal(self.role,'OPERATIONAL');assert.equal('hashPassword' in self,false);assert.equal('passwordVersion' in self,false)
-    await send('PUT','/users/@me',{},professional.cookie,403)
-  })
+  await t.test(
+    'access: financial-view delegation adjusts dependent actions and rejects inconsistent requests',
+    async () => {
+      const target = await get('/access/users/3', manager.cookie)
+      const keys = [
+        'finance.view',
+        'agenda.deposit',
+        'orders.payments',
+        'clients.financial',
+      ]
+      try {
+        await send(
+          'PUT',
+          '/access/users/3',
+          {
+            profileVersion: target.profileVersion,
+            changes: [{ key: 'finance.view', allowed: false }],
+          },
+          manager.cookie,
+          400,
+        )
+        assert.ok(
+          (
+            await get('/auth/session', professional.cookie)
+          ).permissions.includes('finance.view'),
+        )
+        await send(
+          'PUT',
+          '/access/users/3',
+          {
+            profileVersion: target.profileVersion,
+            changes: keys.map((key) => ({ key, allowed: false })),
+          },
+          manager.cookie,
+        )
+        await get('/finance?' + period, professional.cookie, 403)
+        assert.equal(
+          (
+            await get(
+              '/customers/' + alice.body.data.customerId,
+              professional.cookie,
+            )
+          ).totalPaid,
+          null,
+        )
+      } finally {
+        await send(
+          'PUT',
+          '/access/users/3',
+          {
+            profileVersion: target.profileVersion,
+            changes: keys.map((key) => ({ key, allowed: null })),
+          },
+          manager.cookie,
+        )
+      }
+    },
+  )
+  await t.test(
+    'access: administrative cross-origin requests are rejected and self profile never leaks credentials',
+    async () => {
+      requireStatus(
+        await request('GET', '/access/profiles', master.cookie, undefined, {
+          Origin: 'https://untrusted.example.test',
+        }),
+        403,
+      )
+      const self = await get('/users/@me', professional.cookie)
+      assert.equal(self.role, 'OPERATIONAL')
+      assert.equal('hashPassword' in self, false)
+      assert.equal('passwordVersion' in self, false)
+      await send('PUT', '/users/@me', {}, professional.cookie, 403)
+    },
+  )
   await t.test(
     'access: role ceilings revoke individual grants immediately and stale delegation is rejected',
     async () => {

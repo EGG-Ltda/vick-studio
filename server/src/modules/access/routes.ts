@@ -19,7 +19,7 @@ export default async function routes(app: FastifyInstance) {
   }
   app.get('/access/catalog', secured, async (req, res) => ok(res, s.catalog()))
   app.get('/access/profiles', secured, async (req, res) =>
-    ok(res, { catalog: s.catalog(), profiles: await s.profiles() }),
+    ok(res, await s.profileView(req.authUser)),
   )
   app.put<{ Params: { role: string } }>(
     '/access/profiles/:role',
@@ -89,13 +89,6 @@ export default async function routes(app: FastifyInstance) {
     },
   )
   app.get('/access/audit', secured, async (req, res) =>
-    ok(
-      res,
-      (
-        await s.query(
-          `SELECT a.id,a.action,a.target_user_id AS "targetUserId",a.target_role AS "targetRole",a.previous_data AS "previousData",a.current_data AS "currentData",a.created_at AS "createdAt",u.login AS author FROM access_audit a JOIN app_users u ON u.id=a.actor_id ORDER BY a.id DESC LIMIT 100`,
-        )
-      ).rows,
-    ),
+    ok(res, await s.audit(req.authUser)),
   )
 }

@@ -19,7 +19,7 @@ export const pagePermissions: Record<string, string> = {
   '/dashboard/usuarios': 'users.view',
   '/dashboard/social/aniversariantes': 'birthdays.view',
   '/dashboard/social/promocoes': 'promotions.view',
-  '/dashboard/permissoes-perfis': 'profiles.manage',
+  '/dashboard/permissoes-perfis': 'staff.permissions',
 }
 export function firstAllowedPage(user: AuthUser | null) {
   return (

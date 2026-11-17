@@ -68,7 +68,7 @@ export default function EmployeesPage() {
   )
   const canManageRequests =
     allowed(user, 'availability.manage') &&
-    ['ADMIN', 'MASTER'].includes(user?.role ?? '')
+    (user?.isMaster || user?.dataScope === 'salon')
   const requestsTab = canManageRequests && params.get('aba') === 'solicitacoes'
   useEffect(() => {
     if (!canManageRequests) return

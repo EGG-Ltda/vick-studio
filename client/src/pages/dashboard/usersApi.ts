@@ -1,6 +1,9 @@
 import { apiRequest } from '../../core/api/http'
 
 export type User = {
+  accessClassId?: number | null
+  accessClassName?: string
+  dataScope?: 'own' | 'salon'
   role: 'MASTER' | 'ADMIN' | 'OPERATIONAL' | 'DISABLED'
   assignedRole: 'MASTER' | 'ADMIN' | 'OPERATIONAL'
   canConfigurePermissions: boolean
@@ -16,6 +19,7 @@ export type User = {
   mustChangePassword?: boolean
 }
 export type UserInput = {
+  accessClassId?: number
   login: string
   email: string
   role?: User['role']

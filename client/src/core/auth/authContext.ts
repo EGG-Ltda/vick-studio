@@ -3,6 +3,9 @@ import { createContext } from 'react'
 export type AuthUser = {
   role: 'MASTER' | 'ADMIN' | 'OPERATIONAL' | 'DISABLED'
   permissions: string[]
+  accessClassId?: number | null
+  accessClassName?: string
+  dataScope?: 'own' | 'salon'
   id: number
   login: string
   email: string

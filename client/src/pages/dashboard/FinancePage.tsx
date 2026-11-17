@@ -132,9 +132,7 @@ export default function FinancePage() {
       <header className="dashboard-view-header">
         <div>
           <span className="salon-eyebrow">Valores registrados</span>
-          <h1>
-            {user?.role === 'OPERATIONAL' ? 'Meu financeiro' : 'Financeiro'}
-          </h1>
+          <h1>{user?.dataScope === 'own' ? 'Meu financeiro' : 'Financeiro'}</h1>
           <p>
             {data?.scope === 'own'
               ? 'Acompanhe somente os valores atribuídos aos seus atendimentos.'

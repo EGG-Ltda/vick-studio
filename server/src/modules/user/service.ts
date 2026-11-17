@@ -1,4 +1,5 @@
 import { AccessService } from '../access/service'
+import { ClassService } from '../access/classes'
 import { databaseServiceId, IDatabaseService } from '@/core/db'
 import { isMaster, requireFreshMaster } from '@/core/access'
 import { MASTER_USER_ID } from '@/core/config'
@@ -113,6 +114,23 @@ export class UserService implements IUserService {
       await client.query('SELECT pg_advisory_xact_lock(70430,1)', [])
       await requireFreshMaster(client, actor)
       const row = await this.userRepo.create({ ...data, password }, client)
+      if (data.accessClassId) {
+        await new ClassService(this.db, this.work).assignInTransaction(
+          client,
+          actor,
+          row.id,
+          data.accessClassId,
+        )
+        Object.assign(
+          row,
+          (
+            await client.query(
+              'SELECT role,access_class_id AS "accessClassId" FROM app_users WHERE id=$1',
+              [row.id],
+            )
+          ).rows[0],
+        )
+      }
       await client.query(
         `INSERT INTO access_audit(actor_id,target_user_id,action,previous_data,current_data) VALUES($1,$2,'create_user','{}',$3)`,
         [
@@ -165,6 +183,23 @@ export class UserService implements IUserService {
           [data.id],
         )
       const updated = await this.userRepo.update(data, client)
+      if (data.accessClassId) {
+        await new ClassService(this.db, this.work).assignInTransaction(
+          client,
+          actor,
+          data.id,
+          data.accessClassId,
+        )
+        Object.assign(
+          updated,
+          (
+            await client.query(
+              'SELECT role,access_class_id AS "accessClassId" FROM app_users WHERE id=$1',
+              [data.id],
+            )
+          ).rows[0],
+        )
+      }
       await client.query(
         `INSERT INTO access_audit(actor_id,target_user_id,action,previous_data,current_data) VALUES($1,$2,'update_user_profile',$3,$4)`,
         [

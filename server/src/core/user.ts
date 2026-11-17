@@ -16,6 +16,15 @@ export const AppUserSchema = z.object({
   calendarColor: CalendarColorSchema.default(DEFAULT_CALENDAR_COLOR),
   role: z.enum(['MASTER', 'ADMIN', 'OPERATIONAL']).default('OPERATIONAL'),
   permissions: z.array(z.string()).default([]),
+  accessClassId: z.number().int().positive().nullable().optional(),
+  accessClassName: z
+    .string()
+    .nullish()
+    .transform((v) => v ?? undefined),
+  dataScope: z
+    .enum(['own', 'salon'])
+    .nullish()
+    .transform((v) => v ?? undefined),
   isActive: z.boolean(),
   isAdmin: z.boolean().default(false),
   mustChangePassword: z.boolean().default(false),
@@ -61,6 +70,7 @@ export const AssignmentRoleSchema = z.enum([
   'DISABLED',
 ])
 export const AppUserCreateSchema = z.object({
+  accessClassId: z.number().int().positive().optional(),
   role: AssignmentRoleSchema.default('OPERATIONAL'),
   login: z.string().trim().min(1).max(255),
   email: z.email(),
@@ -69,6 +79,7 @@ export const AppUserCreateSchema = z.object({
 })
 
 export const AppUserUpdateSchema = z.object({
+  accessClassId: z.number().int().positive().optional(),
   role: AssignmentRoleSchema.optional(),
   id: z.int().positive(),
   login: z.string().trim().min(1).max(255),

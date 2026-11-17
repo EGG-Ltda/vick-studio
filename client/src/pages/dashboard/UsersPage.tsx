@@ -1,7 +1,10 @@
 import { SalonInput } from '../../components/selection/SalonInput'
 import { SalonSelect } from '../../components/selection/SalonSelect'
 import { useAuth } from '../../core/auth/useAuth'
-import { allowed, roleLabels } from '../../core/auth/permissions'
+import { allowed } from '../../core/auth/permissions'
+import { accessRequest } from '../access/accessApi'
+import type { AccessClass } from '../access/accessApi'
+import { UserClassModal } from '../access/UserClassModal'
 import { UserPermissionsModal } from '../access/UserPermissionsModal'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
@@ -26,7 +29,10 @@ import { SalonModal } from '../../components/SalonModal'
 function UsersPage() {
   const { user: actor } = useAuth()
   const [permissionTarget, setPermissionTarget] = useState<number | null>(null)
-  const [role, setRole] = useState<User['role']>('OPERATIONAL')
+  const [role, setRole] = useState<string>('')
+  const [classes, setClasses] = useState<AccessClass[]>([])
+  const [classTarget, setClassTarget] = useState<User | null>(null)
+  const [classError, setClassError] = useState('')
   const [resetTarget, setResetTarget] = useState<User | null>(null)
   const [temporaryPassword, setTemporaryPasswordValue] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
@@ -47,6 +53,21 @@ function UsersPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [calendarColor, setCalendarColor] = useState(DEFAULT_CALENDAR_COLOR)
+  useEffect(() => {
+    if (!allowed(actor, 'users.manage') && !allowed(actor, 'users.create'))
+      return
+    const c = new AbortController()
+    accessRequest<AccessClass[]>('/access/classes/options', {
+      signal: c.signal,
+    })
+      .then((d) => {
+        if (!c.signal.aborted) setClasses(d)
+      })
+      .catch((e) => {
+        if (!c.signal.aborted) setClassError(e.message)
+      })
+    return () => c.abort()
+  }, [actor, revision])
 
   useEffect(() => {
     const controller = new AbortController()
@@ -81,7 +102,15 @@ function UsersPage() {
 
   function openForm(user: User | null) {
     setEditing(user)
-    setRole(user?.role ?? 'OPERATIONAL')
+    setRole(
+      user
+        ? user.role === 'MASTER' || user.role === 'DISABLED'
+          ? user.role
+          : String(user.accessClassId ?? '')
+        : String(
+            classes.find((c) => c.builtinRole === 'OPERATIONAL')?.id ?? '',
+          ),
+    )
     setLogin(user?.login ?? '')
     setEmail(user?.email ?? '')
     setCalendarColor(normalizeCalendarColor(user?.calendarColor))
@@ -100,7 +129,17 @@ function UsersPage() {
       const input = {
         login: login.trim(),
         email: email.trim(),
-        role,
+        role:
+          role === 'MASTER' || role === 'DISABLED'
+            ? (role as User['role'])
+            : editing?.role === 'DISABLED'
+              ? ((classes.find((c) => String(c.id) === role)?.level ===
+                'administrative'
+                  ? 'ADMIN'
+                  : 'OPERATIONAL') as User['role'])
+              : undefined,
+        accessClassId:
+          role !== 'MASTER' && role !== 'DISABLED' ? Number(role) : undefined,
         calendarColor,
       }
       if (editing) await updateUser(editing.id, input)
@@ -208,6 +247,16 @@ function UsersPage() {
       </header>
       {error && !showForm && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {classTarget && (
+        <UserClassModal
+          user={classTarget}
+          onClose={() => setClassTarget(null)}
+          onSaved={() => {
+            refresh()
+            setNotice('Classe de acesso atualizada.')
+          }}
+        />
+      )}
       {permissionTarget !== null && (
         <UserPermissionsModal
           id={permissionTarget}
@@ -323,25 +372,36 @@ function UsersPage() {
               />
             </label>
             <label>
-              Perfil de acesso
+              Classe de acesso
               <SalonSelect
                 value={role}
-                onChange={(e) => setRole(e.target.value as User['role'])}
+                onChange={(e) => setRole(e.target.value)}
+                required
                 disabled={
                   busy || (editing?.isMaster && editing.id === actor?.id)
                 }
               >
-                {Object.entries(roleLabels).map(([value, label]) => (
-                  <option key={value} value={value}>
-                    {label}
+                <option value="">Selecione uma classe</option>
+                <option value="MASTER">Master · acesso completo</option>
+                {classes.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                    {!c.builtinRole &&
+                      ` · ${c.level === 'administrative' ? 'Administrativo' : 'Operacional'}`}
                   </option>
                 ))}
+                <option value="DISABLED">Desabilitado</option>
               </SalonSelect>
               <small>
-                Somente Master pode atribuir perfis. As permissões são
-                configuradas em Funcionalidades por perfil.
+                As funcionalidades e o alcance dos dados são definidos na
+                classe, em Funcionalidades por perfil.
               </small>
             </label>
+            {classError && (
+              <p role="alert">
+                Não foi possível carregar as classes: {classError}
+              </p>
+            )}
             <fieldset className="employee-color-picker" disabled={busy}>
               <legend>Cor na Agenda</legend>
               <p className="form-hint">
@@ -490,11 +550,10 @@ function UsersPage() {
                     {user.isMaster && (
                       <span className="master-tag">Master</span>
                     )}
-                    {user.assignedRole === 'OPERATIONAL' && (
-                      <span className="master-tag">Operacional</span>
-                    )}
-                    {user.isAdmin && !user.isMaster && (
-                      <span className="master-tag">Admin</span>
+                    {!user.isMaster && (
+                      <span className="master-tag">
+                        {user.accessClassName ?? user.assignedRole}
+                      </span>
                     )}
                   </td>
                   <td data-label="E-mail">{user.email}</td>
@@ -514,6 +573,18 @@ function UsersPage() {
                   </td>
                   <td data-label="Ações">
                     <div className="users-actions">
+                      {allowed(actor, 'classes.manage') &&
+                        !user.isMaster &&
+                        user.id !== actor?.id &&
+                        (actor?.isMaster ||
+                          user.assignedRole === 'OPERATIONAL') && (
+                          <button
+                            type="button"
+                            onClick={() => setClassTarget(user)}
+                          >
+                            Classe de acesso
+                          </button>
+                        )}
                       {user.canConfigurePermissions && (
                         <button
                           type="button"

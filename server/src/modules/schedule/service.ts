@@ -16,6 +16,8 @@ export class ScheduleService implements IScheduleService {
     private readonly scheduleRepo: IScheduleRepository,
   ) {}
 
+  public options() { return this.scheduleRepo.options() }
+
   public list(start: Date, end: Date): Promise<Schedule[]> {
     return this.scheduleRepo.list(start, end)
   }

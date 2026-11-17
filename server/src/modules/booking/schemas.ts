@@ -1,4 +1,5 @@
 import z from 'zod'
+import { WorkingDaySchema, ClockSchema } from '../availability/schemas'
 import { PasswordSchema } from '@/core/user'
 
 export function validCpf(value: string): boolean {
@@ -15,19 +16,17 @@ export const CpfSchema = z
   .string()
   .transform((value) => value.replace(/[.\-\s]/g, ''))
   .refine(validCpf, 'Invalid CPF')
-export const BirthDateSchema = z.iso
-  .date()
-  .refine(
-    (value) =>
-      value <=
-      new Intl.DateTimeFormat('en-CA', {
-        timeZone: 'America/Sao_Paulo',
-        year: 'numeric',
-        month: '2-digit',
-        day: '2-digit',
-      }).format(new Date()),
-    'Birth date cannot be in the future',
-  )
+export const BirthDateSchema = z.iso.date().refine(
+  (value) =>
+    value <=
+    new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'America/Sao_Paulo',
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+    }).format(new Date()),
+  'Birth date cannot be in the future',
+)
 export const RegistrationSchema = z.object({
   name: z
     .string()
@@ -92,6 +91,15 @@ export const EmployeeSchema = z
     userId: z.number().int().positive(),
     active: z.boolean(),
     treatmentIds: z.array(z.number().int().positive()).max(100),
+    hours: z
+      .array(WorkingDaySchema)
+      .max(7)
+      .refine(
+        (days) => new Set(days.map((day) => day.weekday)).size === days.length,
+        'Duplicate working days.',
+      )
+      .optional(),
+    lunchStart: ClockSchema.nullable().optional(),
     weekdays: z
       .array(z.number().int().min(0).max(6))
       .max(7)

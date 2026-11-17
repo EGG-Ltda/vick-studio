@@ -1,6 +1,8 @@
 import { allowed, pagePermissions } from '../../core/auth/permissions'
 import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { AvailabilityNotice } from '../availability/AvailabilityNotice'
+import '../availability/availability.css'
 import { BirthdayNotice } from '../social/BirthdayNotice'
 import '../social/social.css'
 import logo from '../../assets/vick-florez-logo.webp'
@@ -164,6 +166,7 @@ function DashboardPage() {
         </header>
         <div id="salon-content" className="salon-content" tabIndex={-1}>
           {allowed(user, 'birthdays.view') && <BirthdayNotice />}
+          <AvailabilityNotice />
           <Outlet />
         </div>
       </main>

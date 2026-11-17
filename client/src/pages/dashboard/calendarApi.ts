@@ -15,6 +15,7 @@ export type Schedule = {
   customerName: string
   employeeId: number
   employeeName: string
+  calendarColor?: string
   treatmentId: number
   treatmentName: string
   startsAt: string

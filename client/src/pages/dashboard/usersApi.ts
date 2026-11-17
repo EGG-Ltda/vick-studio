@@ -1,11 +1,12 @@
 import { apiRequest } from '../../core/api/http'
 
 export type User = {
-  role:'MASTER'|'ADMIN'|'OPERATIONAL'|'DISABLED'
-  assignedRole:'MASTER'|'ADMIN'|'OPERATIONAL'
-  canConfigurePermissions:boolean
+  role: 'MASTER' | 'ADMIN' | 'OPERATIONAL' | 'DISABLED'
+  assignedRole: 'MASTER' | 'ADMIN' | 'OPERATIONAL'
+  canConfigurePermissions: boolean
   id: number
   login: string
+  calendarColor: string
   email: string
   isActive: boolean
   removedAt: string | null
@@ -14,7 +15,12 @@ export type User = {
   isAdmin?: boolean
   mustChangePassword?: boolean
 }
-export type UserInput = { login: string; email: string;role?:User['role'] }
+export type UserInput = {
+  login: string
+  email: string
+  role?: User['role']
+  calendarColor?: string
+}
 export type UserPage = { items: User[]; hasNext: boolean }
 export function listUsers(
   page: number,

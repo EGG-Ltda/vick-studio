@@ -150,7 +150,7 @@ export class BookingService {
   async employees(publicOnly = false) {
     return (
       await this.query(
-        `SELECT e.id,p.name,p.cpf_cnpj AS cpf,e.user_id AS "userId",u.email,e.is_active AS active,
+        `SELECT e.id,p.name,p.cpf_cnpj AS cpf,e.user_id AS "userId",u.email,u.calendar_color AS "calendarColor",e.is_active AS active,
       COALESCE((SELECT json_agg(treatment_id) FROM employee_salon_treatments WHERE employee_id=e.id),'[]') AS "treatmentIds",
       COALESCE((SELECT json_agg(json_build_object('weekday',weekday,'opensAt',opens_at,'closesAt',closes_at) ORDER BY weekday) FROM employee_booking_hours WHERE employee_id=e.id),'[]') AS hours
       FROM employees e JOIN persons p ON p.id=e.person_id JOIN app_users u ON u.id=e.user_id

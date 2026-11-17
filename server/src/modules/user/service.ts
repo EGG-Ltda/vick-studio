@@ -118,7 +118,11 @@ export class UserService implements IUserService {
         [
           actor.id,
           row.id,
-          JSON.stringify({ role: data.role, login: data.login }),
+          JSON.stringify({
+            role: data.role,
+            login: data.login,
+            calendarColor: data.calendarColor,
+          }),
         ],
       )
       return AppUserSchema.parse(row)
@@ -132,7 +136,7 @@ export class UserService implements IUserService {
       await requireFreshMaster(client, actor)
       const old = (
         await client.query(
-          'SELECT id,role,is_active,login,email FROM app_users WHERE id=$1 FOR UPDATE',
+          'SELECT id,role,is_active,login,email,calendar_color FROM app_users WHERE id=$1 FOR UPDATE',
           [data.id],
         )
       ).rows[0]
@@ -170,6 +174,7 @@ export class UserService implements IUserService {
           JSON.stringify({
             login: data.login,
             email: data.email,
+            calendarColor: updated.calendarColor,
             role,
             active,
           }),

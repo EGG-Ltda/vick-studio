@@ -32,6 +32,7 @@ export class ScheduleRepository implements IScheduleRepository {
         employees.id AS "employeeId",
         employees.user_id AS "employeeUserId",
         employee_person.name AS "employeeName",
+        employee_user.calendar_color AS "calendarColor",
         services.id AS "serviceId",
         schedule_services.treatment_name AS "serviceName",
         schedules.schedule_started_at AS "startsAt",
@@ -46,6 +47,7 @@ export class ScheduleRepository implements IScheduleRepository {
       JOIN persons customer_person ON customer_person.id = customers.person_id
       JOIN salon_schedule_treatments schedule_services ON schedule_services.schedule_id = schedules.id
       JOIN employees employees ON employees.id = schedule_services.employee_id
+      JOIN app_users employee_user ON employee_user.id = employees.user_id
       JOIN persons employee_person ON employee_person.id = employees.person_id
       JOIN salon_treatments services ON services.id = schedule_services.treatment_id
       WHERE schedules.schedule_started_at < $2

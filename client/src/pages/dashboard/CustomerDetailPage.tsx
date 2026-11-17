@@ -1,3 +1,5 @@
+import { useAuth } from '../../core/auth/useAuth'
+import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
@@ -21,6 +23,7 @@ import type {
 import '../booking/booking.css'
 import './customers.css'
 export default function CustomerDetailPage() {
+  const { user } = useAuth()
   const { id } = useParams(),
     [customer, setCustomer] = useState<CustomerDetail | null>(null),
     [error, setError] = useState(''),
@@ -58,6 +61,11 @@ export default function CustomerDetailPage() {
     phone: '',
     birthDate: '',
   })
+  const loadedCustomerId = customer?.id
+  const canReadFinancial =
+    allowed(user, 'clients.financial') && customer?.canViewFinancial
+  const canReadNotes =
+    allowed(user, 'clients.notes') && customer?.canReadInternalNotes
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true)
@@ -80,7 +88,7 @@ export default function CustomerDetailPage() {
     return () => controller.abort()
   }, [id, revision])
   useEffect(() => {
-    if (!customer || customer.id !== Number(id)) return
+    if (loadedCustomerId !== Number(id)) return
     const controller = new AbortController()
     setHistoryLoading(true)
     setHistoryError('')
@@ -98,9 +106,9 @@ export default function CustomerDetailPage() {
         if (!controller.signal.aborted) setHistoryLoading(false)
       })
     return () => controller.abort()
-  }, [id, customer?.id, historyPage, view, revision])
+  }, [id, loadedCustomerId, historyPage, view, revision])
   useEffect(() => {
-    if (!customer || customer.id !== Number(id)) return
+    if (!canReadFinancial || loadedCustomerId !== Number(id)) return
     const controller = new AbortController()
     setPaymentsLoading(true)
     setPaymentsError('')
@@ -118,9 +126,9 @@ export default function CustomerDetailPage() {
         if (!controller.signal.aborted) setPaymentsLoading(false)
       })
     return () => controller.abort()
-  }, [id, customer?.id, paymentsPage, revision])
+  }, [id, loadedCustomerId, canReadFinancial, paymentsPage, revision])
   useEffect(() => {
-    if (!customer?.canReadInternalNotes || customer.id !== Number(id)) {
+    if (!canReadNotes || loadedCustomerId !== Number(id)) {
       setNotes([])
       return
     }
@@ -135,7 +143,7 @@ export default function CustomerDetailPage() {
         if (!controller.signal.aborted) setNoteError(cause.message)
       })
     return () => controller.abort()
-  }, [id, customer?.id, customer?.canReadInternalNotes, revision])
+  }, [id, loadedCustomerId, canReadNotes, revision])
   async function save(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
@@ -199,7 +207,7 @@ export default function CustomerDetailPage() {
                   : 'Não informado'}
               </p>
             </div>
-            {customer.canEdit && (
+            {customer.canEdit && allowed(user, 'clients.edit') && (
               <button
                 className="primary-button"
                 onClick={() => {
@@ -225,11 +233,13 @@ export default function CustomerDetailPage() {
             </p>
           )}
           <div className="customer-metrics">
-            <article>
-              <span>Total efetivamente pago</span>
-              <strong>{money(customer.totalPaid)}</strong>
-              <small>Recebimentos menos estornos registrados</small>
-            </article>
+            {canReadFinancial && (
+              <article>
+                <span>Total efetivamente pago</span>
+                <strong>{money(customer.totalPaid)}</strong>
+                <small>Recebimentos menos estornos registrados</small>
+              </article>
+            )}
             <article>
               <span>Atendimentos concluídos</span>
               <strong>{customer.completedCount}</strong>
@@ -364,8 +374,10 @@ export default function CustomerDetailPage() {
                       </span>
                       <span>
                         Procedimentos: {money(appointment.treatmentTotal)} ·
-                        Consumos: {money(appointment.extrasTotal)} · Pago
-                        líquido: {money(appointment.netPaid)}
+                        Consumos: {money(appointment.extrasTotal)}{' '}
+                        {canReadFinancial && (
+                          <>· Pago líquido: {money(appointment.netPaid)}</>
+                        )}
                       </span>
                       {appointment.status === 'cancelled' && (
                         <span>
@@ -402,59 +414,63 @@ export default function CustomerDetailPage() {
               </>
             )}
           </section>
-          <section className="customer-section">
-            <h2>Pagamentos registrados</h2>
-            {paymentsLoading && <p role="status">Carregando pagamentos…</p>}
-            {paymentsError && <p role="alert">{paymentsError}</p>}
-            {!paymentsLoading && !paymentsError && (
-              <>
-                <div className="customer-payment-list">
-                  {payments.items.map((payment) => (
-                    <article key={payment.id}>
-                      <strong>
-                        {payment.kind === 'refund'
-                          ? 'Estorno'
-                          : payment.kind === 'deposit'
-                            ? 'Sinal'
-                            : 'Recebimento'}{' '}
-                        · {money(payment.amount)}
-                      </strong>
-                      <span>
-                        Comanda #{payment.orderId} · {payment.method} ·{' '}
-                        {bookingDate(payment.createdAt)}
-                      </span>
-                      <p>{payment.description}</p>
-                      {payment.refundOf && (
-                        <small>
-                          Referente ao recebimento #{payment.refundOf}
-                        </small>
-                      )}
-                    </article>
-                  ))}
-                </div>
-                {!payments.items.length && <p>Nenhum pagamento registrado.</p>}
-                <nav
-                  className="customer-pagination"
-                  aria-label="Paginação de pagamentos"
-                >
-                  <button
-                    disabled={!paymentsPage}
-                    onClick={() => setPaymentsPage((value) => value - 1)}
+          {canReadFinancial && (
+            <section className="customer-section">
+              <h2>Pagamentos registrados</h2>
+              {paymentsLoading && <p role="status">Carregando pagamentos…</p>}
+              {paymentsError && <p role="alert">{paymentsError}</p>}
+              {!paymentsLoading && !paymentsError && (
+                <>
+                  <div className="customer-payment-list">
+                    {payments.items.map((payment) => (
+                      <article key={payment.id}>
+                        <strong>
+                          {payment.kind === 'refund'
+                            ? 'Estorno'
+                            : payment.kind === 'deposit'
+                              ? 'Sinal'
+                              : 'Recebimento'}{' '}
+                          · {money(payment.amount)}
+                        </strong>
+                        <span>
+                          Comanda #{payment.orderId} · {payment.method} ·{' '}
+                          {bookingDate(payment.createdAt)}
+                        </span>
+                        <p>{payment.description}</p>
+                        {payment.refundOf && (
+                          <small>
+                            Referente ao recebimento #{payment.refundOf}
+                          </small>
+                        )}
+                      </article>
+                    ))}
+                  </div>
+                  {!payments.items.length && (
+                    <p>Nenhum pagamento registrado.</p>
+                  )}
+                  <nav
+                    className="customer-pagination"
+                    aria-label="Paginação de pagamentos"
                   >
-                    Anterior
-                  </button>
-                  <span>Página {paymentsPage + 1}</span>
-                  <button
-                    disabled={!payments.hasNext}
-                    onClick={() => setPaymentsPage((value) => value + 1)}
-                  >
-                    Próxima
-                  </button>
-                </nav>
-              </>
-            )}
-          </section>
-          {customer.canReadInternalNotes && (
+                    <button
+                      disabled={!paymentsPage}
+                      onClick={() => setPaymentsPage((value) => value - 1)}
+                    >
+                      Anterior
+                    </button>
+                    <span>Página {paymentsPage + 1}</span>
+                    <button
+                      disabled={!payments.hasNext}
+                      onClick={() => setPaymentsPage((value) => value + 1)}
+                    >
+                      Próxima
+                    </button>
+                  </nav>
+                </>
+              )}
+            </section>
+          )}
+          {canReadNotes && (
             <section className="customer-section">
               <h2>Observações internas do cliente</h2>
               <p className="customer-muted">

@@ -1,3 +1,4 @@
+import { allowed } from '../../core/auth/permissions'
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
@@ -28,6 +29,7 @@ const empty = {
 export default function EmployeesPage() {
   const cpfInput = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
+  const canView = allowed(user, 'employees.view')
   const [data, setData] = useState<EmployeeData>({ employees: [], users: [] }),
     [treatments, setTreatments] = useState<BookingTreatment[]>([]),
     [form, setForm] = useState(empty),
@@ -41,7 +43,7 @@ export default function EmployeesPage() {
     if (!busy && error.startsWith('Invalid CPF.')) cpfInput.current?.focus()
   }, [busy, error])
   useEffect(() => {
-    if (!user?.canManagePasswords) return
+    if (!canView) return
     const controller = new AbortController()
     Promise.all([
       bookingRequest<EmployeeData>('/booking/employees', {
@@ -64,7 +66,7 @@ export default function EmployeesPage() {
         if (!controller.signal.aborted) setLoading(false)
       })
     return () => controller.abort()
-  }, [user?.canManagePasswords, revision])
+  }, [canView, revision])
   function edit(employee: Employee) {
     setEditing(employee.id)
     setForm({
@@ -99,7 +101,7 @@ export default function EmployeesPage() {
       setBusy(false)
     }
   }
-  if (!user?.canManagePasswords)
+  if (!canView)
     return (
       <p>
         Somente ADMIN ou MASTER pode gerenciar profissionais e habilitações.
@@ -116,17 +118,19 @@ export default function EmployeesPage() {
             profissional.
           </p>
         </div>
-        <button
-          className="primary-button"
-          onClick={() => {
-            setEditing(null)
-            setForm(empty)
-            setError('')
-            setOpen(true)
-          }}
-        >
-          Novo funcionário
-        </button>
+        {allowed(user, 'employees.manage') && (
+          <button
+            className="primary-button"
+            onClick={() => {
+              setEditing(null)
+              setForm(empty)
+              setError('')
+              setOpen(true)
+            }}
+          >
+            Novo funcionário
+          </button>
+        )}
       </header>
       {!open && error && <p role="alert">{error}</p>}
       {loading && <p role="status">Carregando profissionais…</p>}
@@ -293,6 +297,7 @@ export default function EmployeesPage() {
           <button
             key={employee.id}
             type="button"
+            disabled={!allowed(user, 'employees.manage')}
             onClick={() => edit(employee)}
           >
             <strong>{employee.name}</strong>
@@ -303,7 +308,9 @@ export default function EmployeesPage() {
               {employee.treatmentIds.length} procedimentos ·{' '}
               {employee.hours.length} dias de trabalho
             </span>
-            <small>Editar horários e habilitações</small>
+            {allowed(user, 'employees.manage') && (
+              <small>Editar horários e habilitações</small>
+            )}
           </button>
         ))}
       </div>

@@ -7,6 +7,8 @@ export const AppUserSchema = z.object({
   login: z.string().trim().min(1).max(255),
   hashPassword: z.string().optional(),
   email: z.email(),
+  role: z.enum(['MASTER', 'ADMIN', 'OPERATIONAL']).default('OPERATIONAL'),
+  permissions: z.array(z.string()).default([]),
   isActive: z.boolean(),
   isAdmin: z.boolean().default(false),
   mustChangePassword: z.boolean().default(false),
@@ -45,13 +47,21 @@ export const PasswordChangeSchema = z
     path: ['confirmPassword'],
   })
 
+export const AssignmentRoleSchema = z.enum([
+  'MASTER',
+  'ADMIN',
+  'OPERATIONAL',
+  'DISABLED',
+])
 export const AppUserCreateSchema = z.object({
+  role: AssignmentRoleSchema.default('OPERATIONAL'),
   login: z.string().trim().min(1).max(255),
   email: z.email(),
   password: PasswordSchema,
 })
 
 export const AppUserUpdateSchema = z.object({
+  role: AssignmentRoleSchema.optional(),
   id: z.int().positive(),
   login: z.string().trim().min(1).max(255),
   email: z.email(),
@@ -60,8 +70,13 @@ export const AppUserUpdateSchema = z.object({
 export const USER_PAGE_SIZE = 20
 export type PublicAppUser = Omit<
   AppUser,
-  'hashPassword' | 'passwordVersion'
-> & { isMaster: boolean; canManagePasswords: boolean }
+  'hashPassword' | 'passwordVersion' | 'role'
+> & {
+  role: 'MASTER' | 'ADMIN' | 'OPERATIONAL' | 'DISABLED'
+  assignedRole: 'MASTER' | 'ADMIN' | 'OPERATIONAL'
+  isMaster: boolean
+  canManagePasswords: boolean
+}
 export type AppUserPage = { items: PublicAppUser[]; hasNext: boolean }
 
 export type AppUserCreate = z.infer<typeof AppUserCreateSchema>
@@ -69,7 +84,11 @@ export type AppUserUpdate = z.infer<typeof AppUserUpdateSchema>
 export type AppUser = z.infer<typeof AppUserSchema>
 
 export interface IUserRepository {
-  getAll(page: number, hideDisabled?: boolean): Promise<any>
+  getAll(
+    page: number,
+    hideDisabled?: boolean,
+    operationalOnly?: boolean,
+  ): Promise<any>
   getById(id: number): Promise<any>
   getByLoginWithPassword(login: string): Promise<any>
   create(data: AppUserCreate, client: IGenericDatabaseClient): Promise<any>
@@ -86,13 +105,17 @@ export interface IUserRepository {
 }
 
 export interface IUserService {
-  getAll(page: number, hideDisabled?: boolean): Promise<AppUserPage>
+  getAll(
+    page: number,
+    hideDisabled?: boolean,
+    operationalOnly?: boolean,
+  ): Promise<AppUserPage>
   getById(id: number): Promise<AppUser>
   getByLoginWithPassword(login: string): Promise<AppUser>
-  create(data: AppUserCreate): Promise<AppUser>
-  update(data: AppUserUpdate): Promise<any>
-  disable(userId: number): Promise<void>
-  enable(userId: number): Promise<void>
+  create(data: AppUserCreate, actor: AppUser): Promise<AppUser>
+  update(data: AppUserUpdate, actor: AppUser): Promise<any>
+  disable(userId: number, actor: AppUser): Promise<void>
+  enable(userId: number, actor: AppUser): Promise<void>
   setTemporaryPassword(
     actor: AppUser,
     userId: number,

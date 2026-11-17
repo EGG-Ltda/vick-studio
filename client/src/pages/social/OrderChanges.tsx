@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
+import { allowed } from '../../core/auth/permissions'
 import { useAuth } from '../../core/auth/useAuth'
 import { bookingDate, bookingRequest } from '../booking/bookingApi'
 import type {
@@ -146,121 +147,126 @@ export function OrderChanges({
         </p>
       )}
       {notice && <p role="status">{notice}</p>}
-      {order.status !== 'completed' && (
-        <form onSubmit={submit}>
-          <fieldset disabled={busy}>
-            <label>
-              Ação
-              <select
-                value={form.action}
-                onChange={(e) => choose('action', e.target.value)}
-              >
-                <option value="reschedule">Remarcar</option>
-                {order.status !== 'cancelled' && (
-                  <>
-                    <option value="cancel">Cancelar atendimento</option>
-                    <option value="no_show">Registrar falta</option>
-                  </>
-                )}
-                {order.packageUseId && order.status === 'cancelled' && (
-                  <option value="return_use">
-                    Devolver utilização do pacote
-                  </option>
-                )}
-              </select>
-            </label>
-            {form.action === 'reschedule' && (
-              <>
-                <label>
-                  Profissional
-                  <select
-                    required
-                    value={form.employeeId}
-                    onChange={(e) => choose('employeeId', e.target.value)}
-                  >
-                    <option value="">Selecione</option>
-                    {catalog?.employees
-                      .filter(
-                        (e) =>
-                          order.treatments.every((t) =>
-                            e.treatmentIds.includes(t.id),
-                          ) &&
-                          (user?.canManagePasswords ||
-                            e.id === order.employeeId),
-                      )
-                      .map((e) => (
-                        <option value={e.id} key={e.id}>
-                          {e.name}
-                        </option>
-                      ))}
-                  </select>
-                </label>
-                <label>
-                  Novo dia
-                  <input
-                    required
-                    type="date"
-                    min={new Date().toLocaleDateString('en-CA', {
-                      timeZone: 'America/Sao_Paulo',
-                    })}
-                    value={form.date}
-                    onChange={(e) => choose('date', e.target.value)}
-                  />
-                </label>
-                <label>
-                  Novo horário (Brasília)
-                  <select
-                    required
-                    value={form.time}
-                    disabled={slotsLoading}
-                    onChange={(e) => setForm({ ...form, time: e.target.value })}
-                  >
-                    <option value="">
-                      {slotsLoading
-                        ? 'Consultando horários…'
-                        : 'Selecione um horário disponível'}
+      {!order.readOnlyShared &&
+        allowed(user, 'agenda.change') &&
+        order.status !== 'completed' && (
+          <form onSubmit={submit}>
+            <fieldset disabled={busy}>
+              <label>
+                Ação
+                <select
+                  value={form.action}
+                  onChange={(e) => choose('action', e.target.value)}
+                >
+                  <option value="reschedule">Remarcar</option>
+                  {order.status !== 'cancelled' && (
+                    <>
+                      <option value="cancel">Cancelar atendimento</option>
+                      <option value="no_show">Registrar falta</option>
+                    </>
+                  )}
+                  {order.packageUseId && order.status === 'cancelled' && (
+                    <option value="return_use">
+                      Devolver utilização do pacote
                     </option>
-                    {slots.map((s) => {
-                      const time = new Intl.DateTimeFormat('pt-BR', {
-                        hour: '2-digit',
-                        minute: '2-digit',
+                  )}
+                </select>
+              </label>
+              {form.action === 'reschedule' && (
+                <>
+                  <label>
+                    Profissional
+                    <select
+                      required
+                      value={form.employeeId}
+                      onChange={(e) => choose('employeeId', e.target.value)}
+                    >
+                      <option value="">Selecione</option>
+                      {catalog?.employees
+                        .filter(
+                          (e) =>
+                            order.treatments.every((t) =>
+                              e.treatmentIds.includes(t.id),
+                            ) &&
+                            (user?.isMaster ||
+                              user?.role === 'ADMIN' ||
+                              e.id === order.employeeId),
+                        )
+                        .map((e) => (
+                          <option value={e.id} key={e.id}>
+                            {e.name}
+                          </option>
+                        ))}
+                    </select>
+                  </label>
+                  <label>
+                    Novo dia
+                    <input
+                      required
+                      type="date"
+                      min={new Date().toLocaleDateString('en-CA', {
                         timeZone: 'America/Sao_Paulo',
-                      }).format(new Date(s.startsAt))
-                      return (
-                        <option key={s.startsAt} value={time}>
-                          {time}
-                        </option>
-                      )
-                    })}
-                  </select>
-                </label>
-                <p>
-                  A disponibilidade será validada antes de salvar. Se houver
-                  conflito, a reserva original será mantida.
-                </p>
-              </>
-            )}
-            <label>
-              Motivo obrigatório
-              <textarea
-                required
-                minLength={3}
-                maxLength={1000}
-                value={form.reason}
-                onChange={(e) => setForm({ ...form, reason: e.target.value })}
-              />
-            </label>
-          </fieldset>
-          <p>
-            Cancelar ou registrar falta libera a agenda, sem estornar pagamentos
-            ou devolver utilizações. Para um pacote cancelado, devolva a
-            utilização explicitamente antes de reservar novamente.
-          </p>
-          <button disabled={busy} type="submit">
-            {busy ? 'Salvando…' : names[form.action]}
-          </button>
-        </form>
-      )}
+                      })}
+                      value={form.date}
+                      onChange={(e) => choose('date', e.target.value)}
+                    />
+                  </label>
+                  <label>
+                    Novo horário (Brasília)
+                    <select
+                      required
+                      value={form.time}
+                      disabled={slotsLoading}
+                      onChange={(e) =>
+                        setForm({ ...form, time: e.target.value })
+                      }
+                    >
+                      <option value="">
+                        {slotsLoading
+                          ? 'Consultando horários…'
+                          : 'Selecione um horário disponível'}
+                      </option>
+                      {slots.map((s) => {
+                        const time = new Intl.DateTimeFormat('pt-BR', {
+                          hour: '2-digit',
+                          minute: '2-digit',
+                          timeZone: 'America/Sao_Paulo',
+                        }).format(new Date(s.startsAt))
+                        return (
+                          <option key={s.startsAt} value={time}>
+                            {time}
+                          </option>
+                        )
+                      })}
+                    </select>
+                  </label>
+                  <p>
+                    A disponibilidade será validada antes de salvar. Se houver
+                    conflito, a reserva original será mantida.
+                  </p>
+                </>
+              )}
+              <label>
+                Motivo obrigatório
+                <textarea
+                  required
+                  minLength={3}
+                  maxLength={1000}
+                  value={form.reason}
+                  onChange={(e) => setForm({ ...form, reason: e.target.value })}
+                />
+              </label>
+            </fieldset>
+            <p>
+              Cancelar ou registrar falta libera a agenda, sem estornar
+              pagamentos ou devolver utilizações. Para um pacote cancelado,
+              devolva a utilização explicitamente antes de reservar novamente.
+            </p>
+            <button disabled={busy} type="submit">
+              {busy ? 'Salvando…' : names[form.action]}
+            </button>
+          </form>
+        )}
       <h3>Histórico de alterações</h3>
       {!history.length && <p>Nenhuma alteração registrada pela equipe.</p>}
       <ul>

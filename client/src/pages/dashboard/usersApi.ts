@@ -1,6 +1,9 @@
 import { apiRequest } from '../../core/api/http'
 
 export type User = {
+  role:'MASTER'|'ADMIN'|'OPERATIONAL'|'DISABLED'
+  assignedRole:'MASTER'|'ADMIN'|'OPERATIONAL'
+  canConfigurePermissions:boolean
   id: number
   login: string
   email: string
@@ -11,7 +14,7 @@ export type User = {
   isAdmin?: boolean
   mustChangePassword?: boolean
 }
-export type UserInput = { login: string; email: string }
+export type UserInput = { login: string; email: string;role?:User['role'] }
 export type UserPage = { items: User[]; hasNext: boolean }
 export function listUsers(
   page: number,

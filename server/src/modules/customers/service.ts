@@ -4,7 +4,7 @@ import {
   IGenericDatabaseClient,
 } from '@/core/db'
 import { AppUser } from '@/core/user'
-import { canManagePasswords } from '@/shared/utils/user'
+import { salonWide, can, receiptShare } from '@/core/access'
 import { bookingError } from '../booking/service'
 import {
   ConsumptionSchema,
@@ -30,7 +30,7 @@ export class CustomerService {
     }
   }
   admin(actor: AppUser) {
-    return canManagePasswords(actor)
+    return salonWide(actor)
   }
   async access(actor: AppUser) {
     const admin = this.admin(actor)
@@ -45,8 +45,8 @@ export class CustomerService {
     )
       bookingError('Salon staff access is required.', 403)
     return {
-      canEdit: admin,
-      canReadInternalNotes: admin,
+      canEdit: can(actor, 'clients.edit'),
+      canReadInternalNotes: can(actor, 'clients.notes'),
       scope: admin ? 'all' : 'assigned',
     }
   }
@@ -86,7 +86,7 @@ export class CustomerService {
     const summary = (
       await this.query(
         `SELECT
-    (SELECT COALESCE(sum(CASE WHEN tx.ledger_kind='refund' THEN -abs(tx.value) ELSE abs(tx.value) END),0)::float FROM salon_transactions tx JOIN salon_schedules s ON s.id=tx.order_id WHERE s.customer_id=$3 AND tx.ledger_kind IS NOT NULL AND ${scope}) AS "totalPaid",
+    (SELECT COALESCE(sum(round((CASE WHEN tx.ledger_kind='refund' THEN -abs(tx.value) ELSE abs(tx.value) END)*(${receiptShare}),2)),0)::float FROM salon_transactions tx JOIN salon_schedules s ON s.id=tx.order_id WHERE s.customer_id=$3 AND tx.ledger_kind IS NOT NULL AND ${scope}) AS "totalPaid",
     max(s.completed_at) FILTER(WHERE s.status='completed') AS "lastCompletedAt",
     count(*) FILTER(WHERE s.status='completed')::int AS "completedCount",
     count(*) FILTER(WHERE s.schedule_started_at>=now() AND s.status<>'cancelled')::int AS "upcomingCount"
@@ -97,8 +97,10 @@ export class CustomerService {
     return {
       ...profile,
       ...summary,
-      canEdit: this.admin(actor),
-      canReadInternalNotes: this.admin(actor),
+      canViewFinancial: can(actor, 'clients.financial'),
+      totalPaid: can(actor, 'clients.financial') ? summary.totalPaid : null,
+      canEdit: can(actor, 'clients.edit'),
+      canReadInternalNotes: can(actor, 'clients.notes'),
       historyScope: this.admin(actor) ? 'all' : 'assigned',
     }
   }
@@ -164,10 +166,10 @@ export class CustomerService {
     const rows = (
       await this.query(
         `SELECT s.id,s.status,s.schedule_started_at AS "startsAt",s.schedule_ended_at AS "endsAt",s.completed_at AS "completedAt",s.cancelled_at AS "cancelledAt",s.cancellation_reason AS "cancellationReason",
-    COALESCE(s.total_price,(SELECT sum(price) FROM salon_schedule_treatments WHERE schedule_id=s.id),0)::float AS "treatmentTotal",
+    (CASE WHEN $1::boolean THEN COALESCE(s.total_price,(SELECT sum(price) FROM salon_schedule_treatments WHERE schedule_id=s.id),0) ELSE COALESCE((SELECT sum(st.price) FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active),0) END)::float AS "treatmentTotal",
     (SELECT COALESCE(sum(quantity*unit_price),0)::float FROM order_consumptions WHERE schedule_id=s.id AND voided_at IS NULL) AS "extrasTotal",
-    (SELECT COALESCE(sum(CASE WHEN ledger_kind='refund' THEN -abs(value) ELSE abs(value) END),0)::float FROM salon_transactions WHERE order_id=s.id AND ledger_kind IS NOT NULL) AS "netPaid",
-    (SELECT json_agg(json_build_object('name',st.treatment_name,'price',st.price::float,'employeeName',p.name,'employeeId',e.id)) FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id JOIN persons p ON p.id=e.person_id WHERE st.schedule_id=s.id) AS treatments,
+    (SELECT COALESCE(sum(round((CASE WHEN ledger_kind='refund' THEN -abs(value) ELSE abs(value) END)*(${receiptShare}),2)),0)::float FROM salon_transactions WHERE order_id=s.id AND ledger_kind IS NOT NULL) AS "netPaid",
+    (SELECT json_agg(json_build_object('name',st.treatment_name,'price',st.price::float,'employeeName',p.name,'employeeId',e.id)) FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id JOIN persons p ON p.id=e.person_id WHERE st.schedule_id=s.id AND ($1::boolean OR (e.user_id=$2 AND e.is_active))) AS treatments,
     count(*) OVER()::int AS "totalCount"
     FROM salon_schedules s WHERE s.customer_id=$3 AND ${scope}
       AND ($4='all' OR ($4='upcoming' AND s.schedule_started_at>=now()) OR ($4='past' AND s.schedule_started_at<now()) OR ($4='completed' AND s.status='completed'))
@@ -177,7 +179,10 @@ export class CustomerService {
     ).rows
     const total = rows[0]?.totalCount ?? 0
     return {
-      items: rows.map(({ totalCount, ...row }: Record<string, unknown>) => row),
+      items: rows.map(({ totalCount, ...row }: Record<string, unknown>) => ({
+        ...row,
+        netPaid: can(actor, 'clients.financial') ? row.netPaid : null,
+      })),
       page,
       total,
       hasNext: (page + 1) * 20 < total,
@@ -187,7 +192,7 @@ export class CustomerService {
     await this.authorizeCustomer(actor, id)
     const rows = (
       await this.query(
-        `SELECT tx.id,tx.order_id AS "orderId",tx.ledger_kind AS kind,abs(tx.value)::float AS amount,tx.description,tx.created_at AS "createdAt",m.name AS method,tx.refund_of AS "refundOf",count(*) OVER()::int AS "totalCount" FROM salon_transactions tx JOIN salon_schedules s ON s.id=tx.order_id JOIN payment_methods m ON m.id=tx.method_id WHERE s.customer_id=$3 AND tx.ledger_kind IS NOT NULL AND ${scope} ORDER BY tx.created_at DESC,tx.id DESC LIMIT 20 OFFSET $4`,
+        `SELECT tx.id,tx.order_id AS "orderId",tx.ledger_kind AS kind,round(abs(tx.value)*(${receiptShare}),2)::float AS amount,tx.description,tx.created_at AS "createdAt",m.name AS method,tx.refund_of AS "refundOf",count(*) OVER()::int AS "totalCount" FROM salon_transactions tx JOIN salon_schedules s ON s.id=tx.order_id JOIN payment_methods m ON m.id=tx.method_id WHERE s.customer_id=$3 AND tx.ledger_kind IS NOT NULL AND ${scope} ORDER BY tx.created_at DESC,tx.id DESC LIMIT 20 OFFSET $4`,
         [this.admin(actor), actor.id, id, page * 20],
       )
     ).rows
@@ -226,8 +231,9 @@ export class CustomerService {
     id: number,
     client?: IGenericDatabaseClient,
     lock = true,
+    write = false,
   ) {
-    const sql = `SELECT s.*,s.schedule_started_at<=clock_timestamp() AS has_started,EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active) AS assigned FROM salon_schedules s WHERE s.id=$1${client && lock ? ' FOR UPDATE OF s' : ''}`
+    const sql = `SELECT s.*,EXISTS(SELECT 1 FROM salon_schedule_treatments shared JOIN employees other ON other.id=shared.employee_id WHERE shared.schedule_id=s.id AND other.user_id<>$2) AS has_others,s.schedule_started_at<=clock_timestamp() AS has_started,EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active) AS assigned FROM salon_schedules s WHERE s.id=$1${client && lock ? ' FOR UPDATE OF s' : ''}`
     const row = (
       client
         ? await client.query(sql, [id, actor.id])
@@ -235,6 +241,11 @@ export class CustomerService {
     ).rows[0]
     if (!row || (!this.admin(actor) && !row.assigned))
       bookingError('Order not found or not accessible.', 404)
+    if (write && !this.admin(actor) && row.has_others)
+      bookingError(
+        'Shared appointments require an administrator for changes.',
+        403,
+      )
     return row
   }
   async order(actor: AppUser, id: number) {
@@ -242,6 +253,8 @@ export class CustomerService {
       const query = (sql: string, params: unknown[] = []) =>
         client.query(sql, params)
       const row = await this.authorizeOrder(actor, id, client)
+      const mutable = this.admin(actor) || !row.has_others
+      const financial = can(actor, 'finance.view') && mutable
       const [extras, notes, payments, methods] = await Promise.all([
         query(
           `SELECT x.id,x.description,x.quantity,x.unit_price::float AS "unitPrice",(x.quantity*x.unit_price)::float AS total,x.created_at AS "createdAt",x.voided_at AS "voidedAt",x.void_reason AS "voidReason",u.login AS author FROM order_consumptions x JOIN app_users u ON u.id=x.created_by WHERE x.schedule_id=$1 ORDER BY x.id`,
@@ -282,40 +295,50 @@ export class CustomerService {
       )
       const grandTotal = Math.round(treatmentTotal * 100) + extraCents
       return {
+        readOnlyShared: !mutable,
         extras: extras.rows,
         notes: notes.rows,
-        payments: payments.rows,
+        canViewFinancial: financial,
+        canAddNote: can(actor, 'orders.notes'),
+        payments: financial ? payments.rows : [],
         methods: methods.rows,
         isPackage: !!row.package_use_id,
-        extrasBalance:
-          (extraCents -
-            payments.rows
-              .filter(
-                (p: { packageReceiptId: number | null }) => !p.packageReceiptId,
-              )
-              .reduce(
-                (s: number, p: { amount: number; kind: string }) =>
-                  s +
-                  (p.kind === 'refund' ? -1 : 1) * Math.round(p.amount * 100),
-                0,
-              )) /
-          100,
+        extrasBalance: financial
+          ? (extraCents -
+              payments.rows
+                .filter(
+                  (p: { packageReceiptId: number | null }) =>
+                    !p.packageReceiptId,
+                )
+                .reduce(
+                  (s: number, p: { amount: number; kind: string }) =>
+                    s +
+                    (p.kind === 'refund' ? -1 : 1) * Math.round(p.amount * 100),
+                  0,
+                )) /
+            100
+          : null,
         treatmentTotal,
         extrasTotal: extraCents / 100,
         grandTotal: grandTotal / 100,
-        totalPaid: paidCents / 100,
-        balance: (grandTotal - paidCents) / 100,
+        totalPaid: financial ? paidCents / 100 : null,
+        balance: financial ? (grandTotal - paidCents) / 100 : null,
         completedAt: row.completed_at,
-        canManage: ['confirmed', 'in_progress'].includes(row.status),
-        canAddConsumption: [
-          'awaiting_deposit',
-          'confirmed',
-          'in_progress',
-        ].includes(row.status),
+        canManage:
+          mutable &&
+          can(actor, 'orders.payments') &&
+          ['confirmed', 'in_progress'].includes(row.status),
+        canAddConsumption:
+          mutable &&
+          can(actor, 'orders.consumptions') &&
+          ['awaiting_deposit', 'confirmed', 'in_progress'].includes(row.status),
         status: row.status,
         canComplete:
-          ['confirmed', 'in_progress'].includes(row.status) && row.has_started,
-        canRefund: this.admin(actor),
+          mutable &&
+          can(actor, 'agenda.complete') &&
+          ['confirmed', 'in_progress'].includes(row.status) &&
+          row.has_started,
+        canRefund: can(actor, 'orders.refunds'),
       }
     })
   }
@@ -325,7 +348,7 @@ export class CustomerService {
     data: z.infer<typeof ConsumptionSchema>,
   ) {
     return this.work.transaction(async (client) => {
-      const order = await this.authorizeOrder(actor, id, client)
+      const order = await this.authorizeOrder(actor, id, client, true, true)
       const existing = (
         await client.query(
           'SELECT * FROM order_consumptions WHERE schedule_id=$1 AND request_key=$2',
@@ -370,7 +393,7 @@ export class CustomerService {
     reason: string,
   ) {
     return this.work.transaction(async (client) => {
-      const order = await this.authorizeOrder(actor, id, client)
+      const order = await this.authorizeOrder(actor, id, client, true, true)
       if (
         !['awaiting_deposit', 'confirmed', 'in_progress'].includes(order.status)
       )
@@ -399,7 +422,7 @@ export class CustomerService {
     data: z.infer<typeof PaymentSchema>,
   ) {
     return this.work.transaction(async (client) => {
-      const order = await this.authorizeOrder(actor, id, client)
+      const order = await this.authorizeOrder(actor, id, client, true, true)
       const existing = (
         await client.query(
           'SELECT id,value,method_id,description,ledger_kind FROM salon_transactions WHERE order_id=$1 AND request_key=$2',
@@ -488,7 +511,7 @@ export class CustomerService {
     if (!this.admin(actor))
       bookingError('Only ADMIN or MASTER can record refunds.', 403)
     return this.work.transaction(async (client) => {
-      await this.authorizeOrder(actor, id, client)
+      await this.authorizeOrder(actor, id, client, true, true)
       const existing = (
         await client.query(
           'SELECT id,value,refund_of,description,ledger_kind FROM salon_transactions WHERE order_id=$1 AND request_key=$2',
@@ -543,7 +566,7 @@ export class CustomerService {
   }
   async complete(actor: AppUser, id: number) {
     return this.work.transaction(async (client) => {
-      const order = await this.authorizeOrder(actor, id, client)
+      const order = await this.authorizeOrder(actor, id, client, true, true)
       if (order.status === 'completed') return { id }
       if (!['confirmed', 'in_progress'].includes(order.status))
         bookingError('Only confirmed appointments can be completed.', 409)

@@ -8,7 +8,7 @@ import { authHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 import z from 'zod'
-import { canManagePasswords } from '@/shared/utils/user'
+import { salonWide, can } from '@/core/access'
 
 const ScheduleQuerySchema = z.object({
   start: z.coerce.date(),
@@ -38,7 +38,7 @@ export default async function scheduleRoutes(
         (await scheduleService.list(parsed.data.start, parsed.data.end))
           .filter(
             (schedule) =>
-              canManagePasswords(req.authUser) ||
+              salonWide(req.authUser) ||
               schedule.employeeUserId === req.authUser.id,
           )
           .map(({ employeeUserId, ...schedule }) => schedule),

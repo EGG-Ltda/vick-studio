@@ -6,7 +6,7 @@ import {
   IGenericDatabaseClient,
 } from '@/core/db'
 import { AppUser } from '@/core/user'
-import { canManagePasswords } from '@/shared/utils/user'
+import { salonWide, can } from '@/core/access'
 import {
   BookingSchema,
   EmployeeSchema,
@@ -497,11 +497,24 @@ export class BookingService {
       ).rows[0]
       if (!row) bookingError('Booking not found.', 404)
       if (
-        !canManagePasswords(actor) &&
+        !salonWide(actor) &&
         (row.user_id !== actor.id || !row.employee_active)
       )
         bookingError(
           'Only the responsible professional, ADMIN or MASTER can confirm this deposit.',
+          403,
+        )
+      if (
+        !salonWide(actor) &&
+        (
+          await client.query(
+            'SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=$1 AND e.user_id<>$2',
+            [id, actor.id],
+          )
+        ).rows.length
+      )
+        bookingError(
+          'Shared appointments require an administrator to confirm deposits.',
           403,
         )
       if (row.status === 'confirmed' && row.deposit_confirmed_at) return { id }

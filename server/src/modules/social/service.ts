@@ -5,7 +5,7 @@ import {
   IGenericDatabaseClient,
 } from '@/core/db'
 import { AppUser } from '@/core/user'
-import { canManagePasswords } from '@/shared/utils/user'
+import { salonWide, can } from '@/core/access'
 import { BookingService, bookingError } from '../booking/service'
 import { CustomerService } from '../customers/service'
 import {
@@ -40,7 +40,7 @@ export class SocialService {
    FROM customers c JOIN persons p ON p.id=c.person_id LEFT JOIN customer_accounts a ON a.customer_id=c.id
    WHERE extract(month FROM p.born_at)=$3 AND ($1::boolean OR EXISTS(SELECT 1 FROM salon_schedules s JOIN salon_schedule_treatments st ON st.schedule_id=s.id JOIN employees e ON e.id=st.employee_id WHERE s.customer_id=c.id AND e.user_id=$2 AND e.is_active))
    ORDER BY extract(day FROM p.born_at),p.name,c.id LIMIT 30 OFFSET $4`,
-        [canManagePasswords(actor), actor.id, month, page * 30],
+        [salonWide(actor), actor.id, month, page * 30],
       )
     ).rows
     return {
@@ -63,8 +63,7 @@ export class SocialService {
     data: z.infer<typeof PromotionSchema>,
     id?: number,
   ) {
-    if (!canManagePasswords(actor))
-      bookingError('Administrator access required.', 403)
+    if (!salonWide(actor)) bookingError('Administrator access required.', 403)
     return this.work.transaction(async (client) => {
       if (
         !(
@@ -269,9 +268,16 @@ export class SocialService {
       throw error
     }
   }
-  async purchases(customerId: number, actor?: AppUser) {
+  async purchases(
+    customerId: number,
+    actor?: AppUser,
+    financialOverride = false,
+  ) {
     if (actor) await this.customers.authorizeCustomer(actor, customerId)
-    const admin = !actor || canManagePasswords(actor)
+    const admin = !actor || salonWide(actor)
+    const financial =
+      !actor ||
+      can(actor, financialOverride ? 'finance.view' : 'clients.financial')
     return (
       await this.query(
         `SELECT p.id,p.title,p.conditions,p.price::float AS price,p.acquired_at AS "acquiredAt",p.valid_until AS "validUntil",p.valid_until<now() AS expired,
@@ -282,7 +288,20 @@ export class SocialService {
         [customerId, admin, actor?.id ?? 0],
       )
     ).rows.map((p: any) =>
-      admin ? p : { ...p, totalPaid: null, price: null, conditions: null },
+      admin
+        ? {
+            ...p,
+            canViewFinancial: financial,
+            totalPaid: financial ? p.totalPaid : null,
+            receipts: financial ? p.receipts : [],
+          }
+        : {
+            ...p,
+            canViewFinancial: false,
+            totalPaid: null,
+            price: null,
+            conditions: null,
+          },
     )
   }
   async receipt(
@@ -291,7 +310,7 @@ export class SocialService {
     data: z.infer<typeof PaymentSchema> | z.infer<typeof RefundSchema>,
     refundOf?: number,
   ) {
-    if (!canManagePasswords(actor))
+    if (!salonWide(actor))
       bookingError('Administrator access required for package receipts.', 403)
     return this.work.transaction(async (client) => {
       const purchase = (
@@ -437,7 +456,7 @@ export class SocialService {
       )
     ).rows
     if (
-      !canManagePasswords(actor) &&
+      !salonWide(actor) &&
       !treatments.some(
         (t: { employee_id: number }) => t.employee_id === employeeId,
       )
@@ -519,7 +538,13 @@ export class SocialService {
             [p.purchase_id],
           )
         }
-        const row = await this.customers.authorizeOrder(actor, id, client)
+        const row = await this.customers.authorizeOrder(
+          actor,
+          id,
+          client,
+          true,
+          true,
+        )
         const currentEmployees = (
           await client.query(
             'SELECT employee_id FROM salon_schedule_treatments WHERE schedule_id=$1 ORDER BY employee_id',
@@ -589,10 +614,7 @@ export class SocialService {
               'Return the utilization explicitly before booking it again.',
               409,
             )
-          if (
-            !canManagePasswords(actor) &&
-            !oldEmployees.includes(data.employeeId)
-          )
+          if (!salonWide(actor) && !oldEmployees.includes(data.employeeId))
             bookingError(
               'Only an administrator can reassign another professional.',
               403,

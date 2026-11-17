@@ -1,3 +1,5 @@
+import { useAuth } from '../../core/auth/useAuth'
+import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
 import { OrderChanges } from '../social/OrderChanges'
 import { PackagePayments } from '../social/PackagePayments'
@@ -20,6 +22,7 @@ export function BookingOrderModal({
   onClose: () => void
   onChanged: () => void
 }) {
+  const { user } = useAuth()
   const [order, setOrder] = useState<BookingOrder | null>(null),
     [amount, setAmount] = useState(''),
     [busy, setBusy] = useState(false),
@@ -85,6 +88,14 @@ export function BookingOrderModal({
               {bookingStatus(order.status)}
             </span>
             <h2>{order.customerName}</h2>
+            {order.readOnlyShared && (
+              <p className="booking-availability-notice">
+                Esta comanda reúne mais de uma profissional. Você visualiza seus
+                procedimentos; alterações e recebimentos compartilhados ficam
+                sob responsabilidade da administração. Sua parcela dos
+                recebimentos aparece em Meu financeiro.
+              </p>
+            )}
             <p>
               {order.employeeName} ·{' '}
               {order.treatments?.map((t) => t.name).join(' + ')}
@@ -116,7 +127,7 @@ export function BookingOrderModal({
                   <dd>{bookingDate(order.depositDueAt)} (Brasília)</dd>
                 </>
               )}
-              {order.depositConfirmedAt && (
+              {order.depositConfirmedAt && allowed(user, 'finance.view') && (
                 <>
                   <dt>Valor recebido</dt>
                   <dd>{money(order.depositReceived)}</dd>

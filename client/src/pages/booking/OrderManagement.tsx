@@ -3,6 +3,8 @@ import type { FormEvent } from 'react'
 import { bookingDate, bookingRequest, money } from './bookingApi'
 import '../dashboard/customers.css'
 type OrderLedger = {
+  canViewFinancial: boolean
+  canAddNote: boolean
   extras: {
     id: number
     description: string
@@ -191,12 +193,16 @@ export function OrderManagement({
             <strong>{money(data.extrasTotal)}</strong>
             <span>Total da comanda</span>
             <strong>{money(data.grandTotal)}</strong>
-            <span>Efetivamente pago</span>
-            <strong>{money(data.totalPaid)}</strong>
-            <span>
-              {data.balance < 0 ? 'Crédito a devolver' : 'Saldo a receber'}
-            </span>
-            <strong>{money(Math.abs(data.balance))}</strong>
+            {data.canViewFinancial && (
+              <>
+                <span>Efetivamente pago</span>
+                <strong>{money(data.totalPaid)}</strong>
+                <span>
+                  {data.balance < 0 ? 'Crédito a devolver' : 'Saldo a receber'}
+                </span>
+                <strong>{money(Math.abs(data.balance))}</strong>
+              </>
+            )}
           </div>
           <h3>Itens consumidos</h3>
           {data.extras.length === 0 && (
@@ -326,167 +332,174 @@ export function OrderManagement({
               </button>
             </form>
           )}
-          <section className="order-section">
-            <h3>Recebimentos e estornos</h3>
-            {data.status === 'awaiting_deposit' && (
-              <p className="booking-alert">
-                Esta reserva aguarda sinal. Para registrar o recebimento, use{' '}
-                <strong>Confirmar recebimento do sinal</strong> no início desta
-                comanda. Depois da confirmação, o formulário de recebimentos
-                adicionais será liberado aqui.
+          {data.canViewFinancial && (
+            <section className="order-section">
+              <h3>Recebimentos e estornos</h3>
+              {data.status === 'awaiting_deposit' && (
+                <p className="booking-alert">
+                  Esta reserva aguarda sinal. Para registrar o recebimento, use{' '}
+                  <strong>Confirmar recebimento do sinal</strong> no início
+                  desta comanda. Depois da confirmação, o formulário de
+                  recebimentos adicionais será liberado aqui.
+                </p>
+              )}
+              <p className="booking-note">
+                Registre valores efetivamente recebidos ou devolvidos. Esses
+                lançamentos são manuais e não movimentam dinheiro.
               </p>
-            )}
-            <p className="booking-note">
-              Registre valores efetivamente recebidos ou devolvidos. Esses
-              lançamentos são manuais e não movimentam dinheiro.
-            </p>
-            {!data.payments.length && <p>Nenhum recebimento registrado.</p>}
-            {data.payments.map((item) => (
-              <article className="order-line" key={item.id}>
-                <strong>
-                  #{item.id} ·{' '}
-                  {item.kind === 'refund'
-                    ? 'Estorno'
-                    : item.kind === 'deposit'
-                      ? 'Sinal'
-                      : 'Recebimento'}{' '}
-                  · {money(item.amount)}
-                </strong>
-                <span>
-                  {item.method} · {bookingDate(item.createdAt)}
-                </span>
-                <span>{item.description}</span>
-                <small>
-                  {item.author ?? 'Registro anterior'}
-                  {item.refundedAmount > 0
-                    ? ` · Estornado: ${money(item.refundedAmount)}`
-                    : ''}
-                </small>
-              </article>
-            ))}
-            {(data.isPackage ? data.extrasBalance : data.balance) > 0 &&
-              (data.canManage || data.completedAt) && (
-                <form className="booking-form" onSubmit={receipt}>
+              {!data.payments.length && <p>Nenhum recebimento registrado.</p>}
+              {data.payments.map((item) => (
+                <article className="order-line" key={item.id}>
+                  <strong>
+                    #{item.id} ·{' '}
+                    {item.kind === 'refund'
+                      ? 'Estorno'
+                      : item.kind === 'deposit'
+                        ? 'Sinal'
+                        : 'Recebimento'}{' '}
+                    · {money(item.amount)}
+                  </strong>
+                  <span>
+                    {item.method} · {bookingDate(item.createdAt)}
+                  </span>
+                  <span>{item.description}</span>
+                  <small>
+                    {item.author ?? 'Registro anterior'}
+                    {item.refundedAmount > 0
+                      ? ` · Estornado: ${money(item.refundedAmount)}`
+                      : ''}
+                  </small>
+                </article>
+              ))}
+              {(data.isPackage ? data.extrasBalance : data.balance) > 0 &&
+                (data.canManage || data.completedAt) && (
+                  <form className="booking-form" onSubmit={receipt}>
+                    <fieldset disabled={busy}>
+                      <legend>Registrar recebimento</legend>
+                      <label>
+                        {data.isPackage
+                          ? 'Valor recebido por consumos extras (R$)'
+                          : 'Valor recebido (R$)'}
+                        <input
+                          required
+                          type="number"
+                          min="0.01"
+                          max={
+                            data.isPackage ? data.extrasBalance : data.balance
+                          }
+                          step="0.01"
+                          value={payment.amount}
+                          onChange={(event) =>
+                            setPayment({
+                              ...payment,
+                              amount: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                      <label>
+                        Forma de pagamento
+                        <select
+                          required
+                          value={payment.methodId}
+                          onChange={(event) =>
+                            setPayment({
+                              ...payment,
+                              methodId: event.target.value,
+                            })
+                          }
+                        >
+                          <option value="">Selecione</option>
+                          {data.methods.map((method) => (
+                            <option key={method.id} value={method.id}>
+                              {method.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <label>
+                        Descrição
+                        <input
+                          required
+                          maxLength={1023}
+                          value={payment.description}
+                          onChange={(event) =>
+                            setPayment({
+                              ...payment,
+                              description: event.target.value,
+                            })
+                          }
+                        />
+                      </label>
+                    </fieldset>
+                    <button className="primary-button" disabled={busy}>
+                      Registrar valor recebido
+                    </button>
+                  </form>
+                )}
+              {data.canRefund && refundable.length > 0 && (
+                <form className="booking-form" onSubmit={reimbursement}>
                   <fieldset disabled={busy}>
-                    <legend>Registrar recebimento</legend>
+                    <legend>Registrar estorno</legend>
                     <label>
-                      {data.isPackage
-                        ? 'Valor recebido por consumos extras (R$)'
-                        : 'Valor recebido (R$)'}
-                      <input
-                        required
-                        type="number"
-                        min="0.01"
-                        max={data.isPackage ? data.extrasBalance : data.balance}
-                        step="0.01"
-                        value={payment.amount}
-                        onChange={(event) =>
-                          setPayment({ ...payment, amount: event.target.value })
-                        }
-                      />
-                    </label>
-                    <label>
-                      Forma de pagamento
+                      Recebimento original
                       <select
                         required
-                        value={payment.methodId}
+                        value={refund.paymentId}
                         onChange={(event) =>
-                          setPayment({
-                            ...payment,
-                            methodId: event.target.value,
+                          setRefund({
+                            ...refund,
+                            paymentId: event.target.value,
+                            amount: '',
                           })
                         }
                       >
                         <option value="">Selecione</option>
-                        {data.methods.map((method) => (
-                          <option key={method.id} value={method.id}>
-                            {method.name}
+                        {refundable.map((item) => (
+                          <option value={item.id} key={item.id}>
+                            #{item.id} · disponível{' '}
+                            {money(item.amount - item.refundedAmount)}
                           </option>
                         ))}
                       </select>
                     </label>
                     <label>
-                      Descrição
+                      Valor devolvido (R$)
                       <input
                         required
-                        maxLength={1023}
-                        value={payment.description}
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        max={
+                          selectedRefund
+                            ? selectedRefund.amount -
+                              selectedRefund.refundedAmount
+                            : undefined
+                        }
+                        value={refund.amount}
                         onChange={(event) =>
-                          setPayment({
-                            ...payment,
-                            description: event.target.value,
-                          })
+                          setRefund({ ...refund, amount: event.target.value })
+                        }
+                      />
+                    </label>
+                    <label>
+                      Motivo
+                      <input
+                        required
+                        minLength={3}
+                        maxLength={1000}
+                        value={refund.reason}
+                        onChange={(event) =>
+                          setRefund({ ...refund, reason: event.target.value })
                         }
                       />
                     </label>
                   </fieldset>
-                  <button className="primary-button" disabled={busy}>
-                    Registrar valor recebido
-                  </button>
+                  <button disabled={busy}>Registrar valor estornado</button>
                 </form>
               )}
-            {data.canRefund && refundable.length > 0 && (
-              <form className="booking-form" onSubmit={reimbursement}>
-                <fieldset disabled={busy}>
-                  <legend>Registrar estorno</legend>
-                  <label>
-                    Recebimento original
-                    <select
-                      required
-                      value={refund.paymentId}
-                      onChange={(event) =>
-                        setRefund({
-                          ...refund,
-                          paymentId: event.target.value,
-                          amount: '',
-                        })
-                      }
-                    >
-                      <option value="">Selecione</option>
-                      {refundable.map((item) => (
-                        <option value={item.id} key={item.id}>
-                          #{item.id} · disponível{' '}
-                          {money(item.amount - item.refundedAmount)}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <label>
-                    Valor devolvido (R$)
-                    <input
-                      required
-                      type="number"
-                      min="0.01"
-                      step="0.01"
-                      max={
-                        selectedRefund
-                          ? selectedRefund.amount -
-                            selectedRefund.refundedAmount
-                          : undefined
-                      }
-                      value={refund.amount}
-                      onChange={(event) =>
-                        setRefund({ ...refund, amount: event.target.value })
-                      }
-                    />
-                  </label>
-                  <label>
-                    Motivo
-                    <input
-                      required
-                      minLength={3}
-                      maxLength={1000}
-                      value={refund.reason}
-                      onChange={(event) =>
-                        setRefund({ ...refund, reason: event.target.value })
-                      }
-                    />
-                  </label>
-                </fieldset>
-                <button disabled={busy}>Registrar valor estornado</button>
-              </form>
-            )}
-          </section>
+            </section>
+          )}
           <section className="order-section">
             <h3>Observações do atendimento</h3>
             <p className="booking-note">
@@ -500,32 +513,34 @@ export function OrderManagement({
                 </small>
               </article>
             ))}
-            <form
-              className="booking-form"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void mutate(
-                  '/notes',
-                  { body: note },
-                  'Observação registrada.',
-                  () => setNote(''),
-                )
-              }}
-            >
-              <label>
-                Especificações ou observação interna
-                <textarea
-                  required
-                  maxLength={4000}
-                  value={note}
-                  onChange={(event) => setNote(event.target.value)}
-                  disabled={busy}
-                />
-              </label>
-              <button disabled={busy || !note.trim()}>
-                Adicionar observação
-              </button>
-            </form>
+            {data.canAddNote && (
+              <form
+                className="booking-form"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void mutate(
+                    '/notes',
+                    { body: note },
+                    'Observação registrada.',
+                    () => setNote(''),
+                  )
+                }}
+              >
+                <label>
+                  Especificações ou observação interna
+                  <textarea
+                    required
+                    maxLength={4000}
+                    value={note}
+                    onChange={(event) => setNote(event.target.value)}
+                    disabled={busy}
+                  />
+                </label>
+                <button disabled={busy || !note.trim()}>
+                  Adicionar observação
+                </button>
+              </form>
+            )}
           </section>
           <section className="order-section">
             {!data.completedAt && data.canManage && !data.canComplete && (

@@ -1,3 +1,4 @@
+import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../../core/auth/useAuth'
@@ -6,12 +7,13 @@ import type { BookingSettings } from '../booking/bookingApi'
 import '../booking/booking.css'
 export default function BookingSettingsPage() {
   const { user } = useAuth()
+  const canView = allowed(user, 'booking.settings')
   const [settings, setSettings] = useState<BookingSettings | null>(null),
     [error, setError] = useState(''),
     [notice, setNotice] = useState(''),
     [busy, setBusy] = useState(false)
   useEffect(() => {
-    if (!user?.canManagePasswords) return
+    if (!canView) return
     const controller = new AbortController()
     bookingRequest<BookingSettings>('/booking/settings', {
       signal: controller.signal,
@@ -23,7 +25,7 @@ export default function BookingSettingsPage() {
         if (!controller.signal.aborted) setError(cause.message)
       })
     return () => controller.abort()
-  }, [user?.canManagePasswords])
+  }, [canView])
   async function save(event: FormEvent) {
     event.preventDefault()
     setBusy(true)
@@ -47,7 +49,7 @@ export default function BookingSettingsPage() {
       setBusy(false)
     }
   }
-  if (!user?.canManagePasswords)
+  if (!canView)
     return <p>Somente ADMIN ou MASTER pode configurar o agendamento.</p>
   return (
     <section className="dashboard-view booking-settings">

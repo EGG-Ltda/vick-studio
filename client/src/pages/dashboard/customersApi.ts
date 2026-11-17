@@ -10,7 +10,8 @@ export type Customer = {
   createdAt: string
 }
 export type CustomerDetail = Customer & {
-  totalPaid: number
+  canViewFinancial:boolean
+  totalPaid: number | null
   lastCompletedAt: string | null
   completedCount: number
   upcomingCount: number
@@ -34,7 +35,7 @@ export type CustomerAppointment = {
   cancellationReason: string | null
   treatmentTotal: number
   extrasTotal: number
-  netPaid: number
+  netPaid: number | null
   treatments: {
     name: string
     price: number

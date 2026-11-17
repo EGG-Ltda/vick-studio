@@ -1,3 +1,4 @@
+import { allowed } from '../../core/auth/permissions'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../../core/auth/useAuth'
@@ -34,6 +35,7 @@ const empty: Form = {
 }
 export default function PromotionsPage() {
   const { user } = useAuth()
+  const canView = allowed(user, 'promotions.view')
   const [items, setItems] = useState<Promotion[]>([]),
     [catalog, setCatalog] = useState<BookingCatalog | null>(null),
     [loading, setLoading] = useState(true),
@@ -44,7 +46,7 @@ export default function PromotionsPage() {
     [busy, setBusy] = useState(false),
     [formError, setFormError] = useState('')
   useEffect(() => {
-    if (!user?.canManagePasswords) return
+    if (!canView) return
     const c = new AbortController()
     Promise.all([
       bookingRequest<Promotion[]>('/social/promotions', { signal: c.signal }),
@@ -63,7 +65,7 @@ export default function PromotionsPage() {
         if (!c.signal.aborted) setLoading(false)
       })
     return () => c.abort()
-  }, [revision, user?.canManagePasswords])
+  }, [revision, canView])
   async function upload(file?: File) {
     if (!file) return
     setBusy(true)
@@ -113,7 +115,7 @@ export default function PromotionsPage() {
       setBusy(false)
     }
   }
-  if (!user?.canManagePasswords)
+  if (!canView)
     return <p>Somente ADMIN e MASTER podem gerenciar promoções e pacotes.</p>
   return (
     <section className="dashboard-view social-view">
@@ -127,16 +129,18 @@ export default function PromotionsPage() {
             Campanhas na home e procedimentos combinados em uma única aquisição.
           </p>
         </div>
-        <button
-          className="primary-button"
-          onClick={() => {
-            setForm(empty)
-            setFormError('')
-            setEditing(null)
-          }}
-        >
-          Criar promoção
-        </button>
+        {allowed(user, 'promotions.manage') && (
+          <button
+            className="primary-button"
+            onClick={() => {
+              setForm(empty)
+              setFormError('')
+              setEditing(null)
+            }}
+          >
+            Criar promoção
+          </button>
+        )}
       </header>
       {error && (
         <p role="alert" className="booking-error">
@@ -164,15 +168,17 @@ export default function PromotionsPage() {
                 <p>
                   {p.items.map((i) => `${i.quantity}× ${i.name}`).join(' + ')}
                 </p>
-                <button
-                  onClick={() => {
-                    setForm({ ...p, price: String(p.price) })
-                    setFormError('')
-                    setEditing(p.id)
-                  }}
-                >
-                  Editar campanha
-                </button>
+                {allowed(user, 'promotions.manage') && (
+                  <button
+                    onClick={() => {
+                      setForm({ ...p, price: String(p.price) })
+                      setFormError('')
+                      setEditing(p.id)
+                    }}
+                  >
+                    Editar campanha
+                  </button>
+                )}
               </div>
             </article>
           ))}

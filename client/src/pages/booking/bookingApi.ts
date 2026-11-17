@@ -45,6 +45,7 @@ export type BookingSlot = {
   instructions: string
 }
 export type BookingOrder = {
+  readOnlyShared?: boolean
   employeeId: number
   packagePurchaseId: number | null
   packageUseId: number | null
@@ -80,6 +81,8 @@ export async function bookingRequest<T>(
     },
   })
   const payload = await response.json().catch(() => null)
+  if (payload?.code === 'PERMISSION_DENIED')
+    window.dispatchEvent(new Event('vick:access-changed'))
   if (!response.ok || !payload?.success)
     throw new Error(
       payload?.message ?? 'Unable to complete the request. Please try again.',

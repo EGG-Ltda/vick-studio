@@ -36,11 +36,12 @@ test(
       created = false,
       base
     const password = randomBytes(16).toString('hex')
-    const request = async (method, route, cookie = '', body) => {
+    const request = async (method, route, cookie = '', body, extraHeaders={}) => {
       const response = await fetch(base + '/api' + route, {
         method,
         headers: {
           Cookie: cookie,
+          ...extraHeaders,
           ...(body === undefined ? {} : { 'Content-Type': 'application/json' }),
         },
         body: body === undefined ? undefined : JSON.stringify(body),
@@ -834,7 +835,30 @@ test(
         cpf,
         bodyFor,
       })
-      await require('./social.cases.cjs')({t,request,requireStatus,db,master,professional,other,alice,bob,employeeId})
+      await require('./social.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        professional,
+        other,
+        alice,
+        bob,
+        employeeId,
+      })
+      await require('./access.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        manager,
+        professional,
+        other,
+        alice,
+        employeeId,
+      })
       await t.test(
         'availability respects disabled professionals and logout invalidates customer session',
         async () => {

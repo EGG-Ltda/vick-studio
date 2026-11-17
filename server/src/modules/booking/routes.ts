@@ -3,8 +3,8 @@ import rateLimit from '@fastify/rate-limit'
 import z from 'zod'
 import { container } from '@/di/bindings'
 import { databaseServiceId, unitOfWorkServiceId } from '@/core/db'
-import { authHook, passwordAdminHook } from '@/shared/middlewares/auth'
-import { canManagePasswords } from '@/shared/utils/user'
+import { authHook, salonAdminHook } from '@/shared/middlewares/auth'
+import { salonWide, can } from '@/core/access'
 import { ok } from '@/shared/utils/response'
 import { BookingService, bookingError } from './service'
 import { isBookingOriginAllowed } from './origin'
@@ -58,7 +58,7 @@ export default async function bookingRoutes(app: FastifyInstance) {
   async function customer(req: FastifyRequest) {
     return service.session(req.cookies.customerSession)
   }
-  const admin = { preHandler: [authHook, passwordAdminHook] }
+  const admin = { preHandler: [authHook, salonAdminHook] }
   const limited = { config: { rateLimit: { max: 10, timeWindow: '1 minute' } } }
   app.post('/customer/register', limited, async (req, res) => {
     const data = RegistrationSchema.safeParse(req.body)
@@ -201,10 +201,7 @@ export default async function bookingRoutes(app: FastifyInstance) {
           parsed.data.employeeId,
         ])
       ).rows[0]
-      if (
-        !canManagePasswords(req.authUser) &&
-        employee?.user_id !== req.authUser.id
-      )
+      if (!salonWide(req.authUser) && employee?.user_id !== req.authUser.id)
         bookingError('Not authorized for this professional.', 403)
       return ok(
         res,
@@ -243,10 +240,7 @@ export default async function bookingRoutes(app: FastifyInstance) {
           parsed.data.employeeId,
         ])
       ).rows[0]
-      if (
-        !canManagePasswords(req.authUser) &&
-        employee?.user_id !== req.authUser.id
-      )
+      if (!salonWide(req.authUser) && employee?.user_id !== req.authUser.id)
         bookingError('Not authorized for this professional.', 403)
       const account = (
         await service.query(
@@ -269,14 +263,55 @@ export default async function bookingRoutes(app: FastifyInstance) {
       if (!Number.isSafeInteger(id) || id <= 0)
         bookingError('Invalid booking ID.')
       await service.expire()
-      await customers.authorizeOrder(req.authUser, id)
+      const authorized = await customers.authorizeOrder(req.authUser, id)
       const booking = await service.get(id)
       if (!booking) bookingError('Booking not found.', 404)
+      const readOnlyShared = !salonWide(req.authUser) && authorized.has_others
+      const own = readOnlyShared
+        ? (
+            await service.query(
+              'SELECT t.id,st.treatment_name AS name,st.price::float AS price,e.id AS employee_id,p.name AS employee_name FROM salon_schedule_treatments st JOIN salon_treatments t ON t.id=st.treatment_id JOIN employees e ON e.id=st.employee_id JOIN persons p ON p.id=e.person_id WHERE st.schedule_id=$1 AND e.user_id=$2',
+              [id, req.authUser.id],
+            )
+          ).rows
+        : []
       return ok(res, {
         ...booking,
+        ...(readOnlyShared
+          ? {
+              treatments: own.map(
+                ({
+                  id,
+                  name,
+                  price,
+                }: {
+                  id: number
+                  name: string
+                  price: number
+                }) => ({ id, name, price }),
+              ),
+              employeeId: own[0]?.employee_id,
+              employeeName: own[0]?.employee_name,
+              totalPrice: own.reduce(
+                (sum: number, t: { price: number }) => sum + t.price,
+                0,
+              ),
+              depositRequired: null,
+              depositDueAt: null,
+              depositConfirmedAt: null,
+              depositConfirmedBy: null,
+            }
+          : {}),
+        readOnlyShared,
+        depositReceived:
+          !readOnlyShared && can(req.authUser, 'finance.view')
+            ? booking.depositReceived
+            : null,
         canConfirmDeposit:
-          canManagePasswords(req.authUser) ||
-          booking.employeeUserId === req.authUser.id,
+          !readOnlyShared &&
+          can(req.authUser, 'agenda.deposit') &&
+          (salonWide(req.authUser) ||
+            booking.employeeUserId === req.authUser.id),
       })
     },
   )

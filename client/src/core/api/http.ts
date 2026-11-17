@@ -5,6 +5,7 @@ export type ApiResponse<T> = {
   code?: string
 }
 
+export const ACCESS_CHANGED_EVENT = 'vick:access-changed'
 export const SESSION_EXPIRED_EVENT = 'vick:session-expired'
 export const PASSWORD_CHANGE_REQUIRED_EVENT = 'vick:password-change-required'
 
@@ -48,6 +49,8 @@ export async function apiRequest<T>(
   }
 
   if (!response.ok || !payload.success) {
+    if (payload.code === 'PERMISSION_DENIED')
+      window.dispatchEvent(new Event(ACCESS_CHANGED_EVENT))
     if (payload.code === 'PASSWORD_CHANGE_REQUIRED') {
       window.dispatchEvent(new Event(PASSWORD_CHANGE_REQUIRED_EVENT))
     }

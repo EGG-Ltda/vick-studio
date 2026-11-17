@@ -1,3 +1,6 @@
+import { useAuth } from '../../core/auth/useAuth'
+import { allowed, roleLabels } from '../../core/auth/permissions'
+import { UserPermissionsModal } from '../access/UserPermissionsModal'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import {
@@ -12,6 +15,9 @@ import type { User } from './usersApi'
 import { SalonModal } from '../../components/SalonModal'
 
 function UsersPage() {
+  const { user: actor } = useAuth()
+  const [permissionTarget, setPermissionTarget] = useState<number | null>(null)
+  const [role, setRole] = useState<User['role']>('OPERATIONAL')
   const [resetTarget, setResetTarget] = useState<User | null>(null)
   const [temporaryPassword, setTemporaryPasswordValue] = useState('')
   const [passwordConfirmation, setPasswordConfirmation] = useState('')
@@ -65,6 +71,7 @@ function UsersPage() {
 
   function openForm(user: User | null) {
     setEditing(user)
+    setRole(user?.role ?? 'OPERATIONAL')
     setLogin(user?.login ?? '')
     setEmail(user?.email ?? '')
     setPassword('')
@@ -79,7 +86,7 @@ function UsersPage() {
     setError('')
     setNotice('')
     try {
-      const input = { login: login.trim(), email: email.trim() }
+      const input = { login: login.trim(), email: email.trim(), role }
       if (editing) await updateUser(editing.id, input)
       else await createUser({ ...input, password })
       setShowForm(false)
@@ -172,17 +179,29 @@ function UsersPage() {
           <h1>Usuários</h1>
           <p>Os acessos certos para cada pessoa da sua equipe.</p>
         </div>
-        <button
-          type="button"
-          className="primary-button"
-          disabled={busy}
-          onClick={() => openForm(null)}
-        >
-          <span aria-hidden="true">＋</span> Novo usuário
-        </button>
+        {allowed(actor, 'users.create') && (
+          <button
+            type="button"
+            className="primary-button"
+            disabled={busy}
+            onClick={() => openForm(null)}
+          >
+            <span aria-hidden="true">＋</span> Novo usuário
+          </button>
+        )}
       </header>
       {error && !showForm && <p role="alert">{error}</p>}
       {notice && <p role="status">{notice}</p>}
+      {permissionTarget !== null && (
+        <UserPermissionsModal
+          id={permissionTarget}
+          onClose={() => setPermissionTarget(null)}
+          onSaved={() => {
+            refresh()
+            setNotice('Acessos individuais atualizados.')
+          }}
+        />
+      )}
       {resetTarget && (
         <SalonModal
           title="Definir senha temporária"
@@ -287,6 +306,26 @@ function UsersPage() {
                 autoComplete="email"
               />
             </label>
+            <label>
+              Perfil de acesso
+              <select
+                value={role}
+                onChange={(e) => setRole(e.target.value as User['role'])}
+                disabled={
+                  busy || (editing?.isMaster && editing.id === actor?.id)
+                }
+              >
+                {Object.entries(roleLabels).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <small>
+                Somente Master pode atribuir perfis. As permissões são
+                configuradas em Funcionalidades por perfil.
+              </small>
+            </label>
             {!editing && (
               <label>
                 Senha temporária
@@ -389,6 +428,9 @@ function UsersPage() {
                     {user.isMaster && (
                       <span className="master-tag">Master</span>
                     )}
+                    {user.assignedRole === 'OPERATIONAL' && (
+                      <span className="master-tag">Operacional</span>
+                    )}
                     {user.isAdmin && !user.isMaster && (
                       <span className="master-tag">Admin</span>
                     )}
@@ -410,14 +452,25 @@ function UsersPage() {
                   </td>
                   <td data-label="Ações">
                     <div className="users-actions">
-                      <button
-                        type="button"
-                        disabled={busy}
-                        aria-label={`Editar ${user.login}`}
-                        onClick={() => openForm(user)}
-                      >
-                        Editar
-                      </button>
+                      {user.canConfigurePermissions && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          onClick={() => setPermissionTarget(user.id)}
+                        >
+                          Permissões
+                        </button>
+                      )}
+                      {allowed(actor, 'users.manage') && (
+                        <button
+                          type="button"
+                          disabled={busy}
+                          aria-label={`Editar ${user.login}`}
+                          onClick={() => openForm(user)}
+                        >
+                          Editar
+                        </button>
+                      )}
                       {user.canResetPassword && (
                         <button
                           type="button"
@@ -435,25 +488,27 @@ function UsersPage() {
                           Redefinir senha
                         </button>
                       )}
-                      <button
-                        type="button"
-                        className="user-status-button"
-                        disabled={
-                          busy ||
-                          (user.isMaster && user.isActive && !user.removedAt)
-                        }
-                        title={
-                          user.isMaster
-                            ? 'O administrador master não pode ser desabilitado.'
-                            : undefined
-                        }
-                        aria-label={`${user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'} ${user.login}`}
-                        onClick={() => void changeStatus(user)}
-                      >
-                        {user.isActive && !user.removedAt
-                          ? 'Desabilitar'
-                          : 'Reabilitar'}
-                      </button>
+                      {allowed(actor, 'users.manage') && (
+                        <button
+                          type="button"
+                          className="user-status-button"
+                          disabled={
+                            busy ||
+                            (user.isMaster && user.isActive && !user.removedAt)
+                          }
+                          title={
+                            user.isMaster
+                              ? 'O administrador master não pode ser desabilitado.'
+                              : undefined
+                          }
+                          aria-label={`${user.isActive && !user.removedAt ? 'Desabilitar' : 'Reabilitar'} ${user.login}`}
+                          onClick={() => void changeStatus(user)}
+                        >
+                          {user.isActive && !user.removedAt
+                            ? 'Desabilitar'
+                            : 'Reabilitar'}
+                        </button>
+                      )}
                     </div>
                   </td>
                 </tr>

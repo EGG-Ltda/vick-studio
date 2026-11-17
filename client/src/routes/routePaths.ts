@@ -7,6 +7,7 @@ export const routePaths = {
   dashboard: '/dashboard',
   schedule: '/dashboard/schedule',
   users: '/dashboard/usuarios',
+  permissions: '/dashboard/permissoes-perfis',
   customers: '/dashboard/clientes',
   birthdays: '/dashboard/social/aniversariantes',
   promotions: '/dashboard/social/promocoes',

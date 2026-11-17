@@ -97,6 +97,12 @@ test(
         )
       }
 
+      await database.query(
+        require('node:fs').readFileSync(
+          path.join(serverRoot, '../db/init.sql'),
+          'utf8',
+        ),
+      )
       const migrationEnv = {
         ...process.env,
         DATABASE_CONNECTION_STRING: connectionString,

@@ -1,183 +1,318 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { SalonModal } from '../../components/SalonModal'
-
-type Employee = {
-  id: number
-  name: string
-  role: string
-  phone: string
+import { useAuth } from '../../core/auth/useAuth'
+import { bookingRequest } from '../booking/bookingApi'
+import type { BookingEmployee, BookingTreatment } from '../booking/bookingApi'
+import '../booking/booking.css'
+type Employee = BookingEmployee & {
+  cpf: string
+  userId: number
+  email: string
   active: boolean
 }
-const initialEmployees: Employee[] = [
-  {
-    id: 1,
-    name: 'Mariana Costa',
-    role: 'Cabeleireira',
-    phone: '(11) 99876-1234',
-    active: true,
-  },
-  {
-    id: 2,
-    name: 'Juliana Alves',
-    role: 'Manicure',
-    phone: '(11) 98765-4321',
-    active: true,
-  },
-  {
-    id: 3,
-    name: 'Carla Mendes',
-    role: 'Designer de sobrancelhas',
-    phone: '(11) 97654-2109',
-    active: false,
-  },
-]
-
-function EmployeesPage() {
-  const [employees, setEmployees] = useState(initialEmployees)
-  const [showForm, setShowForm] = useState(false)
-  const [form, setForm] = useState({ name: '', role: '', phone: '' })
-  function addEmployee(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setEmployees((current) => [
-      ...current,
-      { id: Date.now(), ...form, active: true },
+type EmployeeData = {
+  employees: Employee[]
+  users: { id: number; login: string; email: string }[]
+}
+const empty = {
+  name: '',
+  cpf: '',
+  userId: 0,
+  active: true,
+  treatmentIds: [] as number[],
+  weekdays: [1, 2, 3, 4, 5, 6],
+  opensAt: '09:00',
+  closesAt: '18:00',
+}
+export default function EmployeesPage() {
+  const cpfInput = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
+  const [data, setData] = useState<EmployeeData>({ employees: [], users: [] }),
+    [treatments, setTreatments] = useState<BookingTreatment[]>([]),
+    [form, setForm] = useState(empty),
+    [editing, setEditing] = useState<number | null>(null),
+    [open, setOpen] = useState(false),
+    [busy, setBusy] = useState(false),
+    [loading, setLoading] = useState(true),
+    [error, setError] = useState(''),
+    [revision, setRevision] = useState(0)
+  useEffect(() => {
+    if (!busy && error.startsWith('Invalid CPF.')) cpfInput.current?.focus()
+  }, [busy, error])
+  useEffect(() => {
+    if (!user?.canManagePasswords) return
+    const controller = new AbortController()
+    Promise.all([
+      bookingRequest<EmployeeData>('/booking/employees', {
+        signal: controller.signal,
+      }),
+      bookingRequest<{ treatments: BookingTreatment[] }>('/booking/catalog', {
+        signal: controller.signal,
+      }),
     ])
-    setForm({ name: '', role: '', phone: '' })
-    setShowForm(false)
+      .then(([employees, catalog]) => {
+        if (!controller.signal.aborted) {
+          setData(employees)
+          setTreatments(catalog.treatments)
+        }
+      })
+      .catch((cause) => {
+        if (!controller.signal.aborted) setError(cause.message)
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) setLoading(false)
+      })
+    return () => controller.abort()
+  }, [user?.canManagePasswords, revision])
+  function edit(employee: Employee) {
+    setEditing(employee.id)
+    setForm({
+      name: employee.name,
+      cpf: employee.cpf,
+      userId: employee.userId,
+      active: employee.active,
+      treatmentIds: employee.treatmentIds,
+      weekdays: employee.hours.map((h) => h.weekday),
+      opensAt: employee.hours[0]?.opensAt.slice(0, 5) ?? '09:00',
+      closesAt: employee.hours[0]?.closesAt.slice(0, 5) ?? '18:00',
+    })
+    setError('')
+    setOpen(true)
   }
-  function toggleEmployee(id: number) {
-    setEmployees((current) =>
-      current.map((employee) =>
-        employee.id === id
-          ? { ...employee, active: !employee.active }
-          : employee,
-      ),
+  async function save(event: FormEvent) {
+    event.preventDefault()
+    setBusy(true)
+    setError('')
+    try {
+      await bookingRequest(
+        editing ? `/booking/employees/${editing}` : '/booking/employees',
+        { method: editing ? 'PUT' : 'POST', body: JSON.stringify(form) },
+      )
+      setOpen(false)
+      setRevision((value) => value + 1)
+    } catch (cause) {
+      const message =
+        cause instanceof Error ? cause.message : 'Unable to save employee.'
+      setError(message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  if (!user?.canManagePasswords)
+    return (
+      <p>
+        Somente ADMIN ou MASTER pode gerenciar profissionais e habilitações.
+      </p>
     )
-  }
   return (
     <section className="dashboard-view">
       <header className="dashboard-view-header">
         <div>
           <span className="salon-eyebrow">Talentos que fazem florescer</span>
           <h1>Funcionários</h1>
-          <p>Organize a equipe e a disponibilidade do estúdio.</p>
+          <p>
+            Vincule o acesso, os procedimentos e os horários de trabalho de cada
+            profissional.
+          </p>
         </div>
         <button
           className="primary-button"
-          type="button"
-          onClick={() => setShowForm(true)}
+          onClick={() => {
+            setEditing(null)
+            setForm(empty)
+            setError('')
+            setOpen(true)
+          }}
         >
-          <span aria-hidden="true">＋</span> Novo funcionário
+          Novo funcionário
         </button>
       </header>
-      {showForm && (
+      {!open && error && <p role="alert">{error}</p>}
+      {loading && <p role="status">Carregando profissionais…</p>}
+      {open && (
         <SalonModal
-          title="Novo funcionário"
-          description="Adicione quem faz parte da história do seu salão."
-          onClose={() => setShowForm(false)}
+          title={editing ? 'Editar funcionário' : 'Novo funcionário'}
+          description="Os horários e habilitações determinam a disponibilidade para reservas."
+          busy={busy}
+          onClose={() => setOpen(false)}
         >
-          <form className="user-form" onSubmit={addEmployee}>
-            <label>
-              Nome
-              <input
-                autoFocus
-                placeholder="Nome completo"
-                value={form.name}
-                onChange={(event) =>
-                  setForm({ ...form, name: event.target.value })
-                }
-                required
-              />
-            </label>
-            <label>
-              Função
-              <input
-                value={form.role}
-                onChange={(event) =>
-                  setForm({ ...form, role: event.target.value })
-                }
-                required
-              />
-            </label>
-            <label>
-              Telefone
-              <input
-                value={form.phone}
-                onChange={(event) =>
-                  setForm({ ...form, phone: event.target.value })
-                }
-                required
-              />
-            </label>
-            <div className="modal-actions">
-              <button type="button" onClick={() => setShowForm(false)}>
-                Cancelar
-              </button>
-              <button className="primary-button" type="submit">
-                Cadastrar funcionário
-              </button>
-            </div>
+          <form className="booking-form employee-booking-form" onSubmit={save}>
+            <fieldset disabled={busy}>
+              <label>
+                Nome completo
+                <input
+                  required
+                  minLength={3}
+                  maxLength={255}
+                  value={form.name}
+                  onChange={(e) => setForm({ ...form, name: e.target.value })}
+                />
+              </label>
+              {!editing && (
+                <label>
+                  CPF
+                  <input
+                    ref={cpfInput}
+                    required
+                    inputMode="numeric"
+                    maxLength={14}
+                    aria-invalid={error.startsWith('Invalid CPF.') || undefined}
+                    aria-describedby={
+                      error.startsWith('Invalid CPF.')
+                        ? 'employee-cpf-error'
+                        : undefined
+                    }
+                    value={form.cpf}
+                    onChange={(e) => setForm({ ...form, cpf: e.target.value })}
+                  />
+                  {error.startsWith('Invalid CPF.') && (
+                    <small
+                      id="employee-cpf-error"
+                      className="employee-field-error"
+                    >
+                      {error}
+                    </small>
+                  )}
+                </label>
+              )}
+              <label>
+                Usuário de acesso
+                <select
+                  required
+                  disabled={editing !== null}
+                  value={form.userId || ''}
+                  onChange={(e) =>
+                    setForm({ ...form, userId: Number(e.target.value) })
+                  }
+                >
+                  <option value="">Selecione um usuário cadastrado</option>
+                  {data.users.map((account) => (
+                    <option key={account.id} value={account.id}>
+                      {account.login} · {account.email}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <label>
+                Disponível para reservas
+                <select
+                  value={String(form.active)}
+                  onChange={(e) =>
+                    setForm({ ...form, active: e.target.value === 'true' })
+                  }
+                >
+                  <option value="true">Sim</option>
+                  <option value="false">Não</option>
+                </select>
+              </label>
+              <fieldset className="employee-options-group">
+                <legend>Procedimentos habilitados</legend>
+                {treatments.map((treatment) => (
+                  <label className="booking-choice" key={treatment.id}>
+                    <input
+                      type="checkbox"
+                      checked={form.treatmentIds.includes(treatment.id)}
+                      onChange={(e) =>
+                        setForm({
+                          ...form,
+                          treatmentIds: e.target.checked
+                            ? [...form.treatmentIds, treatment.id]
+                            : form.treatmentIds.filter(
+                                (id) => id !== treatment.id,
+                              ),
+                        })
+                      }
+                    />
+                    {treatment.name}
+                  </label>
+                ))}
+              </fieldset>
+              <fieldset className="employee-options-group">
+                <legend>Dias de trabalho</legend>
+                <div className="booking-checks">
+                  {['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'].map(
+                    (day, index) => (
+                      <label key={day}>
+                        <input
+                          type="checkbox"
+                          checked={form.weekdays.includes(index)}
+                          onChange={(e) =>
+                            setForm({
+                              ...form,
+                              weekdays: e.target.checked
+                                ? [...form.weekdays, index]
+                                : form.weekdays.filter(
+                                    (value) => value !== index,
+                                  ),
+                            })
+                          }
+                        />
+                        {day}
+                      </label>
+                    ),
+                  )}
+                </div>
+              </fieldset>
+              <label>
+                Início do expediente (Brasília)
+                <input
+                  required
+                  type="time"
+                  value={form.opensAt}
+                  onChange={(e) =>
+                    setForm({ ...form, opensAt: e.target.value })
+                  }
+                />
+              </label>
+              <label>
+                Fim do expediente (Brasília)
+                <input
+                  required
+                  type="time"
+                  value={form.closesAt}
+                  onChange={(e) =>
+                    setForm({ ...form, closesAt: e.target.value })
+                  }
+                />
+              </label>
+            </fieldset>
+            {error && (
+              <p className="booking-error" role="alert">
+                {error}
+              </p>
+            )}
+            <button className="primary-button" disabled={busy}>
+              {busy ? 'Salvando…' : 'Salvar funcionário'}
+            </button>
           </form>
         </SalonModal>
       )}
-      <div className="list-toolbar">
-        <div>
-          <h2>Nossa equipe</h2>
-          <span>Profissionais que transformam cuidado em beleza.</span>
-        </div>
-        <span className="count-tag">{employees.length} profissionais</span>
+      <div className="booking-list">
+        {data.employees.map((employee) => (
+          <button
+            key={employee.id}
+            type="button"
+            onClick={() => edit(employee)}
+          >
+            <strong>{employee.name}</strong>
+            <span>
+              {employee.email} · {employee.active ? 'Ativo' : 'Indisponível'}
+            </span>
+            <span>
+              {employee.treatmentIds.length} procedimentos ·{' '}
+              {employee.hours.length} dias de trabalho
+            </span>
+            <small>Editar horários e habilitações</small>
+          </button>
+        ))}
       </div>
-      <div className="users-table-wrapper">
-        <table className="users-table">
-          <thead>
-            <tr>
-              <th>Nome</th>
-              <th>Função</th>
-              <th>Telefone</th>
-              <th>Status</th>
-              <th>Ação</th>
-            </tr>
-          </thead>
-          <tbody>
-            {employees.map((employee) => (
-              <tr key={employee.id}>
-                <td data-label="Nome">
-                  <div className="employee-identity">
-                    <span className="employee-avatar" aria-hidden="true">
-                      {employee.name
-                        .split(' ')
-                        .slice(0, 2)
-                        .map((part) => part[0])
-                        .join('')}
-                    </span>
-                    <strong className="table-person">{employee.name}</strong>
-                  </div>
-                </td>
-                <td data-label="Função">{employee.role}</td>
-                <td data-label="Telefone">{employee.phone}</td>
-                <td data-label="Status">
-                  <span
-                    className={`status-tag ${employee.active ? 'status-active' : 'status-inactive'}`}
-                  >
-                    {employee.active ? 'Ativo' : 'Inativo'}
-                  </span>
-                </td>
-                <td data-label="Ação">
-                  <button
-                    type="button"
-                    onClick={() => toggleEmployee(employee.id)}
-                  >
-                    {employee.active ? 'Desativar' : 'Ativar'}
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {!loading && !data.employees.length && (
+        <p>
+          Nenhum funcionário cadastrado. Cadastre primeiro o usuário de acesso e
+          depois vincule-o aqui.
+        </p>
+      )}
     </section>
   )
 }
-
-export default EmployeesPage

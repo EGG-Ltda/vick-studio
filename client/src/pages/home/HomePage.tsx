@@ -36,7 +36,7 @@ function HomePage() {
   }, [])
 
   function goToServices() {
-    document.getElementById('servicos')?.scrollIntoView({ behavior: 'smooth' })
+    navigate('/agendar')
   }
 
   return (

@@ -1,4 +1,6 @@
 const paths = {
+  clientes:
+    'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2m7-10a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm8 2 2 2 4-4',
   agenda:
     'M8 2v4m8-4v4M3 10h18M5 4h14a2 2 0 0 1 2 2v14H3V6a2 2 0 0 1 2-2Zm3 10h2m4 0h2m-8 4h2',
   financeiro: 'M3 6h18v14H3V6Zm0 4h18M7 6V3h10v3m-2 9h3',

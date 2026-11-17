@@ -117,6 +117,65 @@
 .commission-panel summary {
   cursor: pointer;
 }
+.commission-employees {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+.commission-employee {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+  padding: 22px;
+  min-width: 0;
+  text-align: left;
+  border: 1px solid var(--salon-line, #ead3dc);
+  border-radius: 16px;
+  background: #fef9fb;
+  color: var(--salon-ink, #4d303b);
+  font: inherit;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+.commission-employee:hover {
+  border-color: var(--salon-rose, #cf7195);
+  box-shadow: 0 6px 18px #9414450d;
+}
+.commission-avatar {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: #f8e4ee;
+  color: var(--salon-wine, #941445);
+  font-weight: 600;
+}
+.commission-employee-info {
+  display: grid;
+  gap: 5px;
+  flex: 1;
+  min-width: 150px;
+  overflow-wrap: anywhere;
+}
+.commission-employee-info strong {
+  font-family: var(--salon-serif, Georgia, serif);
+  font-size: 22px;
+  font-weight: 400;
+}
+.commission-employee-info small {
+  color: var(--salon-muted, #965e73);
+  font-size: 12px;
+}
+.commission-employee-action {
+  color: var(--salon-wine, #941445);
+  font-size: 12px;
+  font-weight: 600;
+}
 @media (max-width: 560px) {
   .commission-rate {
     grid-template-columns: 1fr !important;

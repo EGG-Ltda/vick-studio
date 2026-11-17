@@ -12,14 +12,6 @@ type Options = {
   canManage: boolean
   canSettle: boolean
 }
-type Rate = {
-  employeeId: number
-  employeeName: string
-  treatmentId: number
-  name: string
-  standardPercent: number | null
-  packagePercent: number | null
-}
 type Movement = {
   id: string
   employeeName: string
@@ -47,9 +39,6 @@ type Closing = {
 }
 export function CommissionPanel() {
   const [options, setOptions] = useState<Options | null>(null),
-    [rates, setRates] = useState<{ items: Rate[]; hasNext: boolean } | null>(
-      null,
-    ),
     [moves, setMoves] = useState<Movements | null>(null),
     [error, setError] = useState(''),
     [employee, setEmployee] = useState(''),
@@ -89,19 +78,17 @@ export function CommissionPanel() {
   useEffect(() => {
     const c = new AbortController()
     setError('')
-    setRates(null)
     setMoves(null)
+    if (tab !== 'movements') return
     const q = new URLSearchParams({ page: String(page), from, to })
     if (employee) q.set('employeeId', employee)
     if (treatment) q.set('treatmentId', treatment)
-    bookingRequest<{ items: Rate[]; hasNext: boolean } & Movements>(
-      `/commissions/${tab === 'rates' ? 'rates' : 'movements'}?${q}`,
-      { signal: c.signal },
-    )
+    bookingRequest<Movements>(`/commissions/movements?${q}`, {
+      signal: c.signal,
+    })
       .then((d) => {
         if (c.signal.aborted) return
-        if (tab === 'rates') setRates(d)
-        else setMoves(d)
+        setMoves(d)
       })
       .catch((e) => {
         if (!c.signal.aborted) setError(e.message)
@@ -112,7 +99,7 @@ export function CommissionPanel() {
     setBalance(null)
     setClosings([])
     setConfirm(false)
-    if (!employee) return
+    if (!employee || tab !== 'movements') return
     const c = new AbortController()
     Promise.all([
       bookingRequest<{ pending: number; count: number }>(
@@ -133,7 +120,7 @@ export function CommissionPanel() {
         if (!c.signal.aborted) setError(e.message)
       })
     return () => c.abort()
-  }, [employee, revision])
+  }, [employee, revision, tab])
   async function close() {
     if (!balance) return
     setBusy(true)
@@ -172,7 +159,11 @@ export function CommissionPanel() {
     setter(value)
     setPage(0)
   }
-  const items = tab === 'rates' ? rates?.items : moves?.items
+  const employees = options?.employees.filter(
+    (e) => !employee || String(e.id) === employee,
+  )
+  const employeePage = employees?.slice(page * 20, (page + 1) * 20)
+  const items = tab === 'rates' ? employeePage : moves?.items
   return (
     <section className="commission-panel">
       <h2>Porcentagens dos funcionários</h2>
@@ -192,7 +183,7 @@ export function CommissionPanel() {
             }}
           >
             {t === 'rates'
-              ? 'Percentuais por procedimento'
+              ? 'Percentuais por funcionário'
               : 'Comissões e ajustes'}
           </button>
         ))}
@@ -212,20 +203,22 @@ export function CommissionPanel() {
             ))}
           </SalonSelect>
         </label>
-        <label>
-          Procedimento
-          <SalonSelect
-            value={treatment}
-            onChange={(e) => changeFilter(setTreatment, e.target.value)}
-          >
-            <option value="">Todos</option>
-            {options?.treatments.map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name}
-              </option>
-            ))}
-          </SalonSelect>
-        </label>
+        {tab === 'movements' && (
+          <label>
+            Procedimento
+            <SalonSelect
+              value={treatment}
+              onChange={(e) => changeFilter(setTreatment, e.target.value)}
+            >
+              <option value="">Todos</option>
+              {options?.treatments.map((t) => (
+                <option key={t.id} value={t.id}>
+                  {t.name}
+                </option>
+              ))}
+            </SalonSelect>
+          </label>
+        )}
         {tab === 'movements' && (
           <>
             <label>
@@ -263,7 +256,7 @@ export function CommissionPanel() {
       )}
       {notice && <p role="status">{notice}</p>}
       {!items && !error && <p role="status">Carregando…</p>}
-      {moves && (
+      {tab === 'movements' && moves && (
         <div className="commission-summary">
           <span>
             Reconhecido<strong>{money(moves.totals.recognized)}</strong>
@@ -280,88 +273,89 @@ export function CommissionPanel() {
       {items?.length === 0 && (
         <p>Nenhum registro para os filtros selecionados.</p>
       )}
-      {!!items?.length && (
+      {tab === 'rates' && !!employeePage?.length && (
+        <>
+          <p className="booking-note">
+            Selecione um funcionário para consultar ou editar as porcentagens de
+            todos os seus procedimentos avulsos e em pacotes.
+          </p>
+          <div className="commission-employees">
+            {employeePage.map((person) => (
+              <button
+                type="button"
+                className="commission-employee"
+                key={person.id}
+                onClick={() => setEditing(person.id)}
+                aria-label={`${options?.canManage ? 'Editar' : 'Consultar'} porcentagens de ${person.name}`}
+              >
+                <span className="commission-avatar" aria-hidden="true">
+                  {person.name
+                    .trim()
+                    .split(/\s+/)
+                    .map((part) => part[0])
+                    .filter((_, i, a) => i === 0 || i === a.length - 1)
+                    .join('')
+                    .toUpperCase()}
+                </span>
+                <span className="commission-employee-info">
+                  <strong>{person.name}</strong>
+                  <small>Procedimentos avulsos e em pacotes</small>
+                </span>
+                <span className="commission-employee-action">
+                  {options?.canManage
+                    ? 'Editar porcentagens'
+                    : 'Consultar porcentagens'}{' '}
+                  <span aria-hidden="true">↗</span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+      {tab === 'movements' && !!moves?.items.length && (
         <div className="commission-table-wrap">
           <table className="commission-table">
             <thead>
               <tr>
                 <th>Profissional</th>
                 <th>Procedimento</th>
-                {tab === 'rates' ? (
-                  <>
-                    <th>Avulso</th>
-                    <th>Em pacote</th>
-                    <th>Ação</th>
-                  </>
-                ) : (
-                  <>
-                    <th>Data / comanda</th>
-                    <th>Base bruta / percentual</th>
-                    <th>Lançamento</th>
-                    <th>Fechamento</th>
-                  </>
-                )}
+                <th>Data / comanda</th>
+                <th>Base bruta / percentual</th>
+                <th>Lançamento</th>
+                <th>Fechamento</th>
               </tr>
             </thead>
             <tbody>
-              {tab === 'rates'
-                ? rates?.items.map((r) => (
-                    <tr key={`${r.employeeId}-${r.treatmentId}`}>
-                      <td>{r.employeeName}</td>
-                      <td>{r.name}</td>
-                      <td>
-                        {r.standardPercent === null ? (
-                          <span className="commission-pending">Pendente</span>
-                        ) : (
-                          `${r.standardPercent}%`
-                        )}
-                      </td>
-                      <td>
-                        {r.packagePercent === null ? (
-                          <span className="commission-pending">Pendente</span>
-                        ) : (
-                          `${r.packagePercent}%`
-                        )}
-                      </td>
-                      <td>
-                        <button onClick={() => setEditing(r.employeeId)}>
-                          {options?.canManage ? 'Configurar' : 'Consultar'}
-                        </button>
-                      </td>
-                    </tr>
-                  ))
-                : moves?.items.map((m) => (
-                    <tr key={m.id}>
-                      <td>{m.employeeName}</td>
-                      <td>{m.name}</td>
-                      <td>
-                        {bookingDate(m.date)} · #{m.orderId}
-                      </td>
-                      <td>
-                        {money(m.grossAmount)} · {m.percent}%
-                      </td>
-                      <td>
-                        {m.kind === 'recognition'
-                          ? 'Conclusão'
-                          : m.kind === 'annulment'
-                            ? 'Anulação'
-                            : 'Devolução'}
-                        : {money(m.amount)}
-                        {m.reason && (
-                          <small
-                            style={{ display: 'block', whiteSpace: 'normal' }}
-                          >
-                            {m.reason}
-                          </small>
-                        )}
-                      </td>
-                      <td>
-                        {m.closingId
-                          ? `Fechamento #${m.closingId}`
-                          : 'Pendente de fechamento'}
-                      </td>
-                    </tr>
-                  ))}
+              {moves.items.map((m) => (
+                <tr key={m.id}>
+                  <td>{m.employeeName}</td>
+                  <td>{m.name}</td>
+                  <td>
+                    {bookingDate(m.date)} · #{m.orderId}
+                  </td>
+                  <td>
+                    {money(m.grossAmount)} · {m.percent}%
+                  </td>
+                  <td>
+                    {m.kind === 'recognition'
+                      ? 'Conclusão'
+                      : m.kind === 'annulment'
+                        ? 'Anulação'
+                        : 'Devolução'}
+                    : {money(m.amount)}
+                    {m.reason && (
+                      <small style={{ display: 'block', whiteSpace: 'normal' }}>
+                        {m.reason}
+                      </small>
+                    )}
+                  </td>
+                  <td>
+                    {m.closingId
+                      ? `Fechamento #${m.closingId}`
+                      : 'Pendente de fechamento'}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -373,14 +367,18 @@ export function CommissionPanel() {
           </button>
           <span>Página {page + 1}</span>
           <button
-            disabled={!(tab === 'rates' ? rates?.hasNext : moves?.hasNext)}
+            disabled={
+              !(tab === 'rates'
+                ? (employees?.length ?? 0) > (page + 1) * 20
+                : moves?.hasNext)
+            }
             onClick={() => setPage((p) => p + 1)}
           >
             Próxima
           </button>
         </div>
       )}
-      {employee && balance && (
+      {tab === 'movements' && employee && balance && (
         <section className="order-section">
           <h3>
             Saldo a fechar ·{' '}

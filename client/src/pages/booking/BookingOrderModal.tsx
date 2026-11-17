@@ -1,4 +1,6 @@
 import { useEffect, useState } from 'react'
+import { OrderChanges } from '../social/OrderChanges'
+import { PackagePayments } from '../social/PackagePayments'
 import { SalonModal } from '../../components/SalonModal'
 import {
   bookingDate,
@@ -21,7 +23,8 @@ export function BookingOrderModal({
   const [order, setOrder] = useState<BookingOrder | null>(null),
     [amount, setAmount] = useState(''),
     [busy, setBusy] = useState(false),
-    [error, setError] = useState('')
+    [error, setError] = useState(''),
+    [ledgerRevision, setLedgerRevision] = useState(0)
   useEffect(() => {
     const controller = new AbortController()
     bookingRequest<BookingOrder>(`/booking/orders/${id}`, {
@@ -168,8 +171,29 @@ export function BookingOrderModal({
                   confirmar o sinal.
                 </p>
               )}
+            {order.packagePurchaseId && (
+              <PackagePayments
+                id={order.packagePurchaseId}
+                onBusyChange={setBusy}
+                onChanged={() => {
+                  setLedgerRevision((r) => r + 1)
+                  onChanged()
+                }}
+              />
+            )}
+            <OrderChanges
+              order={order}
+              onBusyChange={setBusy}
+              onChanged={() => {
+                setLedgerRevision((r) => r + 1)
+                void bookingRequest<BookingOrder>(`/booking/orders/${id}`)
+                  .then(setOrder)
+                  .catch((cause) => setError(cause.message))
+                onChanged()
+              }}
+            />
             <OrderManagement
-              key={`${id}-${order.status}`}
+              key={`${id}-${order.status}-${ledgerRevision}`}
               id={id}
               onBusyChange={setBusy}
               onUpdated={() => {

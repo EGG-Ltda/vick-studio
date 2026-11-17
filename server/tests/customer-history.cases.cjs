@@ -126,6 +126,7 @@ module.exports = async ({
       ).body.data
       third = requireStatus(
         await request('POST', '/customer/register', '', {
+          birthDate: '1990-05-20',
           name: 'Cliente Privado',
           cpf: cpf(789012345),
           phone: '21987654321',

@@ -76,6 +76,28 @@ export default function BookingSettingsPage() {
               Permitir reservas pela página inicial
             </label>
             <label>
+              Validade dos pacotes (meses)
+              <input
+                required
+                type="number"
+                min="1"
+                max="24"
+                step="1"
+                value={settings.packageValidityMonths}
+                onChange={(e) =>
+                  setSettings({
+                    ...settings,
+                    packageValidityMonths: Number(e.target.value),
+                  })
+                }
+              />
+            </label>
+            <p className="booking-note">
+              Padrão: 1 mês a partir da aquisição. Novas condições valem apenas
+              para novos pacotes. Pacotes não exigem sinal; o pagamento é
+              registrado separadamente.
+            </p>
+            <label>
               Antecedência do sinal
               <select
                 value={settings.depositDays}

@@ -64,7 +64,7 @@ export default async function bookingRoutes(app: FastifyInstance) {
     const data = RegistrationSchema.safeParse(req.body)
     if (!data.success)
       bookingError(
-        'Provide a valid full name, CPF, phone, email and password (8–32 characters).',
+        'Provide a valid full name, CPF, birth date, phone, email and password (8–32 characters).',
       )
     return loginSession(await service.register(data.data), res)
   })

@@ -1,4 +1,7 @@
+import { useState } from 'react'
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { BirthdayNotice } from '../social/BirthdayNotice'
+import '../social/social.css'
 import logo from '../../assets/vick-florez-logo.webp'
 import { SalonIcon } from '../../components/SalonIcon'
 import type { SalonIconName } from '../../components/SalonIcon'
@@ -8,7 +11,7 @@ import './dashboard.css'
 
 const navigation: { label: string; path: string; icon: SalonIconName }[] = [
   { label: 'Agenda', path: routePaths.schedule, icon: 'agenda' },
-  { label: 'Clientes', path: routePaths.customers, icon: 'clientes' },
+
   { label: 'Financeiro', path: routePaths.finance, icon: 'financeiro' },
   { label: 'Funcionários', path: routePaths.employees, icon: 'funcionarios' },
   { label: 'Serviços', path: routePaths.treatments, icon: 'servicos' },
@@ -24,8 +27,19 @@ function DashboardPage() {
   const navigate = useNavigate()
   const { signOut } = useAuth()
   const { pathname } = useLocation()
+  const socialActive = [
+    routePaths.customers,
+    routePaths.birthdays,
+    routePaths.promotions,
+  ].some((path) => pathname === path || pathname.startsWith(path + '/'))
+  const [socialOpen, setSocialOpen] = useState(socialActive)
   const currentPage =
-    navigation.find(
+    [
+      ...navigation,
+      { label: 'Clientes', path: routePaths.customers },
+      { label: 'Aniversariantes', path: routePaths.birthdays },
+      { label: 'Promoções e pacotes', path: routePaths.promotions },
+    ].find(
       (item) => item.path === pathname || pathname.startsWith(item.path + '/'),
     )?.label ?? 'Agenda'
 
@@ -47,7 +61,11 @@ function DashboardPage() {
         <p className="salon-nav-caption">Gestão do estúdio</p>
         <nav aria-label="Navegação principal">
           {navigation.map((item) => (
-            <NavLink key={item.path} to={item.path}>
+            <NavLink
+              key={item.path}
+              to={item.path}
+              onClick={() => setSocialOpen(false)}
+            >
               <SalonIcon name={item.icon} />
               <span>{item.label}</span>
               <span className="salon-nav-arrow" aria-hidden="true">
@@ -55,6 +73,48 @@ function DashboardPage() {
               </span>
             </NavLink>
           ))}
+          <div
+            className={`social-sidebar${socialActive ? ' social-sidebar-active' : ''}`}
+          >
+            <button
+              className="social-sidebar-toggle"
+              type="button"
+              aria-expanded={socialOpen}
+              aria-controls="social-sidebar-links"
+              onClick={() => setSocialOpen((open) => !open)}
+            >
+              <SalonIcon name="social" />
+              <span>Social</span>
+              <svg
+                className="social-sidebar-chevron"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="1.5"
+                aria-hidden="true"
+              >
+                <path d="m9 5 7 7-7 7" />
+              </svg>
+            </button>
+            {socialOpen && (
+              <div className="social-sidebar-links" id="social-sidebar-links">
+                <NavLink to={routePaths.customers}>
+                  <SalonIcon name="clientes" />
+                  <span>Clientes</span>
+                </NavLink>
+                <NavLink to={routePaths.birthdays}>
+                  <SalonIcon name="aniversarios" />
+                  <span>Aniversariantes</span>
+                </NavLink>
+                <NavLink to={routePaths.promotions}>
+                  <SalonIcon name="promocoes" />
+                  <span>Promoções e pacotes</span>
+                </NavLink>
+              </div>
+            )}
+          </div>
         </nav>
         <div className="salon-sidebar-footer">
           <p>
@@ -84,6 +144,7 @@ function DashboardPage() {
           </span>
         </header>
         <div id="salon-content" className="salon-content" tabIndex={-1}>
+          <BirthdayNotice />
           <Outlet />
         </div>
       </main>

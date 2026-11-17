@@ -15,6 +15,19 @@ export const CpfSchema = z
   .string()
   .transform((value) => value.replace(/[.\-\s]/g, ''))
   .refine(validCpf, 'Invalid CPF')
+export const BirthDateSchema = z.iso
+  .date()
+  .refine(
+    (value) =>
+      value <=
+      new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'America/Sao_Paulo',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date()),
+    'Birth date cannot be in the future',
+  )
 export const RegistrationSchema = z.object({
   name: z
     .string()
@@ -22,6 +35,7 @@ export const RegistrationSchema = z.object({
     .min(3)
     .max(255)
     .refine((name) => name.split(/\s+/).length > 1, 'Full name is required'),
+  birthDate: BirthDateSchema,
   cpf: CpfSchema,
   phone: z
     .string()
@@ -37,6 +51,7 @@ export const LoginSchema = z.object({
 export const SettingsSchema = z
   .object({
     enabled: z.boolean(),
+    packageValidityMonths: z.number().int().min(1).max(24).default(1),
     depositDays: z.number().int().min(1).max(3),
     shortNoticeHours: z.number().int().min(1).max(24).default(2),
     depositType: z.enum(['percent', 'fixed']),

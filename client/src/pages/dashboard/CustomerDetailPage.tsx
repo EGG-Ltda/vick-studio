@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, useParams } from 'react-router-dom'
+import { PackageHistory } from '../social/PackageHistory'
 import { SalonModal } from '../../components/SalonModal'
 import { BookingOrderModal } from '../booking/BookingOrderModal'
 import {
@@ -50,7 +51,13 @@ export default function CustomerDetailPage() {
     [busy, setBusy] = useState(false),
     [editing, setEditing] = useState(false),
     [orderId, setOrderId] = useState<number | null>(null)
-  const [form, setForm] = useState({ name: '', cpf: '', email: '', phone: '' })
+  const [form, setForm] = useState({
+    name: '',
+    cpf: '',
+    email: '',
+    phone: '',
+    birthDate: '',
+  })
   useEffect(() => {
     const controller = new AbortController()
     setLoading(true)
@@ -136,7 +143,7 @@ export default function CustomerDetailPage() {
     try {
       await customerRequest(`/customers/${id}`, {
         method: 'PUT',
-        body: JSON.stringify(form),
+        body: JSON.stringify({ ...form, birthDate: form.birthDate || null }),
       })
       setEditing(false)
       setRevision((value) => value + 1)
@@ -186,7 +193,10 @@ export default function CustomerDetailPage() {
               <h1>{customer.name}</h1>
               <p>
                 CPF {customer.cpf} · {customer.email ?? 'Sem e-mail'} ·{' '}
-                {customer.phone ?? 'Sem telefone'}
+                {customer.phone ?? 'Sem telefone'} · Nascimento:{' '}
+                {customer.birthDate
+                  ? customer.birthDate.split('-').reverse().join('/')
+                  : 'Não informado'}
               </p>
             </div>
             {customer.canEdit && (
@@ -194,6 +204,7 @@ export default function CustomerDetailPage() {
                 className="primary-button"
                 onClick={() => {
                   setForm({
+                    birthDate: customer.birthDate ?? '',
                     name: customer.name,
                     cpf: customer.cpf,
                     email: customer.email ?? '',
@@ -243,7 +254,9 @@ export default function CustomerDetailPage() {
             >
               <form className="booking-form" onSubmit={save}>
                 <fieldset disabled={busy}>
-                  {(['name', 'cpf', 'email', 'phone'] as const).map((field) => (
+                  {(
+                    ['name', 'cpf', 'email', 'phone', 'birthDate'] as const
+                  ).map((field) => (
                     <label key={field}>
                       {
                         {
@@ -251,16 +264,26 @@ export default function CustomerDetailPage() {
                           cpf: 'CPF',
                           email: 'E-mail',
                           phone: 'Telefone',
+                          birthDate: 'Data de nascimento',
                         }[field]
                       }
                       <input
-                        required
+                        required={field !== 'birthDate'}
+                        max={
+                          field === 'birthDate'
+                            ? new Date().toLocaleDateString('en-CA', {
+                                timeZone: 'America/Sao_Paulo',
+                              })
+                            : undefined
+                        }
                         type={
-                          field === 'email'
-                            ? 'email'
-                            : field === 'phone'
-                              ? 'tel'
-                              : 'text'
+                          field === 'birthDate'
+                            ? 'date'
+                            : field === 'email'
+                              ? 'email'
+                              : field === 'phone'
+                                ? 'tel'
+                                : 'text'
                         }
                         value={form[field]}
                         onChange={(event) =>
@@ -286,6 +309,11 @@ export default function CustomerDetailPage() {
               </form>
             </SalonModal>
           )}
+          <PackageHistory
+            customerId={customer.id}
+            revision={revision}
+            onOrder={setOrderId}
+          />
           <section className="customer-section">
             <div className="customer-section-heading">
               <h2>Agendamentos e atendimentos</h2>

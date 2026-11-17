@@ -1,5 +1,5 @@
 .dependency-editor {
-  border: 1px solid #e8c9b5 !important;
+  border: 1px solid #e8b5c9 !important;
   border-radius: 14px !important;
   padding: 18px !important;
   display: grid;
@@ -8,7 +8,7 @@
   min-width: 0;
 }
 .dependency-editor legend {
-  color: #ad003d;
+  color: #981547;
   font-size: 21px;
   font-family: Georgia, serif;
 }
@@ -16,16 +16,16 @@
 .dependency-rules p {
   font-size: 13px;
   line-height: 1.7;
-  color: #8a626a;
+  color: #915b70;
   margin: 0;
 }
 .dependency-rule {
   display: grid;
   gap: 14px;
   padding: 16px;
-  border: 1px solid #efdbcc;
+  border: 1px solid #efccd9;
   border-radius: 12px;
-  background: #fffaf5;
+  background: #fef6f9;
   min-width: 0;
 }
 .dependency-rule label {
@@ -36,11 +36,11 @@
 .dependency-rule select,
 .dependency-rule input:not([type='checkbox']) {
   min-height: 42px;
-  border: 1px solid #e4cbbb;
+  border: 1px solid #e4bbcb;
   border-radius: 8px;
-  background: #fff;
+  background: #ffffff;
   padding: 9px;
-  color: #6d3848;
+  color: #6d384c;
   min-width: 0;
   width: 100%;
   box-sizing: border-box;
@@ -58,16 +58,16 @@
 .dependency-checkbox input {
   width: 17px;
   height: 17px;
-  accent-color: #ad003d;
+  accent-color: #981547;
   flex: 0 0 auto;
 }
 .dependency-editor button,
 .dependency-booking button:not(.primary-button) {
-  border: 1px solid #e7c7b3;
+  border: 1px solid #e7b3c7;
   border-radius: 8px;
   padding: 10px 14px;
-  background: #fffaf5;
-  color: #93344f;
+  background: #fef6f9;
+  color: #933458;
   font: inherit;
   cursor: pointer;
 }
@@ -78,25 +78,25 @@
   min-width: 0;
 }
 .dependency-rules {
-  border-left: 3px solid #d5a148;
-  background: #fff6e9;
+  border-left: 3px solid #ae3d68;
+  background: #fdebf2;
   padding: 16px 20px;
   border-radius: 0 12px 12px 0;
 }
 .dependency-rules h3 {
   margin: 0 0 10px;
-  color: #a4003a;
+  color: #901443;
 }
 .dependency-rules ul {
   padding-left: 20px;
   line-height: 1.7;
   font-size: 13px;
-  color: #7b4251;
+  color: #7b4258;
 }
 .dependency-step {
-  border: 1px solid #e8cbb9;
+  border: 1px solid #e8b9cb;
   border-radius: 16px;
-  background: #fffcf8;
+  background: #fef9fb;
   padding: 22px;
   display: grid;
   gap: 14px;
@@ -104,14 +104,14 @@
 }
 .dependency-step h3 {
   margin: 0;
-  color: #a90039;
+  color: #951446;
   font-size: 23px;
 }
 .dependency-step label {
   display: grid;
   gap: 8px;
   font-size: 13px;
-  color: #7d4252;
+  color: #7d4259;
 }
 .dependency-step input,
 .dependency-step select {
@@ -119,16 +119,16 @@
   box-sizing: border-box;
   width: 100%;
   min-width: 0;
-  border: 1px solid #e9cebf;
+  border: 1px solid #e9bfcf;
   border-radius: 8px;
   padding: 10px;
-  color: #63323f;
-  background: #fff;
+  color: #633245;
+  background: #ffffff;
   font: inherit;
 }
 .dependency-step input:focus,
 .dependency-step select:focus {
-  outline: 2px solid #c69b3c;
+  outline: 2px solid #ae3d68;
   outline-offset: 2px;
 }
 .dependency-step .booking-slots {
@@ -136,7 +136,7 @@
   overflow: auto;
 }
 .dependency-step .booking-slots button[aria-pressed='true'] {
-  background: #ad003d;
+  background: #981547;
   color: white;
 }
 .dependency-subtotal {
@@ -144,19 +144,19 @@
   justify-content: space-between;
   gap: 15px;
   flex-wrap: wrap;
-  color: #8a4c5c;
+  color: #8a4c64;
   font-size: 14px;
 }
 .dependency-linked {
-  border: 1px solid #dfbe98;
-  background: #fff7ed;
+  border: 1px solid #dc9bb4;
+  background: #fdeff4;
   border-radius: 12px;
   padding: 18px;
   margin-block: 18px;
 }
 .dependency-linked h3 {
   margin-top: 0;
-  color: #a9003d;
+  color: #951446;
 }
 .dependency-linked ul {
   padding-left: 20px;
@@ -170,8 +170,8 @@
 .dependency-group-badge {
   display: inline-block;
   border-radius: 16px;
-  background: #f9e8d6;
-  color: #8b5f23;
+  background: #f9d6e3;
+  color: #812d4d;
   padding: 4px 9px;
   font-size: 11px;
   margin: 5px 0;

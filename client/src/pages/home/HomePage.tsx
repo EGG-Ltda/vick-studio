@@ -45,16 +45,16 @@ function HomePage() {
       <svg className="home-art" viewBox="0 0 1024 577" preserveAspectRatio="none" aria-hidden="true">
         <defs>
           <linearGradient id="home-ribbon-wine" x1="0" y1="0" x2="0.72" y2="1">
-            <stop stopColor="#c32c4b" />
-            <stop offset="0.48" stopColor="#a1072b" />
-            <stop offset="1" stopColor="#67001b" />
+            <stop stopColor="#9e2453" />
+            <stop offset="0.48" stopColor="#941445" />
+            <stop offset="1" stopColor="#5b0c2a" />
           </linearGradient>
           <linearGradient id="home-ribbon-rose" x1="0" y1="0" x2="1" y2=".82">
-            <stop stopColor="#f0a7ad" />
-            <stop offset="1" stopColor="#d85068" />
+            <stop stopColor="#f0a7c3" />
+            <stop offset="1" stopColor="#d85084" />
           </linearGradient>
           <filter id="home-ribbon-shadow" x="-40%" y="-10%" width="190%" height="120%">
-            <feDropShadow dx="7" dy="8" stdDeviation="7" floodColor="#722d24" floodOpacity=".2" />
+            <feDropShadow dx="7" dy="8" stdDeviation="7" floodColor="#722442" floodOpacity=".2" />
           </filter>
         </defs>
         <path
@@ -69,14 +69,14 @@ function HomePage() {
         <path
           d="M180 0C171 61 132 94 104 132C79 167 67 208 73 246C81 294 108 318 106 356C104 409 62 453 45 508C39 529 37 551 37 577"
           fill="none"
-          stroke="#e8b84a"
+          stroke="#ae3d68"
           strokeLinecap="round"
           strokeWidth="1.25"
         />
         <path
           d="M159 0C151 55 117 91 95 130C72 171 70 216 86 255C100 290 119 315 114 352C109 393 77 429 67 468C58 507 66 544 78 577"
           fill="none"
-          stroke="rgb(255 235 229 / 72%)"
+          stroke="rgb(252 232 240 / 72%)"
           strokeLinecap="round"
           strokeWidth="2.8"
         />

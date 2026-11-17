@@ -4,15 +4,15 @@
   gap: 22px;
 }
 .social-card {
-  background: #fffaf6;
-  border: 1px solid #ebd0c3;
+  background: #fef7fa;
+  border: 1px solid #ebc3d2;
   border-radius: 20px;
   overflow: hidden;
-  color: #633e39;
+  color: #633949;
   text-decoration: none;
 }
 .social-card h2 {
-  color: #a60735;
+  color: #981547;
   font:
     normal 26px Georgia,
     serif;
@@ -24,7 +24,7 @@
   overflow-wrap: anywhere;
 }
 .social-card strong {
-  color: #a60735;
+  color: #981547;
   font-size: 24px;
 }
 .promo-card > img {
@@ -48,15 +48,15 @@
 .order-changes button {
   min-height: 42px;
   padding: 10px 18px;
-  border: 1px solid #dfbca8;
-  background: #fffaf6;
-  color: #a60735;
+  border: 1px solid #dfa8bd;
+  background: #fef7fa;
+  color: #981547;
   border-radius: 10px;
   cursor: pointer;
 }
 .social-view button.primary-button,
 .package-panel button.primary-button {
-  background: #ad0739;
+  background: #9e164a;
   color: white;
 }
 .social-view button:disabled,
@@ -78,10 +78,10 @@
   box-sizing: border-box;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid #e7cabb;
+  border: 1px solid #e7bbcc;
   border-radius: 10px;
-  background: #fffaf6;
-  color: #633e39;
+  background: #fef7fa;
+  color: #633949;
   max-width: 100%;
 }
 .birthday-card {
@@ -94,14 +94,14 @@
   font:
     38px Georgia,
     serif;
-  color: #ae0739;
+  color: #9f164a;
 }
 .birthday-today {
-  border-color: #c88c2c;
-  background: #fff3e5;
+  border-color: #ae3d68;
+  background: #fce8f0;
 }
 .birthday-today small {
-  color: #9e6518;
+  color: #872f51;
 }
 .social-art-preview {
   max-width: 100%;
@@ -115,7 +115,7 @@
   justify-content: space-between;
   gap: 16px;
   padding: 12px 0;
-  border-bottom: 1px solid #efdad0;
+  border-bottom: 1px solid #efd0dc;
 }
 .social-procedure label:first-child,
 .social-check {
@@ -129,7 +129,7 @@
 .social-sidebar {
   margin-top: 8px;
   padding-top: 12px;
-  border-top: 1px solid #e8d4c9;
+  border-top: 1px solid #e8c9d5;
 }
 .dashboard-sidebar .social-sidebar-toggle {
   display: flex;
@@ -141,7 +141,7 @@
   border: 1px solid transparent;
   border-radius: 10px;
   background: transparent;
-  color: #79575a;
+  color: #805062;
   font: inherit;
   text-align: left;
   cursor: pointer;
@@ -150,8 +150,8 @@
     color 150ms;
 }
 .dashboard-sidebar .social-sidebar-toggle:hover {
-  background: #f3e1dc;
-  color: #a1073b;
+  background: #f3dce5;
+  color: #941445;
 }
 .social-sidebar-toggle > svg:first-child {
   flex: 0 0 20px;
@@ -165,15 +165,15 @@
   transform: rotate(90deg);
 }
 .social-sidebar-active .social-sidebar-toggle {
-  color: #a1073b;
-  background: #f3e4dc;
+  color: #941445;
+  background: #f3dce5;
 }
 .social-sidebar-links {
   display: grid;
   gap: 3px;
   margin: 5px 0 2px 25px;
   padding: 4px 0 4px 13px;
-  border-left: 1px solid #dfc4b3;
+  border-left: 1px solid #dfb3c4;
 }
 .dashboard-sidebar nav .social-sidebar-links a {
   position: relative;
@@ -190,11 +190,11 @@
   width: 16px;
   height: 16px;
   flex: 0 0 16px;
-  color: #a98a7d;
+  color: #b6708b;
 }
 .dashboard-sidebar nav .social-sidebar-links a.active {
-  background: #f4e6de;
-  color: #9f0737;
+  background: #f4dee6;
+  color: #921444;
   border-color: transparent;
   box-shadow: none;
 }
@@ -205,11 +205,11 @@
   top: 11px;
   bottom: 11px;
   width: 3px;
-  background: #c49749;
+  background: #ae3d68;
   border-radius: 3px;
 }
 .social-sidebar-toggle:focus-visible {
-  outline: 2px solid #c49749;
+  outline: 2px solid #ae3d68;
   outline-offset: 3px;
 }
 @media (prefers-reduced-motion: reduce) {
@@ -220,9 +220,9 @@
 .birthday-notification {
   display: block;
   padding: 16px 20px;
-  border: 1px solid #deb55e;
-  background: #fff2df;
-  color: #8a4e20;
+  border: 1px solid #ae3d68;
+  background: #fbe3ec;
+  color: #7e2c4b;
   border-radius: 14px;
   margin-bottom: 22px;
   text-decoration: none;
@@ -231,8 +231,8 @@
   margin: 24px 0;
 }
 .package-panel > article {
-  border: 1px solid #e8cabb;
-  background: #fff9f3;
+  border: 1px solid #e8bbcc;
+  background: #fef4f8;
   border-radius: 18px;
   padding: 22px;
   margin: 16px 0;
@@ -241,17 +241,17 @@
   font:
     26px Georgia,
     serif;
-  color: #a60735;
+  color: #981547;
 }
 .package-use {
   padding: 14px 0;
-  border-top: 1px solid #ead3c6;
+  border-top: 1px solid #eac6d4;
 }
 .package-use p {
   margin: 6px 0;
 }
 .order-changes {
-  border-top: 1px solid #ead3c6;
+  border-top: 1px solid #eac6d4;
   padding-top: 24px;
   margin-top: 24px;
 }
@@ -278,24 +278,24 @@
   font:
     32px Georgia,
     serif;
-  color: #a60735;
+  color: #981547;
   text-align: center;
 }
 .public-promotions a {
   display: inline-block;
   margin-top: 14px;
   padding: 12px 20px;
-  background: #ad0739;
-  color: #fff;
+  background: #9e164a;
+  color: #ffffff;
   border-radius: 10px;
   text-decoration: none;
 }
 .package-booking {
   margin: 26px 0;
-  border: 1px solid #e6c9b8;
+  border: 1px solid #e6b8ca;
   border-radius: 20px;
   padding: 24px;
-  background: #fffaf6;
+  background: #fef7fa;
 }
 .package-booking > label {
   display: grid;
@@ -304,20 +304,20 @@
 .package-booking select {
   min-height: 44px;
   padding: 10px;
-  border: 1px solid #e6c9b8;
+  border: 1px solid #e6b8ca;
   border-radius: 10px;
   max-width: 100%;
   width: 100%;
-  background: #fffaf6;
-  color: #633e39;
+  background: #fef7fa;
+  color: #633949;
 }
 .package-booking h2,
 .package-booking h3 {
   font-family: Georgia, serif;
-  color: #a60735;
+  color: #981547;
 }
 .package-slot {
-  border-top: 1px solid #ecd4c6;
+  border-top: 1px solid #ecc6d5;
   padding: 20px 0;
 }
 .package-slot label {
@@ -330,9 +330,9 @@
   padding: 10px;
   box-sizing: border-box;
   border-radius: 10px;
-  border: 1px solid #e6c9b8;
-  background: #fffaf6;
-  color: #633e39;
+  border: 1px solid #e6b8ca;
+  background: #fef7fa;
+  color: #633949;
   max-width: 100%;
   width: 100%;
 }
@@ -342,13 +342,13 @@
   flex-wrap: wrap;
 }
 .package-slot-times button[aria-pressed='true'] {
-  background: #a60735;
-  color: #fff;
+  background: #981547;
+  color: #ffffff;
 }
 .social-view :focus-visible,
 .package-booking :focus-visible,
 .package-panel :focus-visible {
-  outline: 2px solid #c18a33;
+  outline: 2px solid #ae3d68;
   outline-offset: 3px;
 }
 @media (max-width: 760px) {

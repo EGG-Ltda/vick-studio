@@ -1,0 +1,186 @@
+.dependency-editor {
+  border: 1px solid #e8c9b5 !important;
+  border-radius: 14px !important;
+  padding: 18px !important;
+  display: grid;
+  gap: 14px;
+  margin-block: 18px;
+  min-width: 0;
+}
+.dependency-editor legend {
+  color: #ad003d;
+  font-size: 21px;
+  font-family: Georgia, serif;
+}
+.dependency-editor p,
+.dependency-rules p {
+  font-size: 13px;
+  line-height: 1.7;
+  color: #8a626a;
+  margin: 0;
+}
+.dependency-rule {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid #efdbcc;
+  border-radius: 12px;
+  background: #fffaf5;
+  min-width: 0;
+}
+.dependency-rule label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+}
+.dependency-rule select,
+.dependency-rule input:not([type='checkbox']) {
+  min-height: 42px;
+  border: 1px solid #e4cbbb;
+  border-radius: 8px;
+  background: #fff;
+  padding: 9px;
+  color: #6d3848;
+  min-width: 0;
+  width: 100%;
+  box-sizing: border-box;
+}
+.dependency-interval {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.dependency-checkbox {
+  display: flex !important;
+  align-items: center;
+  gap: 9px !important;
+}
+.dependency-checkbox input {
+  width: 17px;
+  height: 17px;
+  accent-color: #ad003d;
+  flex: 0 0 auto;
+}
+.dependency-editor button,
+.dependency-booking button:not(.primary-button) {
+  border: 1px solid #e7c7b3;
+  border-radius: 8px;
+  padding: 10px 14px;
+  background: #fffaf5;
+  color: #93344f;
+  font: inherit;
+  cursor: pointer;
+}
+.dependency-booking {
+  display: grid;
+  gap: 20px;
+  width: 100%;
+  min-width: 0;
+}
+.dependency-rules {
+  border-left: 3px solid #d5a148;
+  background: #fff6e9;
+  padding: 16px 20px;
+  border-radius: 0 12px 12px 0;
+}
+.dependency-rules h3 {
+  margin: 0 0 10px;
+  color: #a4003a;
+}
+.dependency-rules ul {
+  padding-left: 20px;
+  line-height: 1.7;
+  font-size: 13px;
+  color: #7b4251;
+}
+.dependency-step {
+  border: 1px solid #e8cbb9;
+  border-radius: 16px;
+  background: #fffcf8;
+  padding: 22px;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.dependency-step h3 {
+  margin: 0;
+  color: #a90039;
+  font-size: 23px;
+}
+.dependency-step label {
+  display: grid;
+  gap: 8px;
+  font-size: 13px;
+  color: #7d4252;
+}
+.dependency-step input,
+.dependency-step select {
+  min-height: 44px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  border: 1px solid #e9cebf;
+  border-radius: 8px;
+  padding: 10px;
+  color: #63323f;
+  background: #fff;
+  font: inherit;
+}
+.dependency-step input:focus,
+.dependency-step select:focus {
+  outline: 2px solid #c69b3c;
+  outline-offset: 2px;
+}
+.dependency-step .booking-slots {
+  max-height: 190px;
+  overflow: auto;
+}
+.dependency-step .booking-slots button[aria-pressed='true'] {
+  background: #ad003d;
+  color: white;
+}
+.dependency-subtotal {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  flex-wrap: wrap;
+  color: #8a4c5c;
+  font-size: 14px;
+}
+.dependency-linked {
+  border: 1px solid #dfbe98;
+  background: #fff7ed;
+  border-radius: 12px;
+  padding: 18px;
+  margin-block: 18px;
+}
+.dependency-linked h3 {
+  margin-top: 0;
+  color: #a9003d;
+}
+.dependency-linked ul {
+  padding-left: 20px;
+  line-height: 1.7;
+  font-size: 13px;
+}
+.dependency-linked p {
+  font-size: 13px;
+  line-height: 1.7;
+}
+.dependency-group-badge {
+  display: inline-block;
+  border-radius: 16px;
+  background: #f9e8d6;
+  color: #8b5f23;
+  padding: 4px 9px;
+  font-size: 11px;
+  margin: 5px 0;
+}
+@media (max-width: 600px) {
+  .dependency-interval {
+    grid-template-columns: 1fr;
+  }
+  .dependency-step {
+    padding: 16px;
+  }
+}

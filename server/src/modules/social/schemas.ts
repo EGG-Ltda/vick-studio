@@ -47,6 +47,7 @@ export const AcquisitionSchema = z.object({
     .max(20),
 })
 export const ChangeSchema = z.object({
+  acknowledgeLinkedImpact: z.boolean().default(false),
   action: z.enum(['reschedule', 'cancel', 'no_show', 'return_use']),
   reason: z.string().trim().min(3).max(1000),
   employeeId: z.number().int().positive().optional(),

@@ -13,6 +13,7 @@ import {
 } from './bookingApi'
 import type { BookingOrder } from './bookingApi'
 import { OrderManagement } from './OrderManagement'
+import { LinkedAppointments } from '../dependencies/LinkedAppointments'
 export function BookingOrderModal({
   id,
   onClose,
@@ -88,6 +89,12 @@ export function BookingOrderModal({
               {bookingStatus(order.status)}
             </span>
             <h2>{order.customerName}</h2>
+            {order.groupId && (
+              <LinkedAppointments
+                id={order.id}
+                revision={`${ledgerRevision}-${order.status}-${order.depositConfirmedAt ?? ''}`}
+              />
+            )}
             {order.readOnlyShared && (
               <p className="booking-availability-notice">
                 Esta comanda reúne mais de uma profissional. Você visualiza seus

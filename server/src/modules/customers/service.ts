@@ -165,7 +165,7 @@ export class CustomerService {
     await this.authorizeCustomer(actor, id)
     const rows = (
       await this.query(
-        `SELECT s.id,s.status,s.schedule_started_at AS "startsAt",s.schedule_ended_at AS "endsAt",s.completed_at AS "completedAt",s.cancelled_at AS "cancelledAt",s.cancellation_reason AS "cancellationReason",
+        `SELECT s.id,(SELECT group_id FROM booking_group_members WHERE schedule_id=s.id) AS "groupId",s.status,s.schedule_started_at AS "startsAt",s.schedule_ended_at AS "endsAt",s.completed_at AS "completedAt",s.cancelled_at AS "cancelledAt",s.cancellation_reason AS "cancellationReason",
     (CASE WHEN $1::boolean THEN COALESCE(s.total_price,(SELECT sum(price) FROM salon_schedule_treatments WHERE schedule_id=s.id),0) ELSE COALESCE((SELECT sum(st.price) FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active),0) END)::float AS "treatmentTotal",
     (SELECT COALESCE(sum(quantity*unit_price),0)::float FROM order_consumptions WHERE schedule_id=s.id AND voided_at IS NULL) AS "extrasTotal",
     (SELECT COALESCE(sum(round((CASE WHEN ledger_kind='refund' THEN -abs(value) ELSE abs(value) END)*(${receiptShare}),2)),0)::float FROM salon_transactions WHERE order_id=s.id AND ledger_kind IS NOT NULL) AS "netPaid",

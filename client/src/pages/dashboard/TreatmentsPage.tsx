@@ -7,6 +7,8 @@ import { SalonModal } from '../../components/SalonModal'
 
 import { listTreatments, saveTreatment } from '../../core/api/treatments'
 import type { Treatment } from '../../core/api/treatments'
+import type { Dependency } from '../../core/api/treatments'
+import { DependencyEditor } from '../dependencies/DependencyEditor'
 
 function TreatmentsPage() {
   const { user } = useAuth()
@@ -14,6 +16,7 @@ function TreatmentsPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
+  const [dependencies, setDependencies] = useState<Dependency[]>([])
   useEffect(() => {
     const controller = new AbortController()
     listTreatments(false, controller.signal)
@@ -42,11 +45,13 @@ function TreatmentsPage() {
     setError('')
     setForm({ name: '', description: '', duration: '', price: '' })
     setEditingId(null)
+    setDependencies([])
     setShowForm(false)
   }
   function editTreatment(treatment: Treatment) {
     setError('')
     setEditingId(treatment.id)
+    setDependencies(treatment.dependencies ?? [])
     setForm({
       name: treatment.name,
       description: treatment.description,
@@ -66,6 +71,7 @@ function TreatmentsPage() {
           description: form.description.trim(),
           durationMinutes: Number(form.duration),
           price: Number(form.price),
+          dependencies,
           isActive:
             treatments.find((item) => item.id === editingId)?.isActive ?? true,
         },
@@ -78,6 +84,7 @@ function TreatmentsPage() {
       )
       setForm({ name: '', description: '', duration: '', price: '' })
       setEditingId(null)
+      setDependencies([])
       setShowForm(false)
     } catch (error) {
       setError(
@@ -101,7 +108,9 @@ function TreatmentsPage() {
         },
       )
       setTreatments((current) =>
-        current.map((item) => (item.id === saved.id ? saved : item)),
+        current.map((item) =>
+          item.id === saved.id ? { ...item, ...saved } : item,
+        ),
       )
     } catch (error) {
       setError(
@@ -128,6 +137,7 @@ function TreatmentsPage() {
             disabled={saving}
             onClick={() => {
               setError('')
+              setDependencies([])
               setShowForm(true)
             }}
           >
@@ -195,6 +205,13 @@ function TreatmentsPage() {
                 />
               </label>
             </fieldset>
+            <DependencyEditor
+              value={dependencies}
+              onChange={setDependencies}
+              treatments={treatments}
+              editingId={editingId}
+              disabled={saving}
+            />
             {error && <p role="alert">{error}</p>}
             <div className="modal-actions">
               <button type="button" onClick={closeForm} disabled={saving}>

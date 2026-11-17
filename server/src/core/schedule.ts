@@ -20,6 +20,7 @@ export const ScheduleCreateSchema = z.object({
 })
 
 export const ScheduleSchema = z.object({
+  groupId: z.number().nullable().optional(),
   id: z.number(),
   customerId: z.number(),
   customerName: z.string(),

@@ -26,6 +26,7 @@ export class TreatmentRepository implements ITreatmentRepository {
     let query: string = `
       SELECT
         id,
+        COALESCE((SELECT json_agg(json_build_object('requiredTreatmentId',d.required_treatment_id,'position',d.position,'sameDay',d.same_day,'consecutive',d.consecutive,'minMinutes',d.min_minutes,'maxMinutes',d.max_minutes) ORDER BY d.required_treatment_id) FROM treatment_dependencies d WHERE d.treatment_id=salon_treatments.id),'[]') AS dependencies,
         name,
         description,
         price::float8 AS price,
@@ -115,13 +116,15 @@ export class TreatmentRepository implements ITreatmentRepository {
         updated_at AS "updatedAt";
     `
 
-    return client.query(query, [
-      data.name,
-      data.description,
-      data.price,
-      data.durationMinutes,
-      data.isActive,
-      data.id,
-    ]).then((result) => result.rows[0])
+    return client
+      .query(query, [
+        data.name,
+        data.description,
+        data.price,
+        data.durationMinutes,
+        data.isActive,
+        data.id,
+      ])
+      .then((result) => result.rows[0])
   }
 }

@@ -356,6 +356,8 @@ export default function CustomerDetailPage() {
                     >
                       <span className={`booking-status ${appointment.status}`}>
                         {bookingStatus(appointment.status)}
+                        {appointment.groupId &&
+                          ` · Conjunto #${appointment.groupId}`}
                       </span>
                       <strong>
                         {bookingDate(appointment.startsAt)} · Comanda #

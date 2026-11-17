@@ -45,6 +45,7 @@ export type BookingSlot = {
   instructions: string
 }
 export type BookingOrder = {
+  groupId?: number | null
   readOnlyShared?: boolean
   employeeId: number
   packagePurchaseId: number | null

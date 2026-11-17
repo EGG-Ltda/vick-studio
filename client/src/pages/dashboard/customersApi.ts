@@ -10,7 +10,7 @@ export type Customer = {
   createdAt: string
 }
 export type CustomerDetail = Customer & {
-  canViewFinancial:boolean
+  canViewFinancial: boolean
   totalPaid: number | null
   lastCompletedAt: string | null
   completedCount: number
@@ -26,6 +26,7 @@ export type Page<T> = {
   hasNext: boolean
 }
 export type CustomerAppointment = {
+  groupId?: number | null
   id: number
   status: string
   startsAt: string

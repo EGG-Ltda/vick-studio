@@ -33,7 +33,8 @@ export function routePermission(method: string, path: string): string | null {
   if (
     path === '/booking/customers' ||
     path === '/booking/staff-slots' ||
-    path === '/booking/staff-bookings'
+    path === '/booking/staff-bookings' ||
+    path === '/booking/staff-groups'
   )
     return 'agenda.create'
   if (path.startsWith('/booking/orders'))

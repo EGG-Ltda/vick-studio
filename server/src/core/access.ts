@@ -1,6 +1,34 @@
 import type { AppUser } from './user'
 import { MASTER_USER_ID } from './config'
 export const permissionCatalog = [
+  [
+    'commissions.view',
+    'Comissões',
+    'Consultar percentuais e comissões',
+    true,
+    [],
+  ],
+  [
+    'commissions.manage',
+    'Comissões',
+    'Configurar percentuais dos funcionários',
+    false,
+    ['commissions.view'],
+  ],
+  [
+    'commissions.adjust',
+    'Comissões',
+    'Anular atendimentos e ajustar comissões',
+    false,
+    ['commissions.view', 'orders.view', 'agenda.change'],
+  ],
+  [
+    'commissions.settle',
+    'Comissões',
+    'Registrar fechamento e pagamento de comissões',
+    false,
+    ['commissions.view', 'finance.view'],
+  ],
   ['agenda.view', 'Agenda', 'Consultar agenda', true, []],
   [
     'availability.view',

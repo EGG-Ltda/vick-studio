@@ -15,6 +15,7 @@ import {
   allocate,
 } from './schemas'
 import { PaymentSchema, RefundSchema } from '../customers/schemas'
+import { lockCommissionEmployees } from '../commissions/ledger'
 import z from 'zod'
 import {
   assertIndependent,
@@ -433,6 +434,7 @@ export class SocialService {
         'SELECT id FROM salon_schedules WHERE id=ANY($1::int[]) ORDER BY id FOR UPDATE',
         [orders],
       )
+      if (refundOf) await lockCommissionEmployees(client, orders)
       const r = (
         await client.query(
           'INSERT INTO package_receipts(purchase_id,amount,kind,method_id,description,refund_of,request_key,recorded_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id',

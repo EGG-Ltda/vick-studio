@@ -912,6 +912,18 @@ test(
         cpf,
       })
       // Keep the real public-booking rate limit enabled; start a new window for availability scenarios.
+      await require('./commissions.cases.cjs')({
+        t,
+        request,
+        requireStatus,
+        db,
+        master,
+        manager,
+        professional,
+        other,
+        alice,
+        employeeId,
+      })
       await delay(60000)
       await require('./availability.cases.cjs')({
         t,

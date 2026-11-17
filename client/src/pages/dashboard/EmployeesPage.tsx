@@ -18,6 +18,8 @@ import { bookingRequest } from '../booking/bookingApi'
 import type { BookingEmployee, BookingTreatment } from '../booking/bookingApi'
 import '../booking/booking.css'
 import './employees.css'
+import { CommissionPanel } from '../commissions/CommissionPanel'
+import { CommissionRates } from '../commissions/CommissionRates'
 
 const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
 function initials(name: string) {
@@ -58,6 +60,12 @@ export default function EmployeesPage() {
   const cpfInput = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
   const canView = allowed(user, 'employees.view')
+  const canViewCommissions = allowed(user, 'commissions.view')
+  const commissionTab =
+    canViewCommissions && (!canView || params.get('aba') === 'porcentagens')
+  const [employeeTab, setEmployeeTab] = useState<'cadastro' | 'porcentagens'>(
+    'cadastro',
+  )
   const canManageRequests =
     allowed(user, 'availability.manage') &&
     ['ADMIN', 'MASTER'].includes(user?.role ?? '')
@@ -119,6 +127,7 @@ export default function EmployeesPage() {
     return () => controller.abort()
   }, [canView, revision])
   function edit(employee: Employee) {
+    setEmployeeTab('cadastro')
     setEditing(employee.id)
     setForm({
       name: employee.name,
@@ -158,7 +167,7 @@ export default function EmployeesPage() {
       setBusy(false)
     }
   }
-  if (!canView)
+  if (!canView && !canViewCommissions)
     return (
       <p>
         Somente ADMIN ou MASTER pode gerenciar profissionais e habilitações.
@@ -180,39 +189,57 @@ export default function EmployeesPage() {
             profissional.
           </p>
         </div>
-        {!requestsTab && allowed(user, 'employees.manage') && (
-          <button
-            className="primary-button"
-            onClick={() => {
-              setEditing(null)
-              setForm(empty)
-              setError('')
-              setOpen(true)
-            }}
-          >
-            Novo funcionário
-          </button>
-        )}
+        {!requestsTab &&
+          !commissionTab &&
+          allowed(user, 'employees.manage') && (
+            <button
+              className="primary-button"
+              onClick={() => {
+                setEditing(null)
+                setEmployeeTab('cadastro')
+                setForm(empty)
+                setError('')
+                setOpen(true)
+              }}
+            >
+              Novo funcionário
+            </button>
+          )}
       </header>
-      {canManageRequests && (
+      {(canManageRequests || canViewCommissions) && (
         <nav className="availability-tabs" aria-label="Gestão de funcionários">
-          <button
-            type="button"
-            aria-current={!requestsTab ? 'page' : undefined}
-            onClick={() => setParams({})}
-          >
-            Equipe
-          </button>
-          <button
-            type="button"
-            aria-current={requestsTab ? 'page' : undefined}
-            onClick={() => setParams({ aba: 'solicitacoes' })}
-          >
-            Solicitações <span>{pendingCount} pendente(s)</span>
-          </button>
+          {canView && (
+            <button
+              type="button"
+              aria-current={!requestsTab && !commissionTab ? 'page' : undefined}
+              onClick={() => setParams({})}
+            >
+              Equipe
+            </button>
+          )}
+          {canManageRequests && (
+            <button
+              type="button"
+              aria-current={requestsTab ? 'page' : undefined}
+              onClick={() => setParams({ aba: 'solicitacoes' })}
+            >
+              Solicitações <span>{pendingCount} pendente(s)</span>
+            </button>
+          )}
+          {canViewCommissions && (
+            <button
+              type="button"
+              aria-current={commissionTab ? 'page' : undefined}
+              onClick={() => setParams({ aba: 'porcentagens' })}
+            >
+              Porcentagens dos funcionários
+            </button>
+          )}
         </nav>
       )}
-      {requestsTab ? (
+      {commissionTab ? (
+        <CommissionPanel />
+      ) : requestsTab ? (
         <AvailabilityRequests
           management
           onChanged={() => {
@@ -231,120 +258,156 @@ export default function EmployeesPage() {
               busy={busy}
               onClose={() => setOpen(false)}
             >
-              <form
-                className="booking-form employee-booking-form"
-                onSubmit={save}
-              >
-                <fieldset disabled={busy}>
-                  <label>
-                    Nome completo
-                    <SalonInput
-                      required
-                      minLength={3}
-                      maxLength={255}
-                      value={form.name}
-                      onChange={(e) =>
-                        setForm({ ...form, name: e.target.value })
-                      }
-                    />
-                  </label>
-                  {!editing && (
+              {editing && canViewCommissions && (
+                <nav
+                  className="availability-tabs"
+                  aria-label="Detalhes do funcionário"
+                >
+                  <button
+                    aria-current={
+                      employeeTab === 'cadastro' ? 'page' : undefined
+                    }
+                    onClick={() => setEmployeeTab('cadastro')}
+                  >
+                    Cadastro e disponibilidade
+                  </button>
+                  <button
+                    aria-current={
+                      employeeTab === 'porcentagens' ? 'page' : undefined
+                    }
+                    onClick={() => setEmployeeTab('porcentagens')}
+                  >
+                    Porcentagens
+                  </button>
+                </nav>
+              )}
+              {employeeTab === 'porcentagens' && editing ? (
+                <CommissionRates id={editing} onBusyChange={setBusy} />
+              ) : (
+                <form
+                  className="booking-form employee-booking-form"
+                  onSubmit={save}
+                >
+                  <fieldset
+                    disabled={busy || !allowed(user, 'employees.manage')}
+                  >
                     <label>
-                      CPF
+                      Nome completo
                       <SalonInput
-                        ref={cpfInput}
                         required
-                        inputMode="numeric"
-                        maxLength={14}
-                        aria-invalid={
-                          error.startsWith('Invalid CPF.') || undefined
-                        }
-                        aria-describedby={
-                          error.startsWith('Invalid CPF.')
-                            ? 'employee-cpf-error'
-                            : undefined
-                        }
-                        value={form.cpf}
+                        minLength={3}
+                        maxLength={255}
+                        value={form.name}
                         onChange={(e) =>
-                          setForm({ ...form, cpf: e.target.value })
+                          setForm({ ...form, name: e.target.value })
                         }
                       />
-                      {error.startsWith('Invalid CPF.') && (
-                        <small
-                          id="employee-cpf-error"
-                          className="employee-field-error"
-                        >
-                          {error}
-                        </small>
-                      )}
                     </label>
-                  )}
-                  <label>
-                    Usuário de acesso
-                    <SalonSelect
-                      required
-                      disabled={editing !== null}
-                      value={form.userId || ''}
-                      onChange={(e) =>
-                        setForm({ ...form, userId: Number(e.target.value) })
-                      }
-                    >
-                      <option value="">Selecione um usuário cadastrado</option>
-                      {data.users.map((account) => (
-                        <option key={account.id} value={account.id}>
-                          {account.login} · {account.email}
-                        </option>
-                      ))}
-                    </SalonSelect>
-                  </label>
-                  <label>
-                    Disponível para reservas
-                    <SalonSelect
-                      value={String(form.active)}
-                      onChange={(e) =>
-                        setForm({ ...form, active: e.target.value === 'true' })
-                      }
-                    >
-                      <option value="true">Sim</option>
-                      <option value="false">Não</option>
-                    </SalonSelect>
-                  </label>
-                  <fieldset className="employee-options-group">
-                    <legend>Procedimentos habilitados</legend>
-                    {treatments.map((treatment) => (
-                      <label className="booking-choice" key={treatment.id}>
+                    {!editing && (
+                      <label>
+                        CPF
                         <SalonInput
-                          type="checkbox"
-                          checked={form.treatmentIds.includes(treatment.id)}
+                          ref={cpfInput}
+                          required
+                          inputMode="numeric"
+                          maxLength={14}
+                          aria-invalid={
+                            error.startsWith('Invalid CPF.') || undefined
+                          }
+                          aria-describedby={
+                            error.startsWith('Invalid CPF.')
+                              ? 'employee-cpf-error'
+                              : undefined
+                          }
+                          value={form.cpf}
                           onChange={(e) =>
-                            setForm({
-                              ...form,
-                              treatmentIds: e.target.checked
-                                ? [...form.treatmentIds, treatment.id]
-                                : form.treatmentIds.filter(
-                                    (id) => id !== treatment.id,
-                                  ),
-                            })
+                            setForm({ ...form, cpf: e.target.value })
                           }
                         />
-                        {treatment.name}
+                        {error.startsWith('Invalid CPF.') && (
+                          <small
+                            id="employee-cpf-error"
+                            className="employee-field-error"
+                          >
+                            {error}
+                          </small>
+                        )}
                       </label>
-                    ))}
+                    )}
+                    <label>
+                      Usuário de acesso
+                      <SalonSelect
+                        required
+                        disabled={editing !== null}
+                        value={form.userId || ''}
+                        onChange={(e) =>
+                          setForm({ ...form, userId: Number(e.target.value) })
+                        }
+                      >
+                        <option value="">
+                          Selecione um usuário cadastrado
+                        </option>
+                        {data.users.map((account) => (
+                          <option key={account.id} value={account.id}>
+                            {account.login} · {account.email}
+                          </option>
+                        ))}
+                      </SalonSelect>
+                    </label>
+                    <label>
+                      Disponível para reservas
+                      <SalonSelect
+                        value={String(form.active)}
+                        onChange={(e) =>
+                          setForm({
+                            ...form,
+                            active: e.target.value === 'true',
+                          })
+                        }
+                      >
+                        <option value="true">Sim</option>
+                        <option value="false">Não</option>
+                      </SalonSelect>
+                    </label>
+                    <fieldset className="employee-options-group">
+                      <legend>Procedimentos habilitados</legend>
+                      {treatments.map((treatment) => (
+                        <label className="booking-choice" key={treatment.id}>
+                          <SalonInput
+                            type="checkbox"
+                            checked={form.treatmentIds.includes(treatment.id)}
+                            onChange={(e) =>
+                              setForm({
+                                ...form,
+                                treatmentIds: e.target.checked
+                                  ? [...form.treatmentIds, treatment.id]
+                                  : form.treatmentIds.filter(
+                                      (id) => id !== treatment.id,
+                                    ),
+                              })
+                            }
+                          />
+                          {treatment.name}
+                        </label>
+                      ))}
+                    </fieldset>
+                    <WeeklyHoursEditor
+                      value={form.hours}
+                      onChange={(hours) => setForm({ ...form, hours })}
+                    />
                   </fieldset>
-                  <WeeklyHoursEditor
-                    value={form.hours}
-                    onChange={(hours) => setForm({ ...form, hours })}
-                  />
-                </fieldset>
-                {error && (
-                  <p className="booking-error" role="alert">
-                    {error}
-                  </p>
-                )}
-                <button className="primary-button" disabled={busy}>
-                  {busy ? 'Salvando…' : 'Salvar funcionário'}
-                </button>
-              </form>
+                  {error && (
+                    <p className="booking-error" role="alert">
+                      {error}
+                    </p>
+                  )}
+                  {allowed(user, 'employees.manage') && (
+                    <button className="primary-button" disabled={busy}>
+                      {busy ? 'Salvando…' : 'Salvar funcionário'}
+                    </button>
+                  )}
+                </form>
+              )}
             </SalonModal>
           )}
           <div className="employees-toolbar">
@@ -483,6 +546,20 @@ export default function EmployeesPage() {
                           aria-label={`Editar cadastro e disponibilidade de ${employee.name}`}
                         >
                           Editar cadastro e disponibilidade{' '}
+                          <span aria-hidden="true">↗</span>
+                        </button>
+                      </footer>
+                    )}
+                    {canViewCommissions && (
+                      <footer className="employee-card-footer">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            edit(employee)
+                            setEmployeeTab('porcentagens')
+                          }}
+                        >
+                          Porcentagens e histórico de alterações{' '}
                           <span aria-hidden="true">↗</span>
                         </button>
                       </footer>

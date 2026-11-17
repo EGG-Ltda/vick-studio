@@ -8,6 +8,15 @@ import { useAuth } from '../../core/auth/useAuth'
 import { bookingRequest } from '../booking/bookingApi'
 import type { BookingEmployee, BookingTreatment } from '../booking/bookingApi'
 import '../booking/booking.css'
+import './employees.css'
+
+const weekdayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb']
+function initials(name: string) {
+  const parts = name.trim().split(/\s+/)
+  return [parts[0]?.[0], parts.length > 1 ? parts.at(-1)?.[0] : '']
+    .join('')
+    .toUpperCase()
+}
 type Employee = BookingEmployee & {
   cpf: string
   userId: number
@@ -39,6 +48,7 @@ export default function EmployeesPage() {
     [open, setOpen] = useState(false),
     [busy, setBusy] = useState(false),
     [loading, setLoading] = useState(true),
+    [search, setSearch] = useState(''),
     [error, setError] = useState(''),
     [revision, setRevision] = useState(0)
   useEffect(() => {
@@ -109,8 +119,13 @@ export default function EmployeesPage() {
         Somente ADMIN ou MASTER pode gerenciar profissionais e habilitações.
       </p>
     )
+  const filtered = data.employees.filter((employee) =>
+    `${employee.name} ${employee.email}`
+      .toLocaleLowerCase('pt-BR')
+      .includes(search.trim().toLocaleLowerCase('pt-BR')),
+  )
   return (
-    <section className="dashboard-view">
+    <section className="dashboard-view employees-view">
       <header className="dashboard-view-header">
         <div>
           <span className="salon-eyebrow">Talentos que fazem florescer</span>
@@ -294,33 +309,152 @@ export default function EmployeesPage() {
           </form>
         </SalonModal>
       )}
-      <div className="booking-list">
-        {data.employees.map((employee) => (
-          <button
-            key={employee.id}
-            type="button"
-            disabled={!allowed(user, 'employees.manage')}
-            onClick={() => edit(employee)}
-          >
-            <strong>{employee.name}</strong>
-            <span>
-              {employee.email} · {employee.active ? 'Ativo' : 'Indisponível'}
-            </span>
-            <span>
-              {employee.treatmentIds.length} procedimentos ·{' '}
-              {employee.hours.length} dias de trabalho
-            </span>
-            {allowed(user, 'employees.manage') && (
-              <small>Editar horários e habilitações</small>
-            )}
-          </button>
-        ))}
+      <div className="employees-toolbar">
+        <div>
+          <h2>Profissionais do estúdio</h2>
+          <p>
+            {loading
+              ? 'Consultando equipe…'
+              : `${data.employees.length} profissional(is) cadastrado(s)`}
+          </p>
+        </div>
+        <label className="employees-search">
+          <span>Buscar profissional</span>
+          <SalonInput
+            type="search"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
+            placeholder="Nome ou e-mail"
+          />
+        </label>
       </div>
-      {!loading && !data.employees.length && (
-        <p>
-          Nenhum funcionário cadastrado. Cadastre primeiro o usuário de acesso e
-          depois vincule-o aqui.
-        </p>
+      {!loading && (
+        <div className="employees-grid">
+          {filtered.map((employee) => {
+            const qualifications = employee.treatmentIds.map(
+              (id) =>
+                treatments.find((treatment) => treatment.id === id)?.name ??
+                'Procedimento indisponível',
+            )
+            const hours = [...employee.hours].sort(
+              (a, b) => a.weekday - b.weekday,
+            )
+            const sameHours =
+              hours.length > 0 &&
+              hours.every(
+                (hour) =>
+                  hour.opensAt === hours[0].opensAt &&
+                  hour.closesAt === hours[0].closesAt,
+              )
+            return (
+              <article className="employee-card" key={employee.id}>
+                <header className="employee-card-header">
+                  <span className="employee-avatar" aria-hidden="true">
+                    {initials(employee.name)}
+                  </span>
+                  <div className="employee-identity">
+                    <h3>{employee.name}</h3>
+                    <p>{employee.email}</p>
+                  </div>
+                  <span
+                    className={`employee-availability ${employee.active ? 'is-active' : 'is-inactive'}`}
+                  >
+                    <span aria-hidden="true" />
+                    {employee.active ? 'Ativo' : 'Indisponível'}
+                  </span>
+                </header>
+                <section
+                  className="employee-card-section"
+                  aria-label="Procedimentos habilitados"
+                >
+                  <div className="employee-section-heading">
+                    <h4>Procedimentos</h4>
+                    <span>{qualifications.length} habilitado(s)</span>
+                  </div>
+                  <div className="employee-treatment-tags">
+                    {qualifications.length ? (
+                      qualifications.map((name, index) => (
+                        <span key={employee.treatmentIds[index]}>{name}</span>
+                      ))
+                    ) : (
+                      <p>Nenhum procedimento habilitado.</p>
+                    )}
+                  </div>
+                </section>
+                <section
+                  className="employee-card-section"
+                  aria-label="Expediente"
+                >
+                  <div className="employee-section-heading">
+                    <h4>Expediente</h4>
+                    <span>Horário de Brasília</span>
+                  </div>
+                  <div className="employee-weekdays">
+                    {weekdayLabels.map((day, weekday) => {
+                      const working = hours.some(
+                        (hour) => hour.weekday === weekday,
+                      )
+                      return (
+                        <span
+                          key={day}
+                          className={working ? 'is-working' : ''}
+                          aria-label={`${day}: ${working ? 'dia de trabalho' : 'sem expediente'}`}
+                        >
+                          {day}
+                        </span>
+                      )
+                    })}
+                  </div>
+                  {sameHours ? (
+                    <p className="employee-working-time">
+                      {hours[0].opensAt.slice(0, 5)} <span>às</span>{' '}
+                      {hours[0].closesAt.slice(0, 5)}
+                    </p>
+                  ) : hours.length ? (
+                    <div className="employee-variable-hours">
+                      {hours.map((hour) => (
+                        <span key={hour.weekday}>
+                          {weekdayLabels[hour.weekday]} ·{' '}
+                          {hour.opensAt.slice(0, 5)}–{hour.closesAt.slice(0, 5)}
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="employee-no-hours">
+                      Nenhum expediente configurado.
+                    </p>
+                  )}
+                </section>
+                {allowed(user, 'employees.manage') && (
+                  <footer className="employee-card-footer">
+                    <button
+                      type="button"
+                      onClick={() => edit(employee)}
+                      aria-label={`Editar cadastro e disponibilidade de ${employee.name}`}
+                    >
+                      Editar cadastro e disponibilidade{' '}
+                      <span aria-hidden="true">↗</span>
+                    </button>
+                  </footer>
+                )}
+              </article>
+            )
+          })}
+        </div>
+      )}
+      {!loading && !filtered.length && (
+        <div className="employees-empty">
+          <h3>
+            {data.employees.length
+              ? 'Nenhum profissional encontrado'
+              : 'Sua equipe começa aqui'}
+          </h3>
+          <p>
+            {data.employees.length
+              ? 'Tente buscar por outro nome ou e-mail.'
+              : 'Cadastre primeiro um usuário de acesso e depois vincule o funcionário, os procedimentos e o expediente.'}
+          </p>
+        </div>
       )}
     </section>
   )

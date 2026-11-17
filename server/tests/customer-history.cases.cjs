@@ -18,6 +18,10 @@ module.exports = async ({
   cpf,
   bodyFor,
 }) => {
+  // Explicit fixture configuration; real employees remain pending until configured.
+  await db.query(
+    'INSERT INTO employee_commission_rates(employee_id,treatment_id,standard_percent,package_percent,updated_by) SELECT employee_id,treatment_id,0,0,1 FROM employee_salon_treatments ON CONFLICT DO NOTHING',
+  )
   const customerId = alice.body.data.customerId,
     orderId = first.id
   let extraId, paymentId, third, thirdOrder

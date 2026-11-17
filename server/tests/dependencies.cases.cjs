@@ -494,7 +494,7 @@ module.exports = async ({
       const art = (
         await db.query('SELECT id FROM promotion_art ORDER BY id LIMIT 1')
       ).rows[0].id
-      const today = date(0),
+      const today = new Intl.DateTimeFormat('en-CA',{timeZone:'America/Sao_Paulo'}).format(new Date()),
         end = date(30)
       const createPromotion = async (items) =>
         send('POST', '/social/promotions', {

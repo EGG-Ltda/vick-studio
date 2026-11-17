@@ -215,7 +215,7 @@ export const permissionCatalog = [
   [
     'staff.permissions',
     'Usuários',
-    'Ajustar acessos de funcionários dentro dos limites',
+    'Configurar perfil e acessos dos funcionários dentro dos limites do Master',
     false,
     ['users.view'],
   ],

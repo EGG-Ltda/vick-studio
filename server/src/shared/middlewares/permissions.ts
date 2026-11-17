@@ -10,7 +10,7 @@ export function routePermission(method: string, path: string): string | null {
     return 'availability.view'
   }
   if (path.startsWith('/access/profiles') || path === '/access/audit')
-    return 'profiles.manage'
+    return 'staff.permissions'
   if (path === '/access/catalog') return 'users.view'
   if (/^\/access\/users\//.test(path)) return 'staff.permissions'
   if (path.startsWith('/inventory')) {

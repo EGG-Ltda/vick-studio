@@ -73,7 +73,8 @@ export function routePermission(method: string, path: string): string | null {
   if (path.startsWith('/orders')) {
     if (path.endsWith('/reschedule-slots')) return 'agenda.change'
     if (path.endsWith('/change')) return 'agenda.change'
-    if (path.endsWith('/complete')) return 'agenda.complete'
+    if (path.endsWith('/complete') || path.endsWith('/start'))
+      return 'agenda.complete'
     if (path.includes('/consumptions')) return 'orders.consumptions'
     if (path.endsWith('/refund')) return 'orders.refunds'
     if (path.endsWith('/payments')) return 'orders.payments'

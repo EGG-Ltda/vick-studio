@@ -22,7 +22,7 @@ import {
   validateLinkedChange,
   validatePlan,
 } from '../dependencies/rules'
-const promotionSelect = `SELECT p.id,p.title,p.description,p.conditions,p.art_id::int AS "artId",p.alt_text AS "altText",p.starts_on::text AS "startsOn",p.ends_on::text AS "endsOn",p.active,p.price::float AS price,
+const promotionSelect = `SELECT p.id,p.title,p.description,p.conditions,p.art_id::int AS "artId",p.alt_text AS "altText",p.starts_on::text AS "startsOn",p.ends_on::text AS "endsOn",p.active,p.price::float AS price,p.minimum_payment_percent::float AS "minimumPaymentPercent",
  COALESCE((SELECT json_agg(json_build_object('treatmentId',i.treatment_id,'quantity',i.quantity,'name',t.name,'durationMinutes',t.duration_minutes,'price',t.price::float) ORDER BY i.treatment_id) FROM promotion_items i JOIN salon_treatments t ON t.id=i.treatment_id WHERE i.promotion_id=p.id),'[]') AS items FROM promotions p`
 export class SocialService {
   booking: BookingService
@@ -59,7 +59,7 @@ export class SocialService {
   async promotions(publicOnly = false) {
     return (
       await this.query(
-        `${promotionSelect} WHERE (NOT $1::boolean OR (p.active AND (now() AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN p.starts_on AND p.ends_on AND NOT EXISTS(SELECT 1 FROM promotion_items i JOIN salon_treatments t ON t.id=i.treatment_id WHERE i.promotion_id=p.id AND NOT t.is_active))) ORDER BY p.id DESC`,
+        `${promotionSelect} WHERE (NOT $1::boolean OR (p.active AND p.minimum_payment_percent IS NOT NULL AND (now() AT TIME ZONE 'America/Sao_Paulo')::date BETWEEN p.starts_on AND p.ends_on AND NOT EXISTS(SELECT 1 FROM promotion_items i JOIN salon_treatments t ON t.id=i.treatment_id WHERE i.promotion_id=p.id AND NOT t.is_active))) ORDER BY p.id DESC`,
         [publicOnly],
       )
     ).rows
@@ -100,15 +100,20 @@ export class SocialService {
       ]
       const result = id
         ? await client.query(
-            'UPDATE promotions SET title=$1,description=$2,conditions=$3,art_id=$4,alt_text=$5,starts_on=$6,ends_on=$7,active=$8,price=$9,updated_at=now() WHERE id=$10 RETURNING id',
-            [...params, id],
+            'UPDATE promotions SET title=$1,description=$2,conditions=$3,art_id=$4,alt_text=$5,starts_on=$6,ends_on=$7,active=$8,price=$9,updated_at=now() ,minimum_payment_percent=COALESCE($11,minimum_payment_percent) WHERE id=$10 RETURNING id',
+            [...params, id, data.minimumPaymentPercent ?? null],
           )
         : await client.query(
-            'INSERT INTO promotions(title,description,conditions,art_id,alt_text,starts_on,ends_on,active,price,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id',
-            [...params, actor.id],
+            'INSERT INTO promotions(title,description,conditions,art_id,alt_text,starts_on,ends_on,active,price,created_by,minimum_payment_percent) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
+            [...params, actor.id, data.minimumPaymentPercent ?? null],
           )
       if (!result.rows[0]) bookingError('Promotion not found.', 404)
       id = result.rows[0].id
+      if (data.minimumPaymentPercent !== undefined)
+        await client.query(
+          'UPDATE package_purchases SET minimum_payment_percent=$2 WHERE promotion_id=$1 AND minimum_payment_percent IS NULL',
+          [id, data.minimumPaymentPercent],
+        )
       await client.query('DELETE FROM promotion_items WHERE promotion_id=$1', [
         id,
       ])
@@ -158,7 +163,11 @@ export class SocialService {
             [data.promotionId],
           )
         ).rows[0]
-        if (!p) bookingError('Promotion is unavailable.', 409)
+        if (!p || p.minimumPaymentPercent === null)
+          bookingError(
+            'Configure the package minimum payment before acquisition.',
+            409,
+          )
         const validUntil = await this.validUntil(client)
         if (
           p.price !== data.expectedPrice ||
@@ -189,7 +198,7 @@ export class SocialService {
         await this.booking.expire(client)
         const purchase = (
           await client.query(
-            'INSERT INTO package_purchases(customer_id,account_id,promotion_id,title,conditions,price,valid_until,request_key,fingerprint) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id',
+            'INSERT INTO package_purchases(customer_id,account_id,promotion_id,title,conditions,price,valid_until,request_key,fingerprint,minimum_payment_percent) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING id',
             [
               account.customerId,
               account.id,
@@ -200,6 +209,7 @@ export class SocialService {
               validUntil,
               data.requestKey,
               fingerprint,
+              p.minimumPaymentPercent,
             ],
           )
         ).rows[0]
@@ -245,6 +255,10 @@ export class SocialService {
               ],
             )
           ).rows[0]
+          await client.query(
+            'UPDATE package_uses SET plan_key=$2 WHERE id=$1',
+            [use.id, 'use:' + use.id],
+          )
           const schedule = (
             await client.query(
               `INSERT INTO salon_schedules(customer_id,schedule_started_at,schedule_ended_at,no_treatments,status,booking_account_id,total_price,package_use_id,created_at) VALUES($1,$2,$3,1,'confirmed',$4,$5,$6,now()) RETURNING id`,
@@ -293,9 +307,9 @@ export class SocialService {
       can(actor, financialOverride ? 'finance.view' : 'clients.financial')
     return (
       await this.query(
-        `SELECT p.id,p.title,p.conditions,p.price::float AS price,p.acquired_at AS "acquiredAt",p.valid_until AS "validUntil",p.valid_until<now() AS expired,
+        `SELECT p.id,p.title,p.conditions,p.price::float AS price,p.minimum_payment_percent::float AS "minimumPaymentPercent",(ceil(p.price*p.minimum_payment_percent)/100)::float AS "minimumPayment",p.acquired_at AS "acquiredAt",p.valid_until AS "validUntil",p.valid_until<now() AS expired,
    (SELECT COALESCE(sum(CASE WHEN kind='refund' THEN -amount ELSE amount END),0)::float FROM package_receipts WHERE purchase_id=p.id) AS "totalPaid",
-   (SELECT json_agg(json_build_object('id',u.id,'scheduleId',s.id,'name',u.treatment_name,'price',u.price::float,'state',CASE WHEN u.state<>'completed' AND p.valid_until<now() THEN 'expired' ELSE u.state END,'status',s.status,'startsAt',s.schedule_started_at,'endsAt',s.schedule_ended_at,'employeeId',e.id,'employeeName',ep.name) ORDER BY u.id) FROM package_uses u JOIN salon_schedules s ON s.id=u.schedule_id JOIN salon_schedule_treatments st ON st.schedule_id=s.id JOIN employees e ON e.id=st.employee_id JOIN persons ep ON ep.id=e.person_id WHERE u.purchase_id=p.id AND ($2::boolean OR (e.user_id=$3 AND e.is_active))) AS uses,
+   (SELECT json_agg(json_build_object('id',u.id,'scheduleId',s.id,'name',u.treatment_name,'price',u.price::float,'state',CASE WHEN u.state IN ('available','reserved') AND p.valid_until<now() THEN 'expired' ELSE u.state END,'status',s.status,'startsAt',s.schedule_started_at,'endsAt',s.schedule_ended_at,'employeeId',e.id,'employeeName',ep.name) ORDER BY u.id) FROM package_uses u LEFT JOIN salon_schedules s ON s.id=u.schedule_id LEFT JOIN salon_schedule_treatments st ON st.schedule_id=s.id LEFT JOIN employees e ON e.id=st.employee_id LEFT JOIN persons ep ON ep.id=e.person_id WHERE u.purchase_id=p.id AND ($2::boolean OR (e.user_id=$3 AND e.is_active))) AS uses,
    CASE WHEN $2::boolean THEN (SELECT json_agg(json_build_object('id',r.id,'kind',r.kind,'amount',r.amount::float,'description',r.description,'createdAt',r.created_at,'refundOf',r.refund_of,'method',m.name) ORDER BY r.id) FROM package_receipts r JOIN payment_methods m ON m.id=r.method_id WHERE r.purchase_id=p.id) ELSE '[]'::json END AS receipts
    FROM package_purchases p WHERE p.customer_id=$1 AND ($2::boolean OR EXISTS(SELECT 1 FROM package_uses u JOIN salon_schedule_treatments st ON st.schedule_id=u.schedule_id JOIN employees e ON e.id=st.employee_id WHERE u.purchase_id=p.id AND e.user_id=$3 AND e.is_active)) ORDER BY p.id DESC LIMIT 100`,
         [customerId, admin, actor?.id ?? 0],
@@ -306,7 +320,10 @@ export class SocialService {
             ...p,
             canViewFinancial: financial,
             totalPaid: financial ? p.totalPaid : null,
-            receipts: financial ? p.receipts : [],
+            receipts: actor && financial ? p.receipts : [],
+            uses: !actor
+              ? p.uses?.map((u: any) => ({ ...u, price: null }))
+              : p.uses,
           }
         : {
             ...p,
@@ -314,6 +331,8 @@ export class SocialService {
             totalPaid: null,
             price: null,
             conditions: null,
+            minimumPayment: null,
+            minimumPaymentPercent: null,
           },
     )
   }
@@ -355,7 +374,8 @@ export class SocialService {
       const cents = Math.round(data.amount * 100)
       let source: any,
         weights: number[],
-        orders: number[],
+        orders: (number | null)[],
+        useIds: number[] = [],
         sources: number[] = []
       if (refundOf) {
         source = (
@@ -368,13 +388,14 @@ export class SocialService {
           bookingError('Refund exceeds the original unrefunded payment.', 409)
         const rows = (
           await client.query(
-            `SELECT t.id,t.order_id,t.value-(SELECT COALESCE(sum(value),0) FROM salon_transactions WHERE refund_of=t.id) AS remaining FROM salon_transactions t WHERE package_receipt_id=$1 ORDER BY t.order_id`,
+            `SELECT t.id,t.order_id,t.package_use_id,t.value-(SELECT COALESCE(sum(value),0) FROM salon_transactions WHERE refund_of=t.id) AS remaining FROM salon_transactions t WHERE package_receipt_id=$1 ORDER BY t.id`,
             [refundOf],
           )
         ).rows
         weights = rows.map((r: any) => Math.round(Number(r.remaining) * 100))
         orders = rows.map((r: any) => r.order_id)
         sources = rows.map((r: any) => r.id)
+        useIds = rows.map((r: any) => r.package_use_id)
       } else {
         const paid = Number(
           (
@@ -388,12 +409,13 @@ export class SocialService {
           bookingError('Payment exceeds package balance.', 409)
         const rows = (
           await client.query(
-            `SELECT u.schedule_id,u.price-(SELECT COALESCE(sum(CASE WHEN ledger_kind='refund' THEN -value ELSE value END),0) FROM salon_transactions WHERE order_id=u.schedule_id AND package_receipt_id IS NOT NULL) AS remaining FROM package_uses u WHERE purchase_id=$1 ORDER BY u.schedule_id`,
+            `SELECT u.id,u.schedule_id,u.price-(SELECT COALESCE(sum(CASE WHEN ledger_kind='refund' THEN -value ELSE value END),0) FROM salon_transactions WHERE package_use_id=u.id AND package_receipt_id IS NOT NULL) AS remaining FROM package_uses u WHERE purchase_id=$1 ORDER BY u.id`,
             [id],
           )
         ).rows
         weights = rows.map((r: any) => Math.round(Number(r.remaining) * 100))
         orders = rows.map((r: any) => r.schedule_id)
+        useIds = rows.map((r: any) => r.id)
       }
       const method =
         source?.method_id ?? ('methodId' in data ? data.methodId : 0)
@@ -431,7 +453,7 @@ export class SocialService {
         if (amount) {
           const tx = (
             await client.query(
-              `INSERT INTO salon_transactions(method_id,type_id,is_debit,description,value,created_at,order_id,ledger_kind,refund_of,recorded_by,request_key,package_receipt_id) VALUES($1,(SELECT id FROM transaction_types WHERE name=$2),$3,$4,$5,now(),$6,$7,$8,$9,$10,$11) RETURNING id`,
+              `INSERT INTO salon_transactions(method_id,type_id,is_debit,description,value,created_at,order_id,ledger_kind,refund_of,recorded_by,request_key,package_receipt_id,package_use_id) VALUES($1,(SELECT id FROM transaction_types WHERE name=$2),$3,$4,$5,now(),$6,$7,$8,$9,$10,$11,$12) RETURNING id`,
               [
                 method,
                 refundOf ? 'Estorno de cliente' : 'Recebimento de cliente',
@@ -444,13 +466,15 @@ export class SocialService {
                 actor.id,
                 randomUUID(),
                 r.id,
+                useIds[i],
               ],
             )
           ).rows[0]
-          await client.query(
-            'INSERT INTO salon_schedule_transactions(schedule_id,transaction_id,created_at) VALUES($1,$2,now())',
-            [orders[i], tx.id],
-          )
+          if (orders[i])
+            await client.query(
+              'INSERT INTO salon_schedule_transactions(schedule_id,transaction_id,created_at) VALUES($1,$2,now())',
+              [orders[i], tx.id],
+            )
         }
       return r
     })

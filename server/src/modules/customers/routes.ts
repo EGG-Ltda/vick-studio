@@ -204,4 +204,10 @@ export default async function customerRoutes(app: FastifyInstance) {
     async (req, res) =>
       ok(res, await service.complete(req.authUser, id(req.params.id))),
   )
+  app.post<{ Params: { id: string } }>(
+    '/orders/:id/start',
+    secured,
+    async (req, res) =>
+      ok(res, await service.start(req.authUser, id(req.params.id))),
+  )
 }

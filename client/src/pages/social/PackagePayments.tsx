@@ -78,7 +78,7 @@ export function PackagePayments({
         },
       )
       setNotice(
-        'Lançamento do pacote registrado e distribuído entre as comandas.',
+        'Lançamento registrado no pacote, incluindo utilizações ainda sem horário.',
       )
       setForm({ ...form, amount: '' })
       request.current = null
@@ -106,6 +106,11 @@ export function PackagePayments({
       {!data && !error && <p role="status">Consultando pacote…</p>}
       {data && (
         <>
+          <p>
+            {data.minimumPaymentPercent === null
+              ? 'Pagamento mínimo ainda não configurado: os atendimentos estão bloqueados.'
+              : `Mínimo para realizar: ${data.minimumPaymentPercent}% · ${money(data.minimumPayment)}. ${Number(data.totalPaid) >= Number(data.minimumPayment) ? 'Condição de pagamento atingida.' : 'Aguardando recebimento mínimo.'}`}
+          </p>
           <p>
             {data.title} · Valor {money(data.price)} · Pago{' '}
             {money(data.totalPaid)} · Saldo{' '}

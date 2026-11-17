@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { FormEvent } from 'react'
 import { Link, Navigate, useLocation, useNavigate } from 'react-router-dom'
 import { PackageBooking } from '../social/PackageBooking'
-import { PackageHistory } from '../social/PackageHistory'
+
 import logo from '../../assets/vick-florez-logo.webp'
 import { BookingForm } from './BookingForm'
 import {
@@ -65,7 +65,7 @@ function BookingSummary({ order }: { order: BookingOrder }) {
 export default function BookingPage() {
   const navigate = useNavigate()
   const location = useLocation()
-  const [packageRevision, setPackageRevision] = useState(0)
+  const [, setPackageRevision] = useState(0)
   const [isPackageSelected, setIsPackageSelected] = useState(false)
   useEffect(() => {
     const id = new URLSearchParams(location.search).get('pacote')
@@ -203,7 +203,15 @@ export default function BookingPage() {
         </Link>
         <span>Seu momento de florescer</span>
         <Link to="/" className="booking-home-link">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.7" aria-hidden="true">
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.7"
+            aria-hidden="true"
+          >
             <path d="m10 5-7 7 7 7M3 12h18" />
           </svg>
           Voltar para o início
@@ -381,7 +389,7 @@ export default function BookingPage() {
                   .catch((cause) => setError(cause.message))
               }}
             />
-            <PackageHistory revision={packageRevision} />
+
             {created ? (
               <section aria-live="polite">
                 <h2 ref={successHeading} tabIndex={-1}>
@@ -392,8 +400,8 @@ export default function BookingPage() {
                 {created.groupId && (
                   <p>
                     Todos os atendimentos do conjunto #{created.groupId} foram
-                    reservados juntos. Confira os horários e o sinal de cada um
-                    em “Meus agendamentos”.
+                    reservados juntos. Confira os horários e o sinal informados
+                    na confirmação.
                   </p>
                 )}
                 <BookingSummary
@@ -410,16 +418,6 @@ export default function BookingPage() {
                 <BookingForm catalog={catalog} onBooked={setCreated} />
               )
             )}
-            <section className="booking-history">
-              <h2>Meus agendamentos</h2>
-              {orders.length === 0 ? (
-                <p>Você ainda não tem agendamentos.</p>
-              ) : (
-                orders.map((order) => (
-                  <BookingSummary key={order.id} order={order} />
-                ))
-              )}
-            </section>
           </>
         )}
       </div>

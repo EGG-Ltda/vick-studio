@@ -221,6 +221,10 @@ export class DependencyService {
             true,
           )
           purchaseId = purchase.id
+          await c.query(
+            'UPDATE package_purchases SET booking_plan=$2 WHERE id=$1',
+            [purchaseId, JSON.stringify(plan)],
+          )
         }
         const group = (
           await c.query(
@@ -258,6 +262,11 @@ export class DependencyService {
                 c,
                 true,
               )
+          if (n.included)
+            await c.query(
+              'UPDATE package_uses SET plan_key=$2 WHERE schedule_id=$1',
+              [booking.id, n.key],
+            )
           await c.query(
             'INSERT INTO booking_group_members(group_id,node_key,schedule_id) VALUES($1,$2,$3)',
             [group.id, n.key, booking.id],

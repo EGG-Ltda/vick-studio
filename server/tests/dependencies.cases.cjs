@@ -507,6 +507,7 @@ module.exports = async ({
           endsOn: end,
           active: true,
           price: 90,
+          minimumPaymentPercent: 100,
           items,
         })
       const promo = await createPromotion([

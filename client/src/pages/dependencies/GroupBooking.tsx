@@ -11,7 +11,7 @@ import { bookingRequest, bookingDate, money } from '../booking/bookingApi'
 import type { Dependency } from '../../core/api/treatments'
 import './dependencies.css'
 import { ruleText } from './ruleText'
-type Node = {
+export type Node = {
   key: string
   treatmentId: number
   name: string
@@ -34,7 +34,7 @@ export type Plan = {
   promotionId: number | null
   rootIds: number[]
 }
-type Choice = {
+export type Choice = {
   key: string
   employeeId: number
   slot: BookingSlot
@@ -77,13 +77,15 @@ function validation(plan: Plan, choices: Record<string, Choice | null>) {
         return 'Os procedimentos da cliente não podem acontecer ao mesmo tempo, mesmo com profissionais diferentes.'
   return ''
 }
-function ProcedureChoice({
+export function ProcedureChoice({
   node,
   catalog,
   staff,
   disabled,
   onChange,
   requiredFor,
+  packageSelection,
+  slotAllowed,
 }: {
   node: Node
   catalog: BookingCatalog
@@ -91,6 +93,8 @@ function ProcedureChoice({
   disabled: boolean
   onChange: (c: Choice | null) => void
   requiredFor: string
+  packageSelection?: { promotionId?: number; purchaseId?: number }
+  slotAllowed?: (s: BookingSlot) => boolean
 }) {
   const [employee, setEmployee] = useState(''),
     [date, setDate] = useState(''),
@@ -99,7 +103,8 @@ function ProcedureChoice({
     [selected, setSelected] = useState(''),
     [error, setError] = useState(''),
     [loaded, setLoaded] = useState('')
-  const requestKey = [employee, date, deadline].join('|'),
+  const packageKey = JSON.stringify(packageSelection)
+  const requestKey = [employee, date, deadline, packageKey].join('|'),
     ready = !!employee && !!date && (!staff || !!deadline)
   useEffect(() => {
     if (!ready) return
@@ -112,8 +117,23 @@ function ProcedureChoice({
     if (staff)
       params.set('depositDeadline', new Date(deadline + '-03:00').toISOString())
     bookingRequest<BookingSlot[]>(
-      `${staff ? '/booking/staff-slots' : '/customer/slots'}?${params}`,
-      { signal: c.signal },
+      packageKey
+        ? '/customer/package-slots'
+        : `${staff ? '/booking/staff-slots' : '/customer/slots'}?${params}`,
+      {
+        signal: c.signal,
+        ...(packageKey
+          ? {
+              method: 'POST',
+              body: JSON.stringify({
+                ...JSON.parse(packageKey!),
+                key: node.key,
+                employeeId: Number(employee),
+                date,
+              }),
+            }
+          : {}),
+      },
     )
       .then((d) => {
         if (!c.signal.aborted) {
@@ -129,7 +149,17 @@ function ProcedureChoice({
         }
       })
     return () => c.abort()
-  }, [employee, date, deadline, node.treatmentId, staff, ready, requestKey])
+  }, [
+    employee,
+    date,
+    deadline,
+    node.treatmentId,
+    node.key,
+    staff,
+    ready,
+    requestKey,
+    packageKey,
+  ])
   function reset() {
     setSelected('')
     setSlots([])
@@ -150,9 +180,7 @@ function ProcedureChoice({
       <div className="dependency-subtotal">
         <span>{node.durationMinutes} minutos</span>
         <strong>
-          {node.included
-            ? `${money(node.chargedPrice)} · incluído no pacote`
-            : money(node.price)}
+          {node.included ? 'Incluído no pacote' : money(node.price)}
         </strong>
       </div>
       {node.blocked && (
@@ -227,37 +255,39 @@ function ProcedureChoice({
               role="group"
               aria-label={`Horários de ${node.name}`}
             >
-              {slots.map((s) => (
-                <button
-                  type="button"
-                  disabled={disabled}
-                  key={s.startsAt}
-                  aria-pressed={selected === s.startsAt}
-                  onClick={() => {
-                    setSelected(s.startsAt)
-                    onChange({
-                      key: node.key,
-                      employeeId: Number(employee),
-                      slot: s,
-                      ...(staff
-                        ? {
-                            depositDeadline: new Date(
-                              deadline + '-03:00',
-                            ).toISOString(),
-                          }
-                        : {}),
-                    })
-                  }}
-                >
-                  {new Intl.DateTimeFormat('pt-BR', {
-                    hour: '2-digit',
-                    minute: '2-digit',
-                    timeZone: 'America/Sao_Paulo',
-                  }).format(new Date(s.startsAt))}
-                </button>
-              ))}
+              {slots
+                .filter((s) => !slotAllowed || slotAllowed(s))
+                .map((s) => (
+                  <button
+                    type="button"
+                    disabled={disabled}
+                    key={s.startsAt}
+                    aria-pressed={selected === s.startsAt}
+                    onClick={() => {
+                      setSelected(s.startsAt)
+                      onChange({
+                        key: node.key,
+                        employeeId: Number(employee),
+                        slot: s,
+                        ...(staff
+                          ? {
+                              depositDeadline: new Date(
+                                deadline + '-03:00',
+                              ).toISOString(),
+                            }
+                          : {}),
+                      })
+                    }}
+                  >
+                    {new Intl.DateTimeFormat('pt-BR', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      timeZone: 'America/Sao_Paulo',
+                    }).format(new Date(s.startsAt))}
+                  </button>
+                ))}
             </div>
-            {!slots.length && (
+            {!slots.filter((s) => !slotAllowed || slotAllowed(s)).length && (
               <p>
                 Nenhum horário disponível. Escolha outra data ou profissional.
               </p>
@@ -400,54 +430,54 @@ export function GroupBooking({
                   {plan.rules.map((r, i) => (
                     <li key={i}>
                       {ruleText(r)}
-                      {plan.rules.filter((x) => x.required === r.required)
-                        .length > 1 && (
-                        <button
-                          type="button"
-                          disabled={busy}
-                          onClick={() =>
-                            setSeparate((v) => [
-                              ...v,
-                              {
-                                main: r.main,
-                                requiredTreatmentId: r.requiredTreatmentId,
-                              },
-                            ])
-                          }
-                        >
-                          Reservar outra realização para {r.mainName}
-                        </button>
-                      )}
+                      {staff &&
+                        plan.rules.filter((x) => x.required === r.required)
+                          .length > 1 && (
+                          <button
+                            type="button"
+                            disabled={busy}
+                            onClick={() =>
+                              setSeparate((v) => [
+                                ...v,
+                                {
+                                  main: r.main,
+                                  requiredTreatmentId: r.requiredTreatmentId,
+                                },
+                              ])
+                            }
+                          >
+                            Reservar outra realização para {r.mainName}
+                          </button>
+                        )}
                     </li>
                   ))}
                 </ul>
                 <p>
-                  Uma única realização do procedimento obrigatório é
-                  reaproveitada quando atende a mais de um serviço selecionado.
-                  Nenhum horário será reservado antes da confirmação de todo o
-                  conjunto.
+                  Escolha os horários abaixo na sequência indicada. A
+                  confirmação reserva o conjunto completo.
                 </p>
-                {separate.length > 0 ? (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => setSeparate([])}
-                  >
-                    Voltar a compartilhar procedimentos obrigatórios
-                  </button>
-                ) : (
-                  plan.rules.some(
-                    (r) =>
-                      plan.rules.filter((x) => x.required === r.required)
-                        .length > 1,
-                  ) && (
-                    <p>
-                      Se as datas exigirem realizações diferentes, escolha
-                      “Reservar outra realização”. O procedimento adicional terá
-                      preço e sinal próprios.
-                    </p>
-                  )
-                )}
+                {staff &&
+                  (separate.length > 0 ? (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => setSeparate([])}
+                    >
+                      Voltar a compartilhar procedimentos obrigatórios
+                    </button>
+                  ) : (
+                    plan.rules.some(
+                      (r) =>
+                        plan.rules.filter((x) => x.required === r.required)
+                          .length > 1,
+                    ) && (
+                      <p>
+                        Se as datas exigirem realizações diferentes, escolha
+                        “Reservar outra realização”. O procedimento adicional
+                        terá preço e sinal próprios.
+                      </p>
+                    )
+                  ))}
               </section>
             )}
             {promotionId && (
@@ -479,9 +509,7 @@ export function GroupBooking({
                   <div key={n.key} className="dependency-rule">
                     <strong>
                       {n.name} ·{' '}
-                      {n.included
-                        ? `${money(n.chargedPrice)} · incluído no pacote`
-                        : money(n.price)}
+                      {n.included ? 'Incluído no pacote' : money(n.price)}
                     </strong>
                     {c ? (
                       <>

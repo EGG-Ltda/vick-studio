@@ -38,7 +38,13 @@ export const permissionCatalog = [
     true,
     ['agenda.view', 'finance.view'],
   ],
-  ['agenda.complete', 'Agenda', 'Concluir atendimentos', true, ['orders.view']],
+  [
+    'agenda.complete',
+    'Agenda',
+    'Iniciar e concluir atendimentos',
+    true,
+    ['orders.view'],
+  ],
   ['orders.view', 'Comandas', 'Consultar comandas', true, []],
   [
     'orders.products',

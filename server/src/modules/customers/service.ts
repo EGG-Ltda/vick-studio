@@ -14,6 +14,11 @@ import {
 } from './schemas'
 import z from 'zod'
 import { recognizeProducts, reverseProduct } from '../inventory/ledger'
+import {
+  lockOrderPackage,
+  packagePayment,
+  requirePackagePayment,
+} from '../package-booking/payment'
 
 const scope = `($1::boolean OR EXISTS(SELECT 1 FROM salon_schedule_treatments st JOIN employees e ON e.id=st.employee_id WHERE st.schedule_id=s.id AND e.user_id=$2 AND e.is_active))`
 const profileSelect = `SELECT c.id,p.born_at::text AS "birthDate",p.name,p.cpf_cnpj AS cpf,COALESCE(a.email,c.contact_email) AS email,COALESCE(a.phone,c.contact_phone) AS phone,c.created_at AS "createdAt" FROM customers c JOIN persons p ON p.id=c.person_id LEFT JOIN customer_accounts a ON a.customer_id=c.id`
@@ -87,7 +92,7 @@ export class CustomerService {
     const summary = (
       await this.query(
         `SELECT
-    (SELECT COALESCE(sum(round((CASE WHEN tx.ledger_kind='refund' THEN -abs(tx.value) ELSE abs(tx.value) END)*(${receiptShare}),2)),0)::float FROM salon_transactions tx JOIN salon_schedules s ON s.id=tx.order_id WHERE s.customer_id=$3 AND tx.ledger_kind IS NOT NULL AND ${scope}) AS "totalPaid",
+    ((SELECT COALESCE(sum(round((CASE WHEN tx.ledger_kind='refund' THEN -abs(tx.value) ELSE abs(tx.value) END)*(${receiptShare}),2)),0) FROM salon_transactions tx JOIN salon_schedules s ON s.id=tx.order_id WHERE s.customer_id=$3 AND tx.ledger_kind IS NOT NULL AND ${scope})+CASE WHEN $1::boolean THEN (SELECT COALESCE(sum(CASE WHEN tx.ledger_kind='refund' THEN -abs(tx.value) ELSE abs(tx.value) END),0) FROM salon_transactions tx JOIN package_receipts r ON r.id=tx.package_receipt_id JOIN package_purchases p ON p.id=r.purchase_id WHERE tx.order_id IS NULL AND p.customer_id=$3) ELSE 0 END)::float AS "totalPaid",
     max(s.completed_at) FILTER(WHERE s.status='completed') AS "lastCompletedAt",
     count(*) FILTER(WHERE s.status='completed')::int AS "completedCount",
     count(*) FILTER(WHERE s.schedule_started_at>=now() AND s.status<>'cancelled')::int AS "upcomingCount"
@@ -273,6 +278,7 @@ export class CustomerService {
           'SELECT id,name FROM payment_methods WHERE removed_at IS NULL ORDER BY name',
         ),
       ])
+      const paymentCondition = await packagePayment(client, row.package_use_id)
       const treatmentTotal = Number(
         row.total_price ??
           (
@@ -343,11 +349,29 @@ export class CustomerService {
           can(actor, 'orders.consumptions') &&
           ['awaiting_deposit', 'confirmed', 'in_progress'].includes(row.status),
         status: row.status,
+        packagePayment:
+          paymentCondition &&
+          (salonWide(actor) && financial
+            ? paymentCondition
+            : {
+                released: paymentCondition.released,
+                configured: paymentCondition.configured,
+                percent: null,
+                minimum: null,
+                paid: null,
+              }),
+        canStart:
+          mutable &&
+          can(actor, 'agenda.complete') &&
+          row.status === 'confirmed' &&
+          row.has_started &&
+          (!paymentCondition || paymentCondition.released),
         canComplete:
           mutable &&
           can(actor, 'agenda.complete') &&
           ['confirmed', 'in_progress'].includes(row.status) &&
-          row.has_started,
+          row.has_started &&
+          (!paymentCondition || paymentCondition.released),
         canRefund: can(actor, 'orders.refunds'),
       }
     })
@@ -594,10 +618,12 @@ export class CustomerService {
   }
   async complete(actor: AppUser, id: number) {
     return this.work.transaction(async (client) => {
+      await lockOrderPackage(client, id)
       const order = await this.authorizeOrder(actor, id, client, true, true)
       if (order.status === 'completed') return { id }
       if (!['confirmed', 'in_progress'].includes(order.status))
         bookingError('Only confirmed appointments can be completed.', 409)
+      await requirePackagePayment(client, order.package_use_id)
       if (order.package_use_id) {
         const use = (
           await client.query(
@@ -622,6 +648,24 @@ export class CustomerService {
       await client.query(
         "UPDATE salon_schedules SET status='completed',completed_at=now(),completed_by=$2,updated_at=now() WHERE id=$1",
         [id, actor.id],
+      )
+      return { id }
+    })
+  }
+  async start(actor: AppUser, id: number) {
+    return this.work.transaction(async (c) => {
+      await lockOrderPackage(c, id)
+      const order = await this.authorizeOrder(actor, id, c, true, true)
+      if (order.status === 'in_progress') return { id }
+      if (order.status !== 'confirmed' || !order.has_started)
+        bookingError(
+          'Only confirmed appointments at their scheduled time can be started.',
+          409,
+        )
+      await requirePackagePayment(c, order.package_use_id)
+      await c.query(
+        "UPDATE salon_schedules SET status='in_progress',updated_at=now() WHERE id=$1",
+        [id],
       )
       return { id }
     })

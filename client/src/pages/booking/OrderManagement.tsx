@@ -49,6 +49,14 @@ type OrderLedger = {
   canAddConsumption: boolean
   status: string
   canComplete: boolean
+  canStart: boolean
+  packagePayment: {
+    configured: boolean
+    percent: number | null
+    minimum: number | null
+    paid: number
+    released: boolean
+  } | null
   canRefund: boolean
 }
 export function OrderManagement({
@@ -562,6 +570,27 @@ export function OrderManagement({
             </section>
           )}
           <section className="order-section">
+            {data.packagePayment && !data.packagePayment.released && (
+              <p className="booking-alert">
+                {!data.packagePayment.configured
+                  ? 'Configure a condição de pagamento deste pacote em Social → Promoções e pacotes.'
+                  : data.packagePayment.minimum === null
+                    ? 'Realização bloqueada. A gestão precisa confirmar o pagamento mínimo do pacote.'
+                    : `Realização bloqueada: mínimo ${money(data.packagePayment.minimum)} (${data.packagePayment.percent}%). Recebido líquido: ${money(data.packagePayment.paid)}. Registre o recebimento do pacote para liberar.`}
+              </p>
+            )}
+            {data.canStart && (
+              <button
+                type="button"
+                className="primary-button"
+                disabled={busy}
+                onClick={() =>
+                  void mutate('/start', {}, 'Atendimento iniciado.', () => {})
+                }
+              >
+                Iniciar atendimento
+              </button>
+            )}
             <h3>Observações do atendimento</h3>
             <p className="booking-note">
               Visíveis apenas para a equipe autorizada nesta comanda.
@@ -604,12 +633,15 @@ export function OrderManagement({
             )}
           </section>
           <section className="order-section">
-            {!data.completedAt && data.canManage && !data.canComplete && (
-              <p className="booking-note">
-                A conclusão ficará disponível a partir do horário marcado para o
-                atendimento.
-              </p>
-            )}
+            {!data.completedAt &&
+              data.canManage &&
+              !data.canComplete &&
+              (!data.packagePayment || data.packagePayment.released) && (
+                <p className="booking-note">
+                  A conclusão ficará disponível a partir do horário marcado para
+                  o atendimento.
+                </p>
+              )}
             {data.completedAt ? (
               <p className="order-success">
                 Atendimento concluído em {bookingDate(data.completedAt)}.

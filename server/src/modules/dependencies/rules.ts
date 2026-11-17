@@ -198,20 +198,24 @@ export async function makePlan(
           s.main === main.key &&
           s.requiredTreatmentId === d.requiredTreatmentId,
       )
+      const occurrence = promotionId
+        ? nodes.slice(0, i).filter((n) => n.treatmentId === main.treatmentId)
+            .length
+        : 0
       let required = split
         ? undefined
-        : nodes.find(
+        : nodes.filter(
             (n) =>
               n.treatmentId === d.requiredTreatmentId &&
               n.key !== main.key &&
               !n.key.startsWith('separate:'),
-          )
+          )[occurrence]
       if (!required)
         required = add(
           d.requiredTreatmentId,
           split
             ? `separate:${i}:${d.requiredTreatmentId}`
-            : `required:${d.requiredTreatmentId}`,
+            : `required:${d.requiredTreatmentId}${promotionId ? ':' + occurrence : ''}`,
           false,
         )
       rules.push({
@@ -257,6 +261,45 @@ export async function makePlan(
       .update(JSON.stringify(payload))
       .digest('hex'),
   }
+}
+export function orderedNodes(plan: Pick<Plan, 'nodes' | 'rules'>) {
+  const result: PlanNode[] = [],
+    pending = [...plan.nodes]
+  while (pending.length) {
+    const index = pending.findIndex(
+      (n) =>
+        !plan.rules.some((r) => {
+          const before = r.position === 'before' ? r.required : r.main,
+            after = r.position === 'before' ? r.main : r.required
+          return after === n.key && !result.some((x) => x.key === before)
+        }),
+    )
+    if (index < 0)
+      invalid('The service ordering rules cannot be satisfied.', 409)
+    result.push(pending.splice(index, 1)[0])
+  }
+  return result
+}
+export function selectedPlan(plan: Plan, keys: string[]): Plan {
+  if (
+    !keys.length ||
+    new Set(keys).size !== keys.length ||
+    keys.some((k) => !plan.nodes.some((n) => n.key === k))
+  )
+    invalid('Choose distinct available package procedures.')
+  // A required node is mandatory whenever its main procedure is selected.
+  for (const r of plan.rules)
+    if (keys.includes(r.main) !== keys.includes(r.required))
+      invalid('Schedule the mandatory procedures together.', 409)
+  const result = {
+    ...plan,
+    nodes: plan.nodes.filter((n) => keys.includes(n.key)),
+    rules: plan.rules.filter(
+      (r) => keys.includes(r.main) && keys.includes(r.required),
+    ),
+  }
+  result.nodes = orderedNodes(result)
+  return result
 }
 export type Appointment = {
   key: string

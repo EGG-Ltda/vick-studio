@@ -9,7 +9,8 @@
     "lint": "oxlint",
     "preview": "vite preview",
     "test:selections": "tsx --tsconfig tsconfig.app.json --test tests/selection-controls.test.tsx",
-    "test:availability": "tsx --tsconfig tsconfig.app.json --test tests/availability.test.tsx"
+    "test:availability": "tsx --tsconfig tsconfig.app.json --test tests/availability.test.tsx",
+    "test:packages": "tsx --tsconfig tsconfig.app.json --test tests/package-selection.test.ts"
   },
   "dependencies": {
     "react": "^19.2.8",

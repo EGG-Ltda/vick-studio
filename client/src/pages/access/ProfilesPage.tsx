@@ -2,6 +2,7 @@ import { SalonInput } from '../../components/selection/SalonInput'
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { useAuth } from '../../core/auth/useAuth'
+import { allowed } from '../../core/auth/permissions'
 import { accessRequest } from './accessApi'
 import type { Capability, Grant, Policy } from './accessApi'
 import './access.css'
@@ -14,10 +15,17 @@ type Audit = {
   createdAt: string
 }
 export default function ProfilesPage() {
-  const { user, refreshAccess } = useAuth(),
-    [catalog, setCatalog] = useState<Capability[]>([]),
+  const { user: currentUser, refreshAccess } = useAuth(),
+    master = !!currentUser?.isMaster,
+    canManage =
+      master ||
+      (currentUser?.role === 'ADMIN' &&
+        allowed(currentUser, 'staff.permissions'))
+  const [catalog, setCatalog] = useState<Capability[]>([]),
     [profiles, setProfiles] = useState<Policy[]>([]),
-    [role, setRole] = useState<'ADMIN' | 'OPERATIONAL'>('ADMIN'),
+    [role, setRole] = useState<'ADMIN' | 'OPERATIONAL'>(
+      master ? 'ADMIN' : 'OPERATIONAL',
+    ),
     [grants, setGrants] = useState<Grant[]>([]),
     [loading, setLoading] = useState(true),
     [error, setError] = useState(''),
@@ -25,7 +33,7 @@ export default function ProfilesPage() {
     [notice, setNotice] = useState(''),
     [audit, setAudit] = useState<Audit[]>([])
   useEffect(() => {
-    if (!user?.isMaster) return
+    if (!canManage) return
     const c = new AbortController()
     Promise.all([
       accessRequest<{ catalog: Capability[]; profiles: Policy[] }>(
@@ -38,8 +46,10 @@ export default function ProfilesPage() {
         if (!c.signal.aborted) {
           setCatalog(d.catalog)
           setProfiles(d.profiles)
+          const initialRole = master ? 'ADMIN' : 'OPERATIONAL'
+          setRole(initialRole)
           setGrants(
-            d.profiles.find((p) => p.role === 'ADMIN')?.permissions ?? [],
+            d.profiles.find((p) => p.role === initialRole)?.permissions ?? [],
           )
           setAudit(a)
         }
@@ -51,7 +61,7 @@ export default function ProfilesPage() {
         if (!c.signal.aborted) setLoading(false)
       })
     return () => c.abort()
-  }, [user?.isMaster])
+  }, [canManage, master])
   function toggle(
     key: string,
     field: 'allowed' | 'delegatable',
@@ -130,28 +140,30 @@ export default function ProfilesPage() {
       setBusy(false)
     }
   }
-  if (!user?.isMaster) return <p>Esta configuração é exclusiva do Master.</p>
+  if (!canManage)
+    return <p>Você não possui permissão para configurar acessos.</p>
   return (
     <section className="dashboard-view access-view">
       <header className="dashboard-view-header">
         <div>
           <span className="salon-eyebrow">
-            Controle de acesso · exclusivo Master
+            Controle de acesso · {master ? 'Master' : 'Admin'}
           </span>
           <h1>Funcionalidades por perfil</h1>
           <p>
-            Defina os acessos do salão e os limites que o Admin pode delegar à
-            equipe.
+            {master
+              ? 'Defina as funcionalidades do Admin e dos funcionários e os limites de atuação do Admin.'
+              : 'Defina o acesso dos funcionários dentro das funcionalidades e dos limites liberados pelo Master.'}
           </p>
         </div>
       </header>
       <div className="access-master-note">
         <strong>Master mantém acesso completo.</strong>
         <p>
-          Somente Master cria contas e atribui perfis. Admin ajusta apenas
-          acessos individuais de usuários Operacionais, dentro dos limites
-          abaixo e das próprias permissões. Desabilitados não acessam a
-          aplicação.
+          Master controla os acessos de Admin e funcionários. Admin controla
+          somente o perfil Operacional e os acessos individuais dos
+          funcionários, dentro dos limites definidos pelo Master. Nenhuma
+          configuração desta tela pode restringir o Master.
         </p>
       </div>
       {error && (
@@ -169,31 +181,33 @@ export default function ProfilesPage() {
       ) : (
         <form onSubmit={save}>
           <div className="access-role-tabs" aria-label="Perfil em edição">
-            {(['ADMIN', 'OPERATIONAL'] as const).map((r) => (
-              <button
-                type="button"
-                key={r}
-                disabled={busy}
-                aria-pressed={role === r}
-                onClick={() => {
-                  setRole(r)
-                  setGrants(
-                    profiles.find((p) => p.role === r)?.permissions ?? [],
-                  )
-                  setNotice('')
-                  setError('')
-                }}
-              >
-                {r === 'ADMIN'
-                  ? 'Admin · dona do salão'
-                  : 'Operacional · funcionários'}
-              </button>
-            ))}
+            {(['ADMIN', 'OPERATIONAL'] as const)
+              .filter((r) => master || r === 'OPERATIONAL')
+              .map((r) => (
+                <button
+                  type="button"
+                  key={r}
+                  disabled={busy}
+                  aria-pressed={role === r}
+                  onClick={() => {
+                    setRole(r)
+                    setGrants(
+                      profiles.find((p) => p.role === r)?.permissions ?? [],
+                    )
+                    setNotice('')
+                    setError('')
+                  }}
+                >
+                  {r === 'ADMIN'
+                    ? 'Admin · dona do salão'
+                    : 'Operacional · funcionários'}
+                </button>
+              ))}
           </div>
           <p>
             {role === 'OPERATIONAL'
               ? 'As consultas operacionais ficam sempre limitadas aos próprios atendimentos, clientes e recebimentos. Habilitar uma tela não libera dados de outras profissionais.'
-              : 'O Admin não pode criar usuários, alterar perfis ou acessar esta configuração.'}
+              : 'O Master define quais configurações e funcionalidades o Admin pode usar. O Admin não pode modificar o próprio perfil, outro Admin ou qualquer Master.'}
           </p>
           <fieldset disabled={busy}>
             {[...new Set(catalog.map((c) => c.group))].map((group) => (
@@ -201,7 +215,11 @@ export default function ProfilesPage() {
                 <h2>{group}</h2>
                 {role === 'OPERATIONAL' && (
                   <p className="access-hint">
-                    Padrão do perfil · Admin pode ajustar individualmente
+                    Padrão do perfil · exceções individuais podem ser ajustadas
+                    em Usuários.{' '}
+                    {master
+                      ? 'Defina abaixo o que o Admin pode ajustar.'
+                      : 'Os limites de delegação são exclusivos do Master.'}
                   </p>
                 )}
                 {catalog
@@ -209,7 +227,9 @@ export default function ProfilesPage() {
                   .map((c) => {
                     const g = grants.find((g) => g.key === c.key)
                     if (!g) return null
-                    const eligible = role === 'ADMIN' || c.operational
+                    const eligible =
+                      (role === 'ADMIN' || c.operational) &&
+                      (master || g.editable === true)
                     return (
                       <div
                         className={`access-row${role === 'ADMIN' ? ' access-row-single' : ''}`}
@@ -217,7 +237,13 @@ export default function ProfilesPage() {
                       >
                         <div>
                           <strong>{c.label}</strong>
-                          {!eligible && <small>Restrito à administração</small>}
+                          {!eligible && (
+                            <small>
+                              {!c.operational && role === 'OPERATIONAL'
+                                ? 'Restrito à administração'
+                                : 'Protegido pelo Master ou fora dos seus acessos'}
+                            </small>
+                          )}
                         </div>
                         <label>
                           <SalonInput
@@ -237,7 +263,7 @@ export default function ProfilesPage() {
                               type="checkbox"
                               aria-label={`Permitir que Admin ajuste ${c.label}`}
                               checked={g.delegatable}
-                              disabled={!eligible}
+                              disabled={!master || !eligible}
                               onChange={(e) =>
                                 toggle(c.key, 'delegatable', e.target.checked)
                               }

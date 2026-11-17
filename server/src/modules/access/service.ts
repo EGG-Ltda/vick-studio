@@ -83,14 +83,49 @@ export class AccessService {
       )
     ).rows
   }
+  async profileView(actor: AppUser) {
+    const master = isMaster(actor)
+    if (!master && (actor.role !== 'ADMIN' || !can(actor, 'staff.permissions')))
+      bookingError('Profile management is not allowed.', 403)
+    const profiles = (await this.profiles())
+      .filter((p: any) => master || p.role === 'OPERATIONAL')
+      .map((p: any) => ({
+        ...p,
+        permissions: p.permissions.map((g: Grant) => ({
+          ...g,
+          editable:
+            roleCanHave(p.role, g.key) &&
+            (master || (g.delegatable && can(actor, g.key))),
+        })),
+      }))
+    return { catalog: this.catalog(), profiles }
+  }
+  async audit(actor: AppUser) {
+    if (
+      !isMaster(actor) &&
+      (actor.role !== 'ADMIN' || !can(actor, 'staff.permissions'))
+    )
+      bookingError('Permission audit is not allowed.', 403)
+    return (
+      await this.query(
+        `SELECT a.id,a.action,a.target_user_id AS "targetUserId",a.target_role AS "targetRole",a.previous_data AS "previousData",a.current_data AS "currentData",a.created_at AS "createdAt",u.login AS author FROM access_audit a JOIN app_users u ON u.id=a.actor_id WHERE $1::boolean OR (a.target_role='OPERATIONAL' AND a.action='profile_permissions') OR (a.action='user_permissions' AND a.actor_id=$2 AND EXISTS(SELECT 1 FROM app_users target WHERE target.id=a.target_user_id AND target.role='OPERATIONAL')) ORDER BY a.id DESC LIMIT 100`,
+        [isMaster(actor), actor.id],
+      )
+    ).rows
+  }
   async saveProfile(
     actor: AppUser,
     role: 'ADMIN' | 'OPERATIONAL',
     version: number,
     grants: Grant[],
   ) {
-    if (!isMaster(actor))
-      bookingError('Only MASTER can configure profiles.', 403)
+    if (
+      !isMaster(actor) &&
+      (actor.role !== 'ADMIN' ||
+        role !== 'OPERATIONAL' ||
+        !can(actor, 'staff.permissions'))
+    )
+      bookingError('ADMIN can configure the operational profile only.', 403)
     this.validateGrants(role, grants)
     const missing = [
       ...validateDependencies(
@@ -106,7 +141,30 @@ export class AccessService {
       )
     return this.work.transaction(async (c) => {
       await c.query('SELECT pg_advisory_xact_lock(70430,1)', [])
-      await requireFreshMaster(c, actor)
+      let freshActor = actor
+      if (isMaster(actor)) await requireFreshMaster(c, actor)
+      else {
+        const fresh = (
+          await c.query(
+            'SELECT role,is_active,removed_at,must_change_password,password_version FROM app_users WHERE id=$1',
+            [actor.id],
+          )
+        ).rows[0]
+        if (
+          !fresh?.is_active ||
+          fresh.removed_at ||
+          fresh.must_change_password ||
+          fresh.password_version !== actor.passwordVersion
+        )
+          bookingError('Current authorization is required.', 401)
+        freshActor = await this.hydrate({ ...actor, role: fresh.role }, c)
+        if (
+          freshActor.role !== 'ADMIN' ||
+          !can(freshActor, 'staff.permissions') ||
+          role !== 'OPERATIONAL'
+        )
+          bookingError('Only authorized ADMIN may configure employees.', 403)
+      }
       const previous = (
         await c.query(
           'SELECT version FROM access_profiles WHERE role=$1 FOR UPDATE',
@@ -121,6 +179,20 @@ export class AccessService {
           [role],
         )
       ).rows
+      if (!isMaster(freshActor))
+        for (const g of grants) {
+          const p = old.find((p: any) => p.permission_key === g.key)
+          if (
+            !p ||
+            g.delegatable !== p.delegatable ||
+            (g.allowed !== p.allowed &&
+              (!p.delegatable || !can(freshActor, g.key)))
+          )
+            bookingError(
+              'Permission is outside the limits defined by MASTER.',
+              403,
+            )
+        }
       for (const g of grants)
         await c.query(
           'UPDATE profile_permissions SET allowed=$3,delegatable=$4 WHERE role=$1 AND permission_key=$2',

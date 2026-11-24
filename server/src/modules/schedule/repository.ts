@@ -17,6 +17,16 @@ export class ScheduleRepository implements IScheduleRepository {
     @inject(databaseServiceId) private readonly dbService: IDatabaseService,
   ) {}
 
+  async options() {
+    const client = await this.dbService.getClient()
+    try {
+      const employees = await client.query('SELECT e.id,p.name FROM employees e JOIN persons p ON p.id=e.person_id ORDER BY p.name',[])
+      const customers = await client.query('SELECT c.id,p.name FROM customers c JOIN persons p ON p.id=c.person_id ORDER BY p.name',[])
+      const treatments = await client.query('SELECT id,name,duration_minutes AS duration FROM salon_treatments WHERE is_active ORDER BY name',[])
+      return {employees:employees.rows,customers:customers.rows,treatments:treatments.rows}
+    } finally { client.release() }
+  }
+
   public async list(
     start: Date,
     end: Date,
@@ -26,6 +36,7 @@ export class ScheduleRepository implements IScheduleRepository {
     const query = `
       SELECT
         schedules.id,
+        schedules.id AS "scheduleId",
         (SELECT group_id FROM booking_group_members WHERE schedule_id=schedules.id) AS "groupId",
         schedules.customer_id AS "customerId",
         customer_person.name AS "customerName",

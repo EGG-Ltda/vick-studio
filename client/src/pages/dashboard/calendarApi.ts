@@ -11,6 +11,7 @@ export type ScheduleStatus =
 export type Schedule = {
   groupId?: number | null
   id: number
+  scheduleId: number
   customerId: number
   customerName: string
   employeeId: number
@@ -26,6 +27,13 @@ export type Schedule = {
   cancellationReason?: string | null
   status: ScheduleStatus
 }
+
+export type ScheduleOptions = {
+  customers: {id:number;name:string}[]
+  employees: {id:number;name:string}[]
+  treatments: {id:number;name:string;duration:number}[]
+}
+export function listScheduleOptions() { return apiRequest<ScheduleOptions>('/schedules/options') }
 
 export type CreateScheduleInput = {
   customerId: number

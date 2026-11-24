@@ -38,6 +38,9 @@ export function routePermission(method: string, path: string): string | null {
   }
   if (/^\/orders\/[^/]+\/products$/.test(path)) return 'orders.products'
   if (path === '/finance') return 'finance.view'
+  if (path.startsWith('/finance-reports/')) {
+    return method === 'GET' && !path.endsWith('/export') ? 'finance.view' : 'finance.manage'
+  }
   if (path.startsWith('/finance/')) return 'finance.manage'
   if (path === '/users/@me') return method === 'GET' ? null : 'users.manage'
   if (path.startsWith('/users')) {
@@ -48,6 +51,7 @@ export function routePermission(method: string, path: string): string | null {
         ? 'users.create'
         : 'users.manage'
   }
+  if (path === '/schedules/options') return 'agenda.create'
   if (path === '/schedules')
     return method === 'GET' ? 'agenda.view' : 'agenda.create'
   if (path.startsWith('/transactions')) return 'finance.manage'

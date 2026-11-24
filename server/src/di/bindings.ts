@@ -22,10 +22,14 @@ import { TreatmentService } from '@/modules/treatment/service'
 import { UserRepository } from '@/modules/user/repository'
 import { UserService } from '@/modules/user/service'
 import { Container } from 'inversify'
+import { FinanceRepository } from '@/modules/finance/repository'
+import { FinanceService } from '@/modules/finance/service'
 
 export const container = new Container()
 
 export function initializeDI() {
+  container.bind(FinanceRepository).toSelf().inSingletonScope()
+  container.bind(FinanceService).toSelf().inSingletonScope()
   // Infra
   container.bind(databaseServiceId).to(PostgresService).inSingletonScope()
   container.bind(unitOfWorkServiceId).to(PostgresUnitOfWork).inSingletonScope()

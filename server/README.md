@@ -1,5 +1,41 @@
 # Vick Studio Server
 
+## Finance module
+
+Run `npm run db:migrate` before starting this version. Migration
+`012_finance_reports.sql` preserves existing finance tables, including databases
+that previously applied `db/migrations/002_finance.sql`. Back up existing databases
+before applying migrations.
+
+Set `MASTER_USER_ID` in the server environment. The unified profile permissions
+are authoritative: global reports require MASTER or ADMIN with `finance.view`;
+entries, reversals and exports also require `finance.manage`. Operational users
+retain their own attributed receipts in the ledger and cannot query global reports.
+
+The frontend module is available at `/dashboard/financeiro`. Receipts and manual
+entries remain in the default view. The separate Production and Sales view uses
+`/api/finance-reports/*`, avoiding collisions with the ledger's `/api/finance/*`.
+It reports explicitly
+completed treatment items and registered product sales. Historical prices and
+discounts are stored in integer cents. Discounts apply to individual items; split
+any attendance-wide discount between those items before recording completion.
+Reversals preserve audit history and exclude the original entry from totals.
+
+Orders must be completed through the booking/order workflow before their production
+can be recorded; report entries cannot bypass deposit or package-payment checks.
+Legacy appointments are not automatically marked as completed. Worked hours
+require actual start/end timestamps. Payment receipts and balances are not
+included in production totals. The receipts view preserves the order ledger and
+its own financial access scope.
+
+## Finance integration tests
+
+Install dependencies and run `npm run build`. To run the PostgreSQL integration
+suite, set `FINANCE_TEST_DATABASE_URL` to an empty, disposable database named
+`finance_test`, then run `npm run test:finance`. The suite refuses to overwrite
+an existing schema and checks authorization, historical prices, filters,
+pagination, reversals, product sales and Excel totals.
+
 ## Senha temporária — issue #45
 
 Com `DATABASE_CONNECTION_STRING` definida no ambiente, execute `npm run db:migrate`

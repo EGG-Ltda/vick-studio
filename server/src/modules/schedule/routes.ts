@@ -4,7 +4,7 @@ import {
   ScheduleCreateSchema,
 } from '@/core/schedule'
 import { container } from '@/di/bindings'
-import { authHook } from '@/shared/middlewares/auth'
+import { authHook, salonAdminHook } from '@/shared/middlewares/auth'
 import { fail, ok } from '@/shared/utils/response'
 import { FastifyInstance } from 'fastify'
 import z from 'zod'
@@ -19,6 +19,7 @@ export default async function scheduleRoutes(
   app: FastifyInstance,
 ): Promise<void> {
   const scheduleService: IScheduleService = container.get(scheduleServiceId)
+  app.get('/schedules/options', {preHandler:[authHook, salonAdminHook]}, async(_req,res) => ok(res,await scheduleService.options()))
 
   app.get<{ Querystring: { start?: string; end?: string } }>(
     '/schedules',

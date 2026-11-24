@@ -619,7 +619,7 @@ test(
           assert.equal(onlineSlot.shortNotice, true)
           assert.equal(onlineSlot.shortNoticeHours, 2)
           assert.ok(
-            new Date(onlineSlot.deadline) <= new Date(Date.now() + 2 * 3600000),
+            new Date(onlineSlot.deadline) <= new Date((await db.query('SELECT clock_timestamp() AS now')).rows[0].now.getTime() + 2 * 3600000),
           )
           const onlineBody = bodyFor(onlineSlot)
           const online = requireStatus(
@@ -662,7 +662,7 @@ test(
           assert.ok(shorter.length > 0)
           assert.equal(shorter[0].shortNoticeHours, 1)
           assert.ok(
-            new Date(shorter[0].deadline) <= new Date(Date.now() + 3600000),
+            new Date(shorter[0].deadline) <= new Date((await db.query('SELECT clock_timestamp() AS now')).rows[0].now.getTime() + 3600000),
           )
           assert.equal(
             requireStatus(

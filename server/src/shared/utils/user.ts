@@ -21,6 +21,9 @@ export function publicUser(user: AppUser): PublicAppUser {
           ? [...allPermissionKeys]
           : user.permissions,
     id: user.id,
+    accessClassId: isMaster(user) ? null : user.accessClassId,
+    accessClassName: isMaster(user) ? 'Master' : user.accessClassName,
+    dataScope: isMaster(user) ? 'salon' : user.dataScope,
     login: user.login,
     email: user.email,
     calendarColor: user.calendarColor,

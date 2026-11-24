@@ -18,11 +18,27 @@ export type Policy = {
   permissions: Grant[]
 }
 export type IndividualAccess = {
+  className?: string
   catalog: Capability[]
   user: { id: number; login: string; role: string }
   profileVersion: number
+  classId?: number
   permissions: Grant[]
   overrides: { key: string; allowed: boolean }[]
   effective: string[]
 }
 export { apiRequest as accessRequest }
+export type AccessClass = {
+  id: number
+  name: string
+  description: string
+  level: 'administrative' | 'operational'
+  dataScope: 'own' | 'salon'
+  active: boolean
+  builtinRole: 'ADMIN' | 'OPERATIONAL' | null
+  adminManageable: boolean
+  version: number
+  userCount: number
+  editable: boolean
+  permissions: (Grant & { eligible: boolean })[]
+}

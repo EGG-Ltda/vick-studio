@@ -38,7 +38,7 @@ module.exports = async ({
     )
   const [hair, brow, extra] = services
   const employees = []
-  const staffPassword = randomUUID().slice(0,24),
+  const staffPassword = randomUUID().slice(0, 24),
     staffHash = await bcrypt.hash(staffPassword, 10)
   for (let i = 0; i < 2; i++) {
     const user = (
@@ -73,6 +73,10 @@ module.exports = async ({
       [employee],
     )
   }
+  await db.query(
+    'INSERT INTO employee_commission_rates(employee_id,treatment_id,standard_percent,package_percent,updated_by) SELECT employee_id,treatment_id,0,0,1 FROM employee_salon_treatments WHERE employee_id=ANY($1::int[]) ON CONFLICT DO NOTHING',
+    [employees],
+  )
   const staff = requireStatus(
     await request('POST', '/auth/signin', '', {
       login: 'partial.staff.0',

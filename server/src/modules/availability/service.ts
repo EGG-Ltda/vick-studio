@@ -199,7 +199,7 @@ export class AvailabilityService {
       // Recipients must still have the management permission when reading/acting.
       await c.query(
         `INSERT INTO employee_availability_notices(user_id,request_id,kind,body)
-    SELECT u.id,$1,'review',$2 FROM app_users u WHERE u.is_active AND u.removed_at IS NULL AND (u.id=$3 OR u.role='MASTER' OR (u.role='ADMIN' AND EXISTS(SELECT 1 FROM profile_permissions p LEFT JOIN user_permission_overrides o ON o.user_id=u.id AND o.permission_key=p.permission_key WHERE p.role=u.role AND p.permission_key='availability.manage' AND (p.allowed OR p.delegatable) AND COALESCE(o.allowed,p.allowed))))`,
+    SELECT u.id,$1,'review',$2 FROM app_users u WHERE u.is_active AND u.removed_at IS NULL AND (u.id=$3 OR u.role='MASTER' OR (u.role='ADMIN' AND EXISTS(SELECT 1 FROM effective_class_permissions p JOIN access_classes c ON c.id=p.class_id LEFT JOIN user_permission_overrides o ON o.user_id=u.id AND o.permission_key=p.permission_key WHERE p.class_id=u.access_class_id AND c.active AND c.data_scope='salon' AND p.permission_key='availability.manage' AND (p.allowed OR p.delegatable) AND COALESCE(o.allowed,p.allowed))))`,
         [row.id, `Nova solicitação de ${employee.name}.`, MASTER_USER_ID],
       )
       return row

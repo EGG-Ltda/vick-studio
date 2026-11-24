@@ -94,6 +94,7 @@ export function UserPermissionsModal({
         method: 'PUT',
         body: JSON.stringify({
           profileVersion: data.profileVersion,
+          classId: data.classId,
           changes: Object.entries(changes).map(([key, allowed]) => ({
             key,
             allowed,

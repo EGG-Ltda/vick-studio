@@ -1,6 +1,41 @@
 import type { AppUser } from './user'
 import { MASTER_USER_ID } from './config'
 export const permissionCatalog = [
+  [
+    'classes.manage',
+    'Usuários',
+    'Criar, configurar e atribuir classes de funcionários delegadas pelo Master',
+    false,
+    ['staff.permissions'],
+  ],
+  [
+    'commissions.view',
+    'Comissões',
+    'Consultar percentuais e comissões',
+    true,
+    [],
+  ],
+  [
+    'commissions.manage',
+    'Comissões',
+    'Configurar percentuais dos funcionários',
+    false,
+    ['commissions.view'],
+  ],
+  [
+    'commissions.adjust',
+    'Comissões',
+    'Anular atendimentos e ajustar comissões',
+    false,
+    ['commissions.view', 'orders.view', 'agenda.change'],
+  ],
+  [
+    'commissions.settle',
+    'Comissões',
+    'Registrar fechamento e pagamento de comissões',
+    false,
+    ['commissions.view', 'finance.view'],
+  ],
   ['agenda.view', 'Agenda', 'Consultar agenda', true, []],
   [
     'availability.view',
@@ -157,7 +192,7 @@ export const permissionCatalog = [
   [
     'finance.view',
     'Financeiro',
-    'Consultar financeiro (operacional: somente próprio)',
+    'Consultar financeiro conforme alcance dos dados',
     true,
     [],
   ],
@@ -234,8 +269,13 @@ export type Role = 'MASTER' | 'ADMIN' | 'OPERATIONAL'
 export function isMaster(user: { id: number; role: string }) {
   return user.id === MASTER_USER_ID || user.role === 'MASTER'
 }
-export function salonWide(user: Pick<AppUser, 'id' | 'role'>) {
-  return isMaster(user) || user.role === 'ADMIN'
+export function salonWide(
+  user: Pick<AppUser, 'id' | 'role'> & { dataScope?: 'own' | 'salon' },
+) {
+  return (
+    isMaster(user) ||
+    (user.dataScope ? user.dataScope === 'salon' : user.role === 'ADMIN')
+  )
 }
 export function can(
   user: Pick<AppUser, 'id' | 'role' | 'permissions'> | undefined,

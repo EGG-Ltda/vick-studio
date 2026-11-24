@@ -14,6 +14,7 @@ import {
 } from './schemas'
 import z from 'zod'
 import { recognizeProducts, reverseProduct } from '../inventory/ledger'
+import { commissionPending, assertCommissionRates } from '../commissions/ledger'
 import {
   lockOrderPackage,
   packagePayment,
@@ -279,6 +280,8 @@ export class CustomerService {
         ),
       ])
       const paymentCondition = await packagePayment(client, row.package_use_id)
+      const pendingCommission =
+        row.status !== 'completed' ? await commissionPending(client, id) : []
       const treatmentTotal = Number(
         row.total_price ??
           (
@@ -349,6 +352,7 @@ export class CustomerService {
           can(actor, 'orders.consumptions') &&
           ['awaiting_deposit', 'confirmed', 'in_progress'].includes(row.status),
         status: row.status,
+        commissionPending: pendingCommission.length > 0,
         packagePayment:
           paymentCondition &&
           (salonWide(actor) && financial
@@ -371,7 +375,8 @@ export class CustomerService {
           can(actor, 'agenda.complete') &&
           ['confirmed', 'in_progress'].includes(row.status) &&
           row.has_started &&
-          (!paymentCondition || paymentCondition.released),
+          (!paymentCondition || paymentCondition.released) &&
+          !pendingCommission.length,
         canRefund: can(actor, 'orders.refunds'),
       }
     })
@@ -566,7 +571,7 @@ export class CustomerService {
       await this.authorizeOrder(actor, id, client, true, true)
       const existing = (
         await client.query(
-          'SELECT id,value,refund_of,description,ledger_kind FROM salon_transactions WHERE order_id=$1 AND request_key=$2',
+          'SELECT id,value,refund_of,description,ledger_kind,refund_scope FROM salon_transactions WHERE order_id=$1 AND request_key=$2',
           [id, data.requestKey],
         )
       ).rows[0]
@@ -575,7 +580,8 @@ export class CustomerService {
           existing.ledger_kind !== 'refund' ||
           existing.refund_of !== paymentId ||
           Number(existing.value) !== data.amount ||
-          existing.description !== data.reason
+          existing.description !== data.reason ||
+          existing.refund_scope !== data.commissionScope
         )
           bookingError(
             'Request key already used with different refund data.',
@@ -597,7 +603,7 @@ export class CustomerService {
         bookingError('Refund exceeds the unrefunded payment amount.', 409)
       const tx = (
         await client.query(
-          `INSERT INTO salon_transactions(method_id,type_id,is_debit,description,value,created_at,order_id,ledger_kind,refund_of,recorded_by,request_key) VALUES($1,(SELECT id FROM transaction_types WHERE name='Estorno de cliente'),true,$2,$3,now(),$4,'refund',$5,$6,$7) RETURNING id`,
+          `INSERT INTO salon_transactions(method_id,type_id,is_debit,description,value,created_at,order_id,ledger_kind,refund_of,recorded_by,request_key,refund_scope) VALUES($1,(SELECT id FROM transaction_types WHERE name='Estorno de cliente'),true,$2,$3,now(),$4,'refund',$5,$6,$7,$8) RETURNING id`,
           [
             source.method_id,
             data.reason,
@@ -606,6 +612,7 @@ export class CustomerService {
             paymentId,
             actor.id,
             data.requestKey,
+            data.commissionScope,
           ],
         )
       ).rows[0]
@@ -624,6 +631,7 @@ export class CustomerService {
       if (!['confirmed', 'in_progress'].includes(order.status))
         bookingError('Only confirmed appointments can be completed.', 409)
       await requirePackagePayment(client, order.package_use_id)
+      await assertCommissionRates(client, id)
       if (order.package_use_id) {
         const use = (
           await client.query(

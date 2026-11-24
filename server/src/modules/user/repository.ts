@@ -33,7 +33,7 @@ export class UserRepository implements IUserRepository {
         id,
         login,
         hash_password AS "hashPassword",
-        email, calendar_color AS "calendarColor",
+        email, calendar_color AS "calendarColor",access_class_id AS "accessClassId",(SELECT name FROM access_classes WHERE id=access_class_id) AS "accessClassName",(SELECT data_scope FROM access_classes WHERE id=access_class_id) AS "dataScope",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -68,7 +68,7 @@ export class UserRepository implements IUserRepository {
         id,
         login,
         hash_password AS "hashPassword",
-        email, calendar_color AS "calendarColor",
+        email, calendar_color AS "calendarColor",access_class_id AS "accessClassId",(SELECT name FROM access_classes WHERE id=access_class_id) AS "accessClassName",(SELECT data_scope FROM access_classes WHERE id=access_class_id) AS "dataScope",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -92,7 +92,7 @@ export class UserRepository implements IUserRepository {
         id,
         login,
         hash_password AS "hashPassword",
-        email, calendar_color AS "calendarColor",
+        email, calendar_color AS "calendarColor",access_class_id AS "accessClassId",(SELECT name FROM access_classes WHERE id=access_class_id) AS "accessClassName",(SELECT data_scope FROM access_classes WHERE id=access_class_id) AS "dataScope",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -121,7 +121,7 @@ export class UserRepository implements IUserRepository {
       RETURNING
         id,
         login,
-        email, calendar_color AS "calendarColor",
+        email, calendar_color AS "calendarColor",access_class_id AS "accessClassId",(SELECT name FROM access_classes WHERE id=access_class_id) AS "accessClassName",(SELECT data_scope FROM access_classes WHERE id=access_class_id) AS "dataScope",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -156,7 +156,7 @@ export class UserRepository implements IUserRepository {
         id = $3
       RETURNING id,
         login,
-        email, calendar_color AS "calendarColor",
+        email, calendar_color AS "calendarColor",access_class_id AS "accessClassId",(SELECT name FROM access_classes WHERE id=access_class_id) AS "accessClassName",(SELECT data_scope FROM access_classes WHERE id=access_class_id) AS "dataScope",
         is_active AS "isActive",
         role,is_admin AS "isAdmin", must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt",
@@ -219,7 +219,7 @@ export class UserRepository implements IUserRepository {
           password_version = password_version + 1, updated_at = NOW()
       WHERE id = $1 AND password_version = $2
         AND is_active = true AND removed_at IS NULL
-      RETURNING id, login, email, calendar_color AS "calendarColor", is_active AS "isActive", role,is_admin AS "isAdmin",
+      RETURNING id, login, email, calendar_color AS "calendarColor",access_class_id AS "accessClassId",(SELECT name FROM access_classes WHERE id=access_class_id) AS "accessClassName",(SELECT data_scope FROM access_classes WHERE id=access_class_id) AS "dataScope", is_active AS "isActive", role,is_admin AS "isAdmin",
         must_change_password AS "mustChangePassword", password_version AS "passwordVersion",
         created_at AS "createdAt", updated_at AS "updatedAt", removed_at AS "removedAt";
     `,

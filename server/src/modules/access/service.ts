@@ -17,6 +17,7 @@ import {
 } from '@/core/access'
 import { MASTER_USER_ID } from '@/core/config'
 import { bookingError } from '../booking/service'
+import { userPolicy, classCanHave } from './policy'
 type Grant = { key: string; allowed: boolean; delegatable: boolean }
 export class AccessService {
   constructor(
@@ -36,17 +37,30 @@ export class AccessService {
     client?: IGenericDatabaseClient,
   ): Promise<AppUser> {
     if (isMaster(user))
-      return { ...user, role: 'MASTER', permissions: [...allPermissionKeys] }
+      return {
+        ...user,
+        role: 'MASTER',
+        dataScope: 'salon',
+        accessClassId: null,
+        accessClassName: 'Master',
+        permissions: [...allPermissionKeys],
+      }
     const query = (sql: string, params: unknown[]) =>
       client ? client.query(sql, params) : this.query(sql, params)
+    const policy = await userPolicy({ query }, user.id)
+    if (!policy?.active)
+      return { ...user, permissions: [], isActive: false, dataScope: 'own' }
     const rows = (
       await query(
-        `SELECT p.permission_key AS key,p.allowed,p.delegatable,o.allowed AS override FROM profile_permissions p LEFT JOIN user_permission_overrides o ON o.user_id=$1 AND o.permission_key=p.permission_key WHERE p.role=$2`,
-        [user.id, user.role],
+        `SELECT p.permission_key AS key,p.allowed,p.delegatable,o.allowed AS override FROM effective_class_permissions p LEFT JOIN user_permission_overrides o ON o.user_id=$1 AND o.permission_key=p.permission_key WHERE p.class_id=$2`,
+        [user.id, policy.id],
       )
     ).rows
     return {
       ...user,
+      accessClassId: policy.id,
+      accessClassName: policy.name,
+      dataScope: policy.data_scope,
       permissions: resolveDependencies(
         rows
           .filter(
@@ -56,7 +70,7 @@ export class AccessService {
               delegatable: boolean
               override: boolean | null
             }) =>
-              roleCanHave(user.role, r.key) &&
+              classCanHave(policy, r.key) &&
               (r.allowed || r.delegatable) &&
               (r.override ?? r.allowed),
           )
@@ -200,7 +214,7 @@ export class AccessService {
         )
       for (const g of grants.filter((g) => !g.allowed && !g.delegatable))
         await c.query(
-          'DELETE FROM user_permission_overrides o USING app_users u WHERE o.user_id=u.id AND u.role=$1 AND o.permission_key=$2',
+          'DELETE FROM user_permission_overrides o USING app_users u WHERE o.user_id=u.id AND u.role=$1 AND u.access_class_id=(SELECT id FROM access_classes WHERE builtin_role=$1) AND o.permission_key=$2',
           [role, g.key],
         )
       // Revocations at profile level override all individual grants immediately.
@@ -250,8 +264,17 @@ export class AccessService {
   }
   async individual(actor: AppUser, id: number) {
     const target = await this.target(actor, id)
-    const profiles = await this.profiles(),
-      profile = profiles.find((p: { role: string }) => p.role === target.role)
+    const profile = await userPolicy(
+      { query: this.query.bind(this) },
+      target.id,
+    )
+    if (!profile) bookingError('Access class not found.', 404)
+    if (
+      !isMaster(actor) &&
+      !profile.builtin_role &&
+      (!profile.admin_manageable || !can(actor, 'classes.manage'))
+    )
+      bookingError('Class delegation is not allowed.', 403)
     const overrides = (
       await this.query(
         'SELECT permission_key AS key,allowed FROM user_permission_overrides WHERE user_id=$1 ORDER BY permission_key',
@@ -261,13 +284,15 @@ export class AccessService {
     const effective = await this.hydrate(target)
     return {
       user: { id: target.id, login: target.login, role: target.role },
+      className: profile.name,
       profileVersion: profile.version,
+      classId: profile.id,
       overrides,
       effective: effective.permissions,
       permissions: profile.permissions.map((p: Grant) => ({
         ...p,
         editable:
-          roleCanHave(target.role, p.key) &&
+          classCanHave(profile, p.key) &&
           (isMaster(actor)
             ? p.allowed || p.delegatable
             : p.delegatable && can(actor, p.key)),
@@ -279,6 +304,7 @@ export class AccessService {
     id: number,
     profileVersion: number,
     changes: { key: string; allowed: boolean | null }[],
+    expectedClassId?: number,
   ) {
     await this.target(actor, id)
     return this.work.transaction(async (c) => {
@@ -318,19 +344,19 @@ export class AccessService {
             target.role !== 'OPERATIONAL'))
       )
         bookingError('Target is outside your permission-management scope.', 403)
-      const profile = (
-        await c.query('SELECT version FROM access_profiles WHERE role=$1', [
-          target.role,
-        ])
-      ).rows[0]
+      const profile = await userPolicy(c, id)
+      if (!profile) bookingError('Access class not found.', 404)
+      if (expectedClassId !== undefined && expectedClassId !== profile.id)
+        bookingError('User access class changed. Reload before saving.', 409)
+      if (
+        !isMaster(freshActor) &&
+        !profile.builtin_role &&
+        (!profile.admin_manageable || !can(freshActor, 'classes.manage'))
+      )
+        bookingError('Class delegation is not allowed.', 403)
       if (profile.version !== profileVersion)
         bookingError('Profile changed. Reload before saving.', 409)
-      const policy = (
-        await c.query(
-          'SELECT permission_key AS key,allowed,delegatable FROM profile_permissions WHERE role=$1',
-          [target.role],
-        )
-      ).rows
+      const policy = profile.permissions
       const old = (
         await c.query(
           'SELECT permission_key AS key,allowed FROM user_permission_overrides WHERE user_id=$1',
@@ -346,7 +372,7 @@ export class AccessService {
         const p = policy.find((p: Grant) => p.key === change.key)
         if (
           !p ||
-          !roleCanHave(target.role, change.key) ||
+          !classCanHave(profile, change.key) ||
           (!isMaster(freshActor) &&
             (!p.delegatable || !can(freshActor, change.key))) ||
           (change.allowed === true && !p.allowed && !p.delegatable)

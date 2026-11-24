@@ -6,6 +6,72 @@
   line-height: 1.7;
   margin: 24px 0;
 }
+.access-class-search {
+  display: grid;
+  gap: 8px;
+  max-width: 400px;
+  margin: 24px 0;
+  color: #805062;
+}
+.access-class-search input {
+  padding: 12px 14px;
+  border: 1px solid #e2b4c6;
+  border-radius: 10px;
+  background: #fef7fa;
+  color: #4d303b;
+}
+.access-class-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 320px), 1fr));
+  gap: 20px;
+}
+.access-class-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  border: 1px solid #ecc9d6;
+  border-radius: 18px;
+  padding: 24px;
+  background: #fef7fa;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+.access-class-card header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.access-class-card h2 {
+  font: 26px var(--salon-serif, Georgia, serif);
+  color: #981547;
+  margin: 0;
+}
+.access-class-card p {
+  margin: 0;
+  color: #965e73;
+}
+.access-class-card dl {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 0;
+  font-size: 13px;
+}
+.access-class-card dt {
+  color: #965e73;
+}
+.access-class-card dd {
+  margin: 0;
+  text-align: right;
+}
+.access-class-card small {
+  color: #965e73;
+}
+.access-class-card button {
+  margin-top: auto;
+  text-align: center;
+}
 .access-master-note p {
   margin-bottom: 0;
 }

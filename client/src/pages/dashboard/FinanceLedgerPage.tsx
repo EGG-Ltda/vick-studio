@@ -133,7 +133,7 @@ export default function FinanceLedgerPage() {
         <div>
           <span className="salon-eyebrow">Valores registrados</span>
           <h1>
-            {user?.role === 'OPERATIONAL' ? 'Meu financeiro' : 'Financeiro'}
+            {user?.dataScope === 'own' ? 'Meu financeiro' : 'Financeiro'}
           </h1>
           <p>
             {data?.scope === 'own'

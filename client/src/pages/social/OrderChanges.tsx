@@ -208,7 +208,7 @@ export function OrderChanges({
                               e.treatmentIds.includes(t.id),
                             ) &&
                             (user?.isMaster ||
-                              user?.role === 'ADMIN' ||
+                              user?.dataScope === 'salon' ||
                               e.id === order.employeeId),
                         )
                         .map((e) => (

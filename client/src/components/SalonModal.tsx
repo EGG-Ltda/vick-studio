@@ -7,6 +7,7 @@ type SalonModalProps = {
   children: ReactNode
   onClose: () => void
   busy?: boolean
+  size?: 'standard' | 'compact' | 'wide'
 }
 
 export function SalonModal({
@@ -15,6 +16,7 @@ export function SalonModal({
   children,
   onClose,
   busy = false,
+  size = 'standard',
 }: SalonModalProps) {
   const dialogRef = useRef<HTMLDialogElement>(null)
   const titleId = useId()
@@ -35,7 +37,7 @@ export function SalonModal({
 
   return (
     <dialog
-      className="salon-modal"
+      className={`salon-modal salon-modal--${size}`}
       ref={dialogRef}
       aria-labelledby={titleId}
       aria-describedby={descriptionId}

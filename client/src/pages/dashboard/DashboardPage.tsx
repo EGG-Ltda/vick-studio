@@ -67,7 +67,7 @@ function DashboardPage() {
           <img src={logo} alt="Vick Florez" />
           <span>Beleza em cada detalhe.</span>
         </div>
-        <p className="salon-nav-caption">Gestão do estúdio</p>
+        <p className="salon-nav-caption">Gestão do Studio</p>
         <nav aria-label="Navegação principal">
           {navigation
             .filter((item) => allowed(user, pagePermissions[item.path]))
@@ -148,7 +148,7 @@ function DashboardPage() {
             Sair do sistema
           </button>
           <span className="salon-footer-signature">
-            VICK FLOREZ · ESTÚDIO DE BELEZA
+            VICK FLOREZ · STUDIO DE BELEZA
           </span>
         </div>
       </aside>

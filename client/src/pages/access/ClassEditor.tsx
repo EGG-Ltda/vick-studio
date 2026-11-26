@@ -178,6 +178,7 @@ export function ClassEditor({
   }
   return (
     <SalonModal
+      size="wide"
       title={
         id === 'new' ? 'Nova classe de acesso' : `Classe ${form?.name ?? ''}`
       }

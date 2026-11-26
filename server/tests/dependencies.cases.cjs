@@ -522,7 +522,7 @@ module.exports = async ({
       b.packageConditions = {
         expectedPrice: promotion.price,
         expectedConditions: promotion.conditions,
-        expectedValidUntil: publicData.validUntil,
+        expectedValidUntil: promotion.validUntil,
       }
       await send(
         'POST',

@@ -23,7 +23,7 @@ import {
   validateLinkedChange,
   validatePlan,
 } from '../dependencies/rules'
-const promotionSelect = `SELECT p.id,p.title,p.description,p.conditions,p.art_id::int AS "artId",p.alt_text AS "altText",p.starts_on::text AS "startsOn",p.ends_on::text AS "endsOn",p.active,p.price::float AS price,p.minimum_payment_percent::float AS "minimumPaymentPercent",
+const promotionSelect = `SELECT (((now() AT TIME ZONE 'America/Sao_Paulo')::date+make_interval(months=>p.validity_months)+interval '1 day') AT TIME ZONE 'America/Sao_Paulo')-interval '1 millisecond' AS "validUntil",p.validity_months AS "validityMonths",p.id,p.title,p.description,p.conditions,p.art_id::int AS "artId",p.alt_text AS "altText",p.starts_on::text AS "startsOn",p.ends_on::text AS "endsOn",p.active,p.price::float AS price,p.minimum_payment_percent::float AS "minimumPaymentPercent",
  COALESCE((SELECT json_agg(json_build_object('treatmentId',i.treatment_id,'quantity',i.quantity,'name',t.name,'durationMinutes',t.duration_minutes,'price',t.price::float) ORDER BY i.treatment_id) FROM promotion_items i JOIN salon_treatments t ON t.id=i.treatment_id WHERE i.promotion_id=p.id),'[]') AS items FROM promotions p`
 export class SocialService {
   booking: BookingService
@@ -101,12 +101,12 @@ export class SocialService {
       ]
       const result = id
         ? await client.query(
-            'UPDATE promotions SET title=$1,description=$2,conditions=$3,art_id=$4,alt_text=$5,starts_on=$6,ends_on=$7,active=$8,price=$9,updated_at=now() ,minimum_payment_percent=COALESCE($11,minimum_payment_percent) WHERE id=$10 RETURNING id',
-            [...params, id, data.minimumPaymentPercent ?? null],
+            'UPDATE promotions SET title=$1,description=$2,conditions=$3,art_id=$4,alt_text=$5,starts_on=$6,ends_on=$7,active=$8,price=$9,updated_at=now() ,minimum_payment_percent=COALESCE($11,minimum_payment_percent),validity_months=$12 WHERE id=$10 RETURNING id',
+            [...params, id, data.minimumPaymentPercent ?? null, data.validityMonths],
           )
         : await client.query(
-            'INSERT INTO promotions(title,description,conditions,art_id,alt_text,starts_on,ends_on,active,price,created_by,minimum_payment_percent) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11) RETURNING id',
-            [...params, actor.id, data.minimumPaymentPercent ?? null],
+            'INSERT INTO promotions(title,description,conditions,art_id,alt_text,starts_on,ends_on,active,price,created_by,minimum_payment_percent,validity_months) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12) RETURNING id',
+            [...params, actor.id, data.minimumPaymentPercent ?? null, data.validityMonths],
           )
       if (!result.rows[0]) bookingError('Promotion not found.', 404)
       id = result.rows[0].id
@@ -126,9 +126,9 @@ export class SocialService {
       return { id }
     })
   }
-  async validUntil(client?: IGenericDatabaseClient) {
-    const sql = `SELECT (((now() AT TIME ZONE 'America/Sao_Paulo')::date+make_interval(months=>package_validity_months)+interval '1 day') AT TIME ZONE 'America/Sao_Paulo')-interval '1 millisecond' AS deadline FROM booking_settings WHERE id=true`
-    return (client ? await client.query(sql, []) : await this.query(sql))
+  async validUntil(promotionId: number, client?: IGenericDatabaseClient) {
+    const sql = `SELECT (((now() AT TIME ZONE 'America/Sao_Paulo')::date+make_interval(months=>validity_months)+interval '1 day') AT TIME ZONE 'America/Sao_Paulo')-interval '1 millisecond' AS deadline FROM promotions WHERE id=$1`
+    return (client ? await client.query(sql, [promotionId]) : await this.query(sql, [promotionId]))
       .rows[0].deadline
   }
   async acquire(
@@ -169,7 +169,7 @@ export class SocialService {
             'Configure the package minimum payment before acquisition.',
             409,
           )
-        const validUntil = await this.validUntil(client)
+        const validUntil = await this.validUntil(p.id, client)
         if (
           p.price !== data.expectedPrice ||
           p.conditions !== data.expectedConditions ||

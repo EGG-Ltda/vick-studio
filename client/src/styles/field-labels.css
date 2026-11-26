@@ -1,0 +1,25 @@
+/* Consistent field labels without changing checkbox/radio layouts. */
+:root {
+  --salon-label-size: 12px;
+  --salon-label-gap: 8px;
+  --salon-field-height: 44px;
+}
+
+:where(.dashboard-view, .booking-page, .salon-modal, .finance-dialog)
+  label:has(> :is(input:not([type='checkbox'], [type='radio'], [type='color']), select, textarea, .salon-selection)):not(:has(input[type='checkbox'], input[type='radio'])) {
+  display: grid;
+  align-content: start;
+  gap: var(--salon-label-gap);
+  min-width: 0;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: var(--salon-label-size);
+  font-weight: 500;
+  line-height: 1.5;
+  letter-spacing: normal;
+}
+
+:where(.dashboard-view, .booking-page, .salon-modal, .finance-dialog) label > :is(input, select, textarea, .salon-selection) {
+  min-width: 0;
+  max-width: 100%;
+  letter-spacing: normal;
+}

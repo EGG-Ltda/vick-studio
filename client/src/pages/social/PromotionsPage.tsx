@@ -20,6 +20,7 @@ type Form = {
   endsOn: string
   active: boolean
   price: string
+  validityMonths: string
   minimumPaymentPercent: string
   items: { treatmentId: number; quantity: number }[]
 }
@@ -33,6 +34,7 @@ const empty: Form = {
   endsOn: '',
   active: false,
   price: '',
+  validityMonths: '1',
   minimumPaymentPercent: '100',
   items: [],
 }
@@ -108,6 +110,7 @@ export default function PromotionsPage() {
           body: JSON.stringify({
             ...form,
             price: Number(form.price),
+            validityMonths: Number(form.validityMonths),
             minimumPaymentPercent: Number(form.minimumPaymentPercent),
           }),
         },
@@ -172,6 +175,7 @@ export default function PromotionsPage() {
                 <h2>{p.title}</h2>
                 <p>{p.description}</p>
                 <strong>{money(p.price)}</strong>
+                <p>Validade: {p.validityMonths} mês(es) a partir da aquisição.</p>
                 {p.minimumPaymentPercent === null ? (
                   <p className="booking-alert">
                     Configure o pagamento mínimo para liberar este pacote. A
@@ -190,6 +194,7 @@ export default function PromotionsPage() {
                       setForm({
                         ...p,
                         price: String(p.price),
+                        validityMonths: String(p.validityMonths),
                         minimumPaymentPercent:
                           p.minimumPaymentPercent === null
                             ? ''
@@ -293,6 +298,11 @@ export default function PromotionsPage() {
                   />
                 </label>
               </div>
+              <label>
+                Validade de utilização do pacote (meses)
+                <SalonInput type="number" required min="1" max="24" step="1" value={form.validityMonths} onChange={(e)=>setForm({...form,validityMonths:e.target.value})}/>
+                <small>Prazo a partir da aquisição, independente do período de divulgação. Alterações valem para novas aquisições.</small>
+              </label>
               <h3>Procedimentos incluídos</h3>
               {catalog?.treatments.map((t) => {
                 const i = form.items.find((i) => i.treatmentId === t.id)
@@ -405,8 +415,7 @@ export default function PromotionsPage() {
               </label>
               <p>
                 A cliente pode agendar um conjunto agora e o saldo depois.
-                Validade padrão: {catalog?.settings.packageValidityMonths ?? 1}{' '}
-                mês(es), configurável em Configurações da agenda.
+                A validade de utilização é definida neste pacote.
               </p>
             </fieldset>
             {formError && (

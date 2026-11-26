@@ -2,6 +2,7 @@ import { FinanceFilter, FinanceRecord, ProductRecord, previousPeriod, safeMoney 
 import { FinanceRepository } from './repository'
 import { inject, injectable } from 'inversify'
 import ExcelJS from 'exceljs'
+import { financialLines, financialCsv, buildInsights } from './analytics'
 
 function sum(values: number[]) { return values.reduce((total, value) => safeMoney(total + value), 0) }
 function workedMinutes(rows: FinanceRecord[]): number | null {
@@ -49,6 +50,58 @@ export function rankings(rows: { id: number; name: string; quantity: number; tot
 export class FinanceService {
   constructor(@inject(FinanceRepository) public readonly repository: FinanceRepository) {}
 
+  async insights(filter: FinanceFilter, ownerUserId?: number, visibility={commissions:true,productCosts:true}) {
+    return this.repository.transaction(async (client) => {
+      const previous=previousPeriod(filter.start,filter.end)
+      const all=(await financialLines(client,{...filter,start:previous.start},ownerUserId)).map((row)=>({ ...row,
+        commissionCents:visibility.commissions?row.commissionCents:null,
+        knownCostCents:(row.kind==='procedure'?visibility.commissions:visibility.productCosts && !ownerUserId)?row.knownCostCents:null,
+      }))
+      const lines=all.filter((row)=>row.date>=filter.start)
+      const before=buildInsights(all.filter((row)=>row.date<filter.start)).summary
+      const insights=buildInsights(lines)
+      const productivity=summarize(lines.filter((row)=>row.kind==='procedure').map((row)=>({
+        ...row,scheduleId:row.orderId!,treatmentId:row.itemId,treatment:row.item,
+      })))
+      const received=new Map<string,number>()
+      if(!ownerUserId) {
+        const ids=[...new Set(lines.filter((row)=>row.orderId!==null).map((row)=>row.orderId))]
+        const payments=(await client.query(`SELECT order_id,sum(CASE WHEN is_debit THEN -round(abs(value)*100) ELSE round(abs(value)*100) END)::bigint AS cents
+          FROM salon_transactions WHERE order_id=ANY($1::int[]) AND ledger_kind IN ('deposit','payment','refund')
+          AND created_at>=($2::date::timestamp AT TIME ZONE 'America/Sao_Paulo')
+          AND created_at<(($3::date+1)::timestamp AT TIME ZONE 'America/Sao_Paulo') GROUP BY order_id`,[ids,filter.start,filter.end])).rows
+        for(const payment of payments) {
+          const selected=lines.filter((row)=>row.orderId===payment.order_id)
+          const total=selected[0]?.orderTotalCents
+          if(!total)continue
+          const key=String(selected[0].customerId)
+          const selectedCents=selected.reduce((sum,row)=>safeMoney(sum+row.finalCents),0)
+          const amount=BigInt(safeMoney(payment.cents)),base=BigInt(total),weight=BigInt(Math.min(selectedCents,total))
+          const magnitude=amount<BigInt(0)?-amount:amount
+          const cents=safeMoney(Number(((magnitude*weight+base/BigInt(2))/base)*(amount<BigInt(0)?-BigInt(1):BigInt(1))))
+          received.set(key,safeMoney((received.get(key)??0)+cents))
+        }
+      }
+      const customers=insights.customers.map((row)=>({...row,receivedCents:ownerUserId?null:received.get(row.id)??0}))
+      const products: (typeof insights.products[number]&{stock:number|null})[]=insights.products.map((row)=>({...row,stock:null as number|null}))
+      if (!ownerUserId) {
+        const catalog=(await client.query(`SELECT id,name,stock FROM inventory_products
+          WHERE ($1='' OR strpos(lower(name),lower($1))>0)`,[filter.search])).rows
+        for(const product of catalog) {
+          const row=products.find((item)=>item.id===`inventory:${product.id}`)
+          if(row)row.stock=product.stock
+          else if(!filter.employeeId)products.push({id:`inventory:${product.id}`,name:product.name,...buildInsights([]).summary,stock:product.stock})
+        }
+      }
+      return { ...insights,products,customers,productivity:{minutes:productivity.minutes,hourlyCents:productivity.hourlyCents,ticketCents:productivity.ticketCents},
+        previous:{...previous,...before},scope:ownerUserId ? 'own' : 'salon' }
+    })
+  }
+
+  async csv(filter: FinanceFilter) {
+    return this.repository.transaction(async (client) => financialCsv(await financialLines(client,filter)))
+  }
+
   async data(filter: FinanceFilter) {
     return this.repository.transaction(async (client) => {
       const previous = previousPeriod(filter.start,filter.end)
@@ -58,7 +111,8 @@ export class FinanceService {
       const summary = summarize(rows)
       const products: ProductRecord[] = await this.repository.productRecords(client, filter)
       const change = (current: number, old: number) => old ? (current-old)/old*100 : null
-      return { rows, products, summary, previous: { ...previous, ...before },
+      const records=await financialLines(client,filter)
+      return { rows, products, records, summary, previous: { ...previous, ...before },
         variation: { total: change(summary.totalCents,before.totalCents), quantity: change(summary.quantity,before.quantity),
           attendances: change(summary.attendanceCount,before.attendanceCount),
           ticket: before.ticketCents && summary.ticketCents !== null ? change(summary.ticketCents,before.ticketCents) : null },
@@ -71,8 +125,9 @@ export class FinanceService {
   }
 
   async report(filter: FinanceFilter) {
-    const { rows, products, ...data } = await this.data(filter)
+    const { rows, products, records, ...data } = await this.data(filter)
     return { ...data, items: rows.slice(filter.page*20,filter.page*20+20), total: rows.length, pageSize:20,
+      records:records.slice(filter.page*20,filter.page*20+20),recordTotal:records.length,
       sales: [...new Map(products.map((product) => [product.saleId,{id:product.saleId,date:product.date}])).values()] }
   }
 

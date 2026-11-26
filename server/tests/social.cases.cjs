@@ -178,7 +178,7 @@ module.exports = async ({
         promotionId: promotion.id,
         expectedPrice: promotion.price,
         expectedConditions: promotion.conditions,
-        expectedValidUntil: catalog.validUntil,
+        expectedValidUntil: catalog.items.find(p=>p.id===promotion.id).validUntil,
         requestKey: randomUUID(),
         appointments: [
           { treatmentId: 1, employeeId, startsAt: date(6) + 'T09:00:00-03:00' },
@@ -310,14 +310,17 @@ module.exports = async ({
         ),
       )
       const before = purchase.validUntil
-      await db.query('UPDATE booking_settings SET package_validity_months=2')
+      await db.query('UPDATE promotions SET validity_months=2 WHERE id=$1',[promotion.id])
+      const changedPromotion=(await get('/public/promotions', '').then(result=>result.items)).find(p=>p.id===promotion.id)
+      assert.equal(changedPromotion.validityMonths,2)
+      assert.ok(new Date(changedPromotion.validUntil)>new Date(before))
       assert.equal(
         (await get('/customer/packages', alice.cookie)).find(
           (p) => p.id === purchase.id,
         ).validUntil,
         before,
       )
-      await db.query('UPDATE booking_settings SET package_validity_months=1')
+      await db.query('UPDATE promotions SET validity_months=1 WHERE id=$1',[promotion.id])
       await db.query(
         "UPDATE salon_treatments SET name='Catálogo alterado depois',price=300 WHERE id=1",
       )

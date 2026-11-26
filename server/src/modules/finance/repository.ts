@@ -1,3 +1,4 @@
+import { financialLines } from './analytics'
 import { databaseServiceId, IDatabaseService, IGenericDatabaseClient } from '@/core/db'
 import { MASTER_USER_ID } from '@/core/config'
 import { FinanceFilter, FinanceRecord, ProductRecord, financeError, safeMoney, completeTreatmentSchema, productSchema, productSaleSchema } from '@/core/finance'
@@ -60,32 +61,16 @@ export class FinanceRepository {
   }
 
   async records(client: IGenericDatabaseClient, filter: FinanceFilter, start: string): Promise<FinanceRecord[]> {
-    const { rows } = await client.query(`
-      SELECT id, schedule_id AS "scheduleId", employee_id AS "employeeId", treatment_id AS "treatmentId",
-        to_char(performed_on, 'YYYY-MM-DD') AS date, employee_name AS employee, customer_name AS customer,
-        treatment_name AS treatment, quantity, gross_cents AS "grossCents", discount_cents AS "discountCents",
-        final_cents AS "finalCents", actual_started_at AS "actualStartedAt", actual_ended_at AS "actualEndedAt"
-      FROM finance_treatment_records WHERE status='completed' AND performed_on BETWEEN $1::date AND $2::date
-        AND ($3::int IS NULL OR employee_id=$3) AND ($4::int IS NULL OR treatment_id=$4)
-        AND ($5='' OR strpos(lower(employee_name || ' ' || customer_name || ' ' || treatment_name), lower($5))>0)
-      ORDER BY performed_on DESC, id DESC`, [start, filter.end, filter.employeeId ?? null, filter.treatmentId ?? null, filter.search])
-    return rows.map((row: FinanceRecord) => ({ ...row, grossCents: safeMoney(row.grossCents), discountCents: safeMoney(row.discountCents),
-      finalCents: safeMoney(row.finalCents), actualStartedAt: row.actualStartedAt ? new Date(row.actualStartedAt).toISOString() : null,
-      actualEndedAt: row.actualEndedAt ? new Date(row.actualEndedAt).toISOString() : null }))
+    const lines = await financialLines(client, { ...filter, start })
+    return lines.filter((row) => row.kind === 'procedure').map((row) => ({
+      ...row, scheduleId: row.orderId!, treatmentId: row.itemId, treatment: row.item,
+    }))
   }
 
   async productRecords(client: IGenericDatabaseClient, filter: FinanceFilter): Promise<ProductRecord[]> {
-    const { rows } = await client.query(`
-      SELECT i.id, i.sale_id AS "saleId", i.product_id AS "productId", i.product_name AS product,
-        to_char(s.sold_on,'YYYY-MM-DD') AS date, i.quantity, i.final_cents AS "finalCents"
-      FROM salon_product_sale_items i JOIN salon_product_sales s ON s.id=i.sale_id
-      JOIN employees e ON e.id=s.employee_id JOIN persons ep ON ep.id=e.person_id
-      LEFT JOIN customers c ON c.id=s.customer_id LEFT JOIN persons cp ON cp.id=c.person_id
-      WHERE s.status='completed' AND s.sold_on BETWEEN $1::date AND $2::date
-        AND ($3::int IS NULL OR s.employee_id=$3)
-        AND ($4='' OR strpos(lower(i.product_name || ' ' || ep.name || ' ' || coalesce(cp.name,'')),lower($4))>0)
-      ORDER BY s.sold_on DESC, i.id DESC`, [filter.start, filter.end, filter.employeeId ?? null, filter.search])
-    return rows.map((row: ProductRecord) => ({ ...row, finalCents: safeMoney(row.finalCents) }))
+    return (await financialLines(client, filter)).filter((row) => row.kind === 'product').map((row) => ({
+      ...row, saleId: row.saleId ?? -row.orderId!, productId: row.itemId, product: row.item,
+    }))
   }
 
   async complete(input: z.infer<typeof completeTreatmentSchema>, userId: number) {

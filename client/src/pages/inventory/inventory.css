@@ -146,11 +146,23 @@
   gap: 16px;
 }
 .inventory-supplier-picker {
+  display: grid;
+  gap: 14px;
   min-width: 0;
   padding: 12px !important;
   border: 1px solid #eac4d3 !important;
   border-radius: 10px;
 }
+.inventory-supplier-picker > legend {
+  padding-inline: 6px;
+  margin-bottom: 12px;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+.inventory-supplier-picker > label { margin: 0; }
+.inventory-supplier-picker > :is(p, .inventory-inline-actions) { margin: 0; }
+.inventory-supplier-picker .inventory-inline-actions { padding-top: 4px; }
+.inventory-supplier-picker button { min-height: 44px; max-width: 100%; overflow-wrap: anywhere; }
 .inventory-supplier-options {
   display: flex;
   flex-wrap: wrap;

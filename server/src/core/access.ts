@@ -235,7 +235,7 @@ export const permissionCatalog = [
   [
     'booking.settings',
     'Configurações',
-    'Configurar agenda, sinal e validade de pacotes',
+    'Configurar agenda e sinal',
     false,
     [],
   ],

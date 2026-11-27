@@ -40,7 +40,8 @@ for (const example of cases) {
         changePassword: async () => {}, signOut: async () => {},
       },
     }, createElement(FinancePage)))
-    assert.equal(markup.includes('aria-label="Visões do financeiro"'), example.reports)
+    assert.equal(markup.includes('Produção e vendas'), example.reports)
+    assert.equal(markup.includes('Insights'), example.role === 'MASTER' || example.permissions.includes('finance.view'))
     assert.match(markup, /Consultando lançamentos/)
     assert.ok(markup.includes(example.scope === 'own' ? 'Meu financeiro' : 'Financeiro'))
   })

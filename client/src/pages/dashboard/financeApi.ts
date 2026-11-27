@@ -48,6 +48,12 @@ type Summary = {
   hourlyCents: number | null
 }
 export type FinanceReport = {
+  records: {
+    id:number;source:string;kind:'procedure'|'product';item:string;date:string;
+    employee:string;customer:string;quantity:number;grossCents:number;discountCents:number;finalCents:number;
+    orderId:number|null;saleId:number|null;
+  }[]
+  recordTotal:number
   items: TreatmentRecord[]
   total: number
   pageSize: number
@@ -116,6 +122,19 @@ export async function exportFinance(filters: FinanceFilters) {
   link.click()
   link.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
+}
+export async function exportFinanceCsv(filters: FinanceFilters) {
+  const response=await fetch(`/api/finance-reports/export-csv?${financeQuery(filters)}`,{credentials:'include'})
+  if(response.status===401)window.dispatchEvent(new Event(SESSION_EXPIRED_EVENT))
+  if(!response.ok)throw new Error('Não foi possível exportar o CSV. Verifique sua permissão e tente novamente.')
+  const url=URL.createObjectURL(await response.blob())
+  const link=document.createElement('a')
+  link.href=url
+  link.download=`financeiro_${filters.start}_${filters.end}.csv`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  setTimeout(()=>URL.revokeObjectURL(url),1000)
 }
 export function inputCents(value: string): number {
   if (!/^\d+(\.\d{1,2})?$/.test(value))

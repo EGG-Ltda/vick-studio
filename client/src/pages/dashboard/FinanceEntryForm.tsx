@@ -1,3 +1,6 @@
+import { SalonInput } from '../../components/selection/SalonInput'
+import { SalonSelect } from '../../components/selection/SalonSelect'
+import './finance.css'
 import { useEffect, useRef, useState } from 'react'
 import type { SubmitEvent } from 'react'
 import {
@@ -110,7 +113,7 @@ export default function FinanceEntryForm({
           <>
             <label>
               Nome do produto
-              <input
+              <SalonInput
                 autoFocus
                 required
                 maxLength={255}
@@ -120,7 +123,7 @@ export default function FinanceEntryForm({
             </label>
             <label>
               Preço (R$)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="0"
@@ -135,7 +138,7 @@ export default function FinanceEntryForm({
           <>
             <label>
               {kind === 'sale' ? 'Produto' : 'Item do atendimento'}
-              <select
+              <SalonSelect
                 autoFocus
                 required
                 value={itemId}
@@ -156,7 +159,7 @@ export default function FinanceEntryForm({
                         {brl(inputCents(item.price))}
                       </option>
                     ))}
-              </select>
+              </SalonSelect>
             </label>
             {kind === 'treatment' && !pending.length && (
               <p role="status">
@@ -168,7 +171,7 @@ export default function FinanceEntryForm({
               <>
                 <label>
                   Funcionário
-                  <select
+                  <SalonSelect
                     required
                     value={employeeId}
                     onChange={(e) => setEmployeeId(e.target.value)}
@@ -179,11 +182,11 @@ export default function FinanceEntryForm({
                         {item.name}
                       </option>
                     ))}
-                  </select>
+                  </SalonSelect>
                 </label>
                 <label>
                   Cliente
-                  <select
+                  <SalonSelect
                     value={customerId}
                     onChange={(e) => setCustomerId(e.target.value)}
                   >
@@ -193,13 +196,13 @@ export default function FinanceEntryForm({
                         {item.name}
                       </option>
                     ))}
-                  </select>
+                  </SalonSelect>
                 </label>
               </>
             )}
             <label>
               Data da realização
-              <input
+              <SalonInput
                 required
                 type="date"
                 max={localDate(new Date())}
@@ -209,7 +212,7 @@ export default function FinanceEntryForm({
             </label>
             <label>
               Quantidade
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="1"
@@ -220,7 +223,7 @@ export default function FinanceEntryForm({
             </label>
             <label>
               Desconto total deste item (R$)
-              <input
+              <SalonInput
                 required
                 type="number"
                 min="0"
@@ -238,7 +241,7 @@ export default function FinanceEntryForm({
                 </p>
                 <label>
                   Início real (opcional)
-                  <input
+                  <SalonInput
                     type="datetime-local"
                     value={actualStart}
                     onChange={(e) => setActualStart(e.target.value)}
@@ -246,7 +249,7 @@ export default function FinanceEntryForm({
                 </label>
                 <label>
                   Fim real (opcional)
-                  <input
+                  <SalonInput
                     type="datetime-local"
                     required={!!actualStart}
                     value={actualEnd}

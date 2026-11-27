@@ -9,6 +9,7 @@ export type Promotion = {
   endsOn: string
   active: boolean
   price: number
+  validityMonths: number
   minimumPaymentPercent: number | null
   items: {
     treatmentId: number

@@ -113,7 +113,6 @@ export default async function routes(app: FastifyInstance) {
   app.get('/public/promotions', async (req, res) =>
     ok(res, {
       items: await s.promotions(true),
-      validUntil: await s.validUntil(),
     }),
   )
   app.post(

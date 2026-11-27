@@ -1,5 +1,4 @@
 export type BookingSettings = {
-  packageValidityMonths: number
   shortNoticeHours: number
   enabled: boolean
   depositDays: number

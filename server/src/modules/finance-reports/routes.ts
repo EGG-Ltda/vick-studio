@@ -6,6 +6,7 @@ import { FinanceService } from '../finance/service'
 import { financeFilterSchema, completeTreatmentSchema, productSchema, productSaleSchema, financeError } from '@/core/finance'
 import z from 'zod'
 import { financeAccessHook, financeReportAccess } from '@/shared/middlewares/finance'
+import { can, salonWide } from '@/core/access'
 
 export default async function financeRoutes(app: FastifyInstance) {
   const service = container.get(FinanceService)
@@ -26,6 +27,28 @@ export default async function financeRoutes(app: FastifyInstance) {
   app.get('/finance-reports/options',read,async(_req,res)=>ok(res,await service.repository.options()))
   app.get('/finance-reports/pending',write,async(req,res)=>{const filter=parseFilter(req.query);return ok(res,await service.repository.pending(filter.start,filter.end))})
   app.get('/finance-reports/report',read,async(req,res)=>ok(res,await service.report(parseFilter(req.query))))
+  app.get('/finance-reports/insights',{preHandler:authHook},async(req,res)=>{
+    if (!can(req.authUser,'finance.view')) return fail(res,'Financial access denied',403)
+    const ownerUserId=salonWide(req.authUser)?undefined:req.authUser.id
+    return ok(res,await service.insights(parseFilter(req.query),ownerUserId,{
+      commissions:can(req.authUser,'commissions.view'),productCosts:can(req.authUser,'products.suppliers'),
+    }))
+  })
+  app.get('/finance-reports/insight-options',{preHandler:authHook},async(req,res)=>{
+    if (!can(req.authUser,'finance.view')) return fail(res,'Financial access denied',403)
+    const options=await service.repository.options()
+    if (!salonWide(req.authUser)) {
+      const own=await service.repository.connection(async(client)=>(await client.query('SELECT id FROM employees WHERE user_id=$1',[req.authUser.id])).rows.map((row:{id:number})=>row.id))
+      return ok(res,{employees:options.employees.filter((row:{id:number})=>own.includes(row.id)),treatments:options.treatments})
+    }
+    return ok(res,{employees:options.employees,treatments:options.treatments})
+  })
+  app.get('/finance-reports/export-csv',{preHandler:[authHook,guard('export')]},async(req,res)=>{
+    const filter=parseFilter(req.query)
+    return res.header('Content-Type','text/csv; charset=utf-8')
+      .header('Content-Disposition',`attachment; filename="financeiro_${filter.start}_${filter.end}.csv"`)
+      .header('Cache-Control','no-store').send(await service.csv(filter))
+  })
   app.get('/finance-reports/export',{preHandler:[authHook,guard('export')]},async(req,res)=>{
     const filter=parseFilter(req.query)
     const buffer=await service.workbook(filter)

@@ -42,6 +42,7 @@ export function PublicPromotions() {
                 {p.items.map((i) => `${i.quantity}× ${i.name}`).join(' + ')}
               </p>
               <strong>{money(p.price)}</strong>
+              <p>Utilização em até {p.validityMonths} mês(es) após a aquisição.</p>
               <p>
                 Oferta de {dateOnly(p.startsOn)} a {dateOnly(p.endsOn)}
               </p>

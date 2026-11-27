@@ -50,7 +50,6 @@ export const LoginSchema = z.object({
 export const SettingsSchema = z
   .object({
     enabled: z.boolean(),
-    packageValidityMonths: z.number().int().min(1).max(24).default(1),
     depositDays: z.number().int().min(1).max(3),
     shortNoticeHours: z.number().int().min(1).max(24).default(2),
     depositType: z.enum(['percent', 'fixed']),

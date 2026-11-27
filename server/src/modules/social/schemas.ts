@@ -9,6 +9,7 @@ export const PromotionSchema = z
     startsOn: z.iso.date(),
     endsOn: z.iso.date(),
     active: z.boolean(),
+    validityMonths: z.number().int().min(1).max(24).default(1),
     price: z.number().positive().max(99999.99).multipleOf(0.01),
     minimumPaymentPercent: z
       .number()

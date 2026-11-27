@@ -25,7 +25,7 @@ export function bookingError(message: string, statusCode = 400): never {
 }
 const digest = (value: string) =>
   createHash('sha256').update(value).digest('hex')
-const settingsSelect = `SELECT package_validity_months AS "packageValidityMonths",enabled,deposit_days AS "depositDays",short_notice_hours AS "shortNoticeHours",deposit_type AS "depositType",deposit_value::float AS "depositValue",payment_instructions AS "paymentInstructions",timezone FROM booking_settings WHERE id=true`
+const settingsSelect = `SELECT enabled,deposit_days AS "depositDays",short_notice_hours AS "shortNoticeHours",deposit_type AS "depositType",deposit_value::float AS "depositValue",payment_instructions AS "paymentInstructions",timezone FROM booking_settings WHERE id=true`
 const bookingSelect = `SELECT (SELECT group_id FROM booking_group_members WHERE schedule_id=s.id) AS "groupId",s.package_use_id AS "packageUseId",(SELECT purchase_id FROM package_uses WHERE id=s.package_use_id) AS "packagePurchaseId",s.id,s.customer_id AS "customerId",p.name AS "customerName",s.status,
  s.schedule_started_at AS "startsAt",s.schedule_ended_at AS "endsAt",s.total_price::float AS "totalPrice",
  s.deposit_required::float AS "depositRequired",s.deposit_received::float AS "depositReceived",
@@ -55,7 +55,7 @@ export class BookingService {
   }
   async updateSettings(data: z.infer<typeof SettingsSchema>) {
     await this.query(
-      `UPDATE booking_settings SET enabled=$1,deposit_days=$2,deposit_type=$3,deposit_value=$4,payment_instructions=$5,short_notice_hours=$6,package_validity_months=$7 WHERE id=true`,
+      `UPDATE booking_settings SET enabled=$1,deposit_days=$2,deposit_type=$3,deposit_value=$4,payment_instructions=$5,short_notice_hours=$6 WHERE id=true`,
       [
         data.enabled,
         data.depositDays,
@@ -63,7 +63,6 @@ export class BookingService {
         data.depositValue,
         data.paymentInstructions,
         data.shortNoticeHours,
-        data.packageValidityMonths,
       ],
     )
     return this.settings()

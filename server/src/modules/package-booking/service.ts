@@ -118,7 +118,7 @@ export class PackageBookingService {
         description: p.description,
         conditions: p.conditions,
         price: Number(p.price),
-        validUntil: (await this.social.validUntil(c)).toISOString(),
+        validUntil: (await this.social.validUntil(p.id, c)).toISOString(),
         minimumPaymentPercent: Number(p.minimum_payment_percent),
       }
     }

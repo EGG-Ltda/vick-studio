@@ -2,6 +2,33 @@
 
 ## Finance module
 
+Completed Agenda items now appear automatically in production reports. Existing
+manual financial records replace their source appointment item rather than
+duplicating it. Cancelled/annulled appointments and voided consumptions are
+excluded. Product rows include both legacy standalone sales and products recorded
+on completed orders. The responsible seller is the user who recorded consumption;
+unlinked users remain identified instead of being assigned to an unrelated worker.
+
+`GET /api/finance-reports/insights` requires `finance.view`. Scope is evaluated
+from the current user's access class on the backend: salon-wide users see the
+team; own-scope users see only their user-linked work, even with a forged employee
+filter. Commission amounts additionally require `commissions.view`; supplier
+costs require `products.suppliers` and are not exposed in own-scope insights.
+
+Insights separate production value from recorded receipts. Customer receipts are
+payments/refunds in the selected period linked to selected orders; partial-order
+filters use a proportional allocation. Costs reflect only stored commissions,
+adjustments and product costs/supplier shares. They do not constitute net profit:
+procedure materials, taxes and overhead are not available. Current stock is
+identified as a current balance, not historical stock. Refund allocation respects
+services/extras/proportional scope and uses whole-cent remainder distribution.
+
+CSV export: `GET /api/finance-reports/export-csv`, with the same filters and export
+permissions as Excel. Includes all filtered procedures/products, grouped by worker,
+independent of pagination. UTF-8 BOM, semicolons, decimal commas, quoted fields
+and spreadsheet-formula protection preserve compatibility with Brazilian Excel.
+The existing `.xlsx` API remains available.
+
 Run `npm run db:migrate` before starting this version. Migration
 `012_finance_reports.sql` preserves existing finance tables, including databases
 that previously applied `db/migrations/002_finance.sql`. Back up existing databases
@@ -232,3 +259,13 @@ verifica busca, paginação, permissões/IDOR, ausência de credenciais, consumo
 idempotência, recebimentos, estornos concorrentes, migração financeira, conclusão,
 preços históricos e edição cadastral. `npm run test:password-reset` cobre a regressão
 anterior. Não são alteradas contas ou recebimentos reais durante os testes.
+
+### Validade individual dos pacotes
+
+A migração `015_package_validity.sql` transfere a duração global anterior para
+`promotions.validity_months` e remove essa opção da Agenda. Cada pacote passa a
+ter validade de 1 a 24 meses a partir da aquisição, configurada em Social >
+Promoções e pacotes. O período da campanha é independente dessa duração.
+Aquisições existentes mantêm `package_purchases.valid_until`; editar um pacote
+altera somente novas aquisições. Execute `npm run db:migrate` antes de iniciar
+o backend atualizado. A permissão de alteração continua sendo `promotions.manage`.

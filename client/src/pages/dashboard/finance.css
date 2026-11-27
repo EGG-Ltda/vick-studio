@@ -182,7 +182,8 @@
   min-width: 680px;
 }
 .finance-dialog {
-  width: min(640px, calc(100vw - 32px));
+  width: min(880px, calc(100vw - 32px));
+  box-sizing: border-box;
   max-height: calc(100dvh - 32px);
   padding: 28px;
   overflow: auto;

@@ -39,6 +39,7 @@ export function UserClassModal({
   }, [])
   return (
     <SalonModal
+      size="compact"
       title={`Classe de ${user.login}`}
       description="A mudança aplica as permissões da classe e preserva as exceções dentro dos limites autorizados."
       busy={busy}

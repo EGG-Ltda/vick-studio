@@ -654,7 +654,7 @@ body:has(.dashboard-shell) {
 .schedule-date-navigation {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-end;
   gap: 10px;
 }
 .schedule-date-navigation label {
@@ -676,8 +676,8 @@ body:has(.dashboard-shell) {
   font: inherit;
 }
 .schedule-date-navigation button {
-  min-width: 40px;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   padding: 8px 12px;
 }
 .schedule-date-navigation input:focus-visible {

@@ -53,7 +53,7 @@ export function ProductEditor({
       busy={busy}
       onClose={onClose}
     >
-      <form className="booking-form" onSubmit={save}>
+      <form className="booking-form product-form" onSubmit={save}>
         <fieldset disabled={busy}>
           <label>
             Nome
@@ -63,16 +63,6 @@ export function ProductEditor({
               maxLength={255}
               value={form.name}
               onChange={(e) => setForm({ ...form, name: e.target.value })}
-            />
-          </label>
-          <label>
-            Descrição
-            <textarea
-              maxLength={4000}
-              value={form.description}
-              onChange={(e) =>
-                setForm({ ...form, description: e.target.value })
-              }
             />
           </label>
           <label>
@@ -92,6 +82,14 @@ export function ProductEditor({
               <option value="consigned">Consignado para venda</option>
               <option value="courtesy">Cortesia comprada pelo salão</option>
             </SalonSelect>
+          </label>
+          <label className="product-description">
+            Descrição
+            <textarea
+              maxLength={4000}
+              value={form.description}
+              onChange={(e) => setForm({ ...form, description: e.target.value })}
+            />
           </label>
           <SupplierPicker
             value={form.supplierId}

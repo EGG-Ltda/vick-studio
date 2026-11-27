@@ -45,7 +45,7 @@ export default function CustomersPage() {
         <div>
           <span className="salon-eyebrow">Relacionamentos que florescem</span>
           <h1>Clientes</h1>
-          <p>Cadastros, atendimentos e histórico de cada cliente do estúdio.</p>
+          <p>Cadastros, atendimentos e histórico de cada cliente do Studio.</p>
         </div>
       </header>
       <label className="customer-search">

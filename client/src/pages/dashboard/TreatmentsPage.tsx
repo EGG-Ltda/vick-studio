@@ -129,7 +129,7 @@ function TreatmentsPage() {
         <div>
           <span className="salon-eyebrow">Cuidado em cada experiência</span>
           <h1>Serviços</h1>
-          <p>Configure os serviços oferecidos pelo estúdio.</p>
+          <p>Configure os serviços oferecidos pelo Studio.</p>
         </div>
         {allowed(user, 'services.manage') && (
           <button
@@ -151,7 +151,7 @@ function TreatmentsPage() {
       {showForm && (
         <SalonModal
           title={editingId !== null ? 'Editar serviço' : 'Novo serviço'}
-          description="Personalize os cuidados oferecidos pelo seu estúdio."
+          description="Personalize os cuidados oferecidos pelo seu Studio."
           onClose={closeForm}
           busy={saving}
         >

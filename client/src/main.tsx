@@ -4,6 +4,7 @@ import './index.css'
 import App from './App.tsx'
 import './components/selection/selection.css'
 import './styles/field-labels.css'
+import './components/salon-modal.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

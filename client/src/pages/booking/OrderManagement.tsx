@@ -218,7 +218,7 @@ export function OrderManagement({
         </p>
       )}
       {data && (
-        <>
+        <div className="order-management-grid">
           <div className="order-money-summary">
             <span>Procedimentos combinados</span>
             <strong>{money(data.treatmentTotal)}</strong>
@@ -237,186 +237,188 @@ export function OrderManagement({
               </>
             )}
           </div>
-          <h3>Itens consumidos</h3>
-          {data.extras.length === 0 && (
-            <p>Nenhum consumo adicional registrado.</p>
-          )}
-          {data.extras.map((item) => (
-            <article
-              key={item.id}
-              className={`order-line${item.voidedAt ? ' voided' : ''}`}
-            >
-              <strong>
-                {item.quantity} × {item.description} · {money(item.total)}
-              </strong>
-              {item.productId && (
-                <small>
-                  {item.productKind === 'courtesy'
-                    ? 'Cortesia do salão · sem cobrança'
-                    : 'Produto do estoque'}
-                </small>
-              )}
-              <small>
-                Unitário: {money(item.unitPrice)} · {item.author} ·{' '}
-                {bookingDate(item.createdAt)}
-              </small>
-              {item.voidedAt ? (
-                <small>
-                  Cancelado: {item.voidReason}
-                  {item.productId
-                    ? item.stockReturned
-                      ? ' · Retornou ao estoque'
-                      : ' · Sem retorno ao estoque'
-                    : ''}
-                </small>
-              ) : (
-                (data.canAddConsumption ||
-                  (item.productId && data.canVoidProducts)) && (
-                  <button
-                    type="button"
-                    disabled={busy}
-                    onClick={() => {
-                      setVoiding(item.id)
-                      setVoidReason('')
-                      setRestock(false)
-                    }}
-                  >
-                    Cancelar item
-                  </button>
-                )
-              )}
-            </article>
-          ))}
-          {voiding !== null && (
-            <form
-              className="booking-form"
-              onSubmit={(event) => {
-                event.preventDefault()
-                void mutate(
-                  `/consumptions/${voiding}/void`,
-                  {
-                    reason: voidReason,
-                    ...(data.extras.find((item) => item.id === voiding)
-                      ?.productId
-                      ? { restock }
-                      : {}),
-                  },
-                  'Item cancelado, mantendo o registro no histórico.',
-                  () => setVoiding(null),
-                )
-              }}
-            >
-              <label>
-                Motivo do cancelamento do item
-                <SalonInput
-                  required
-                  minLength={3}
-                  maxLength={1000}
-                  value={voidReason}
-                  onChange={(event) => setVoidReason(event.target.value)}
-                  disabled={busy}
-                />
-              </label>
-              {data.extras.find((item) => item.id === voiding)?.productId && (
-                <>
-                  <label className="inventory-check">
-                    <SalonInput
-                      type="checkbox"
-                      checked={restock}
-                      onChange={(e) => setRestock(e.target.checked)}
-                    />
-                    O item foi devolvido em condições de voltar ao estoque
-                  </label>
-                  <p className="booking-note">
-                    Cancelar a cobrança não devolve dinheiro automaticamente. Se
-                    já houve pagamento, registre o estorno em Recebimentos e
-                    estornos. Cortesias consumidas não devem retornar ao
-                    estoque.
-                  </p>
-                </>
-              )}
-              <button disabled={busy} type="submit">
-                Confirmar cancelamento do item
-              </button>
-              <button
-                disabled={busy}
-                type="button"
-                onClick={() => setVoiding(null)}
+          <section className="order-consumptions">
+            <h3>Itens consumidos</h3>
+            {data.extras.length === 0 && (
+              <p>Nenhum consumo adicional registrado.</p>
+            )}
+            {data.extras.map((item) => (
+              <article
+                key={item.id}
+                className={`order-line${item.voidedAt ? ' voided' : ''}`}
               >
-                Voltar
-              </button>
-            </form>
-          )}
-          {!data.canAddConsumption && (
-            <p className="booking-note">
-              Esta comanda está{' '}
-              {data.status === 'completed' ? 'concluída' : 'cancelada'} e não
-              aceita novos consumos. Os itens já registrados permanecem no
-              histórico.
-            </p>
-          )}
-          {data.canAddProduct && (
-            <OrderProducts
-              id={id}
-              onBusyChange={onBusyChange}
-              onAdded={() => {
-                void bookingRequest<OrderLedger>(`/orders/${id}`)
-                  .then(setData)
-                  .catch((cause) => setError(cause.message))
-                onUpdated()
-              }}
-            />
-          )}
-          {data.canAddConsumption && (
-            <form className="booking-form" onSubmit={consumption}>
-              <fieldset disabled={busy}>
-                <legend>Consumo avulso sem controle de estoque</legend>
+                <strong>
+                  {item.quantity} × {item.description} · {money(item.total)}
+                </strong>
+                {item.productId && (
+                  <small>
+                    {item.productKind === 'courtesy'
+                      ? 'Cortesia do salão · sem cobrança'
+                      : 'Produto do estoque'}
+                  </small>
+                )}
+                <small>
+                  Unitário: {money(item.unitPrice)} · {item.author} ·{' '}
+                  {bookingDate(item.createdAt)}
+                </small>
+                {item.voidedAt ? (
+                  <small>
+                    Cancelado: {item.voidReason}
+                    {item.productId
+                      ? item.stockReturned
+                        ? ' · Retornou ao estoque'
+                        : ' · Sem retorno ao estoque'
+                      : ''}
+                  </small>
+                ) : (
+                  (data.canAddConsumption ||
+                    (item.productId && data.canVoidProducts)) && (
+                    <button
+                      type="button"
+                      disabled={busy}
+                      onClick={() => {
+                        setVoiding(item.id)
+                        setVoidReason('')
+                        setRestock(false)
+                      }}
+                    >
+                      Cancelar item
+                    </button>
+                  )
+                )}
+              </article>
+            ))}
+            {voiding !== null && (
+              <form
+                className="booking-form"
+                onSubmit={(event) => {
+                  event.preventDefault()
+                  void mutate(
+                    `/consumptions/${voiding}/void`,
+                    {
+                      reason: voidReason,
+                      ...(data.extras.find((item) => item.id === voiding)
+                        ?.productId
+                        ? { restock }
+                        : {}),
+                    },
+                    'Item cancelado, mantendo o registro no histórico.',
+                    () => setVoiding(null),
+                  )
+                }}
+              >
                 <label>
-                  Descrição
+                  Motivo do cancelamento do item
                   <SalonInput
                     required
-                    maxLength={255}
-                    placeholder="Descreva um item não cadastrado no estoque"
-                    value={extra.description}
-                    onChange={(event) =>
-                      setExtra({ ...extra, description: event.target.value })
-                    }
+                    minLength={3}
+                    maxLength={1000}
+                    value={voidReason}
+                    onChange={(event) => setVoidReason(event.target.value)}
+                    disabled={busy}
                   />
                 </label>
-                <label>
-                  Quantidade
-                  <SalonInput
-                    required
-                    type="number"
-                    min="1"
-                    max="100"
-                    step="1"
-                    value={extra.quantity}
-                    onChange={(event) =>
-                      setExtra({ ...extra, quantity: event.target.value })
-                    }
-                  />
-                </label>
-                <label>
-                  Valor unitário (R$)
-                  <SalonInput
-                    required
-                    type="number"
-                    min="0"
-                    max="99999.99"
-                    step="0.01"
-                    value={extra.unitPrice}
-                    onChange={(event) =>
-                      setExtra({ ...extra, unitPrice: event.target.value })
-                    }
-                  />
-                </label>
-              </fieldset>
-              <button className="primary-button" disabled={busy}>
-                Adicionar à comanda
-              </button>
-            </form>
-          )}
+                {data.extras.find((item) => item.id === voiding)?.productId && (
+                  <>
+                    <label className="inventory-check">
+                      <SalonInput
+                        type="checkbox"
+                        checked={restock}
+                        onChange={(e) => setRestock(e.target.checked)}
+                      />
+                      O item foi devolvido em condições de voltar ao estoque
+                    </label>
+                    <p className="booking-note">
+                      Cancelar a cobrança não devolve dinheiro automaticamente. Se
+                      já houve pagamento, registre o estorno em Recebimentos e
+                      estornos. Cortesias consumidas não devem retornar ao
+                      estoque.
+                    </p>
+                  </>
+                )}
+                <button disabled={busy} type="submit">
+                  Confirmar cancelamento do item
+                </button>
+                <button
+                  disabled={busy}
+                  type="button"
+                  onClick={() => setVoiding(null)}
+                >
+                  Voltar
+                </button>
+              </form>
+            )}
+            {!data.canAddConsumption && (
+              <p className="booking-note">
+                Esta comanda está{' '}
+                {data.status === 'completed' ? 'concluída' : 'cancelada'} e não
+                aceita novos consumos. Os itens já registrados permanecem no
+                histórico.
+              </p>
+            )}
+            {data.canAddProduct && (
+              <OrderProducts
+                id={id}
+                onBusyChange={onBusyChange}
+                onAdded={() => {
+                  void bookingRequest<OrderLedger>(`/orders/${id}`)
+                    .then(setData)
+                    .catch((cause) => setError(cause.message))
+                  onUpdated()
+                }}
+              />
+            )}
+            {data.canAddConsumption && (
+              <form className="booking-form" onSubmit={consumption}>
+                <fieldset disabled={busy}>
+                  <legend>Consumo avulso sem controle de estoque</legend>
+                  <label>
+                    Descrição
+                    <SalonInput
+                      required
+                      maxLength={255}
+                      placeholder="Descreva um item não cadastrado no estoque"
+                      value={extra.description}
+                      onChange={(event) =>
+                        setExtra({ ...extra, description: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Quantidade
+                    <SalonInput
+                      required
+                      type="number"
+                      min="1"
+                      max="100"
+                      step="1"
+                      value={extra.quantity}
+                      onChange={(event) =>
+                        setExtra({ ...extra, quantity: event.target.value })
+                      }
+                    />
+                  </label>
+                  <label>
+                    Valor unitário (R$)
+                    <SalonInput
+                      required
+                      type="number"
+                      min="0"
+                      max="99999.99"
+                      step="0.01"
+                      value={extra.unitPrice}
+                      onChange={(event) =>
+                        setExtra({ ...extra, unitPrice: event.target.value })
+                      }
+                    />
+                  </label>
+                </fieldset>
+                <button className="primary-button" disabled={busy}>
+                  Adicionar à comanda
+                </button>
+              </form>
+            )}
+          </section>
           {data.canViewFinancial && (
             <section className="order-section">
               <h3>Recebimentos e estornos</h3>
@@ -744,7 +746,7 @@ export function OrderManagement({
               )
             )}
           </section>
-        </>
+        </div>
       )}
     </section>
   )

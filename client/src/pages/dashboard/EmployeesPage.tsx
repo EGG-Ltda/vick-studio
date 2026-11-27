@@ -412,7 +412,7 @@ export default function EmployeesPage() {
           )}
           <div className="employees-toolbar">
             <div>
-              <h2>Profissionais do estúdio</h2>
+              <h2>Profissionais do Studio</h2>
               <p>
                 {loading
                   ? 'Consultando equipe…'

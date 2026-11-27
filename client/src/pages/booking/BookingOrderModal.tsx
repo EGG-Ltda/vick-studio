@@ -73,6 +73,7 @@ export function BookingOrderModal({
   }
   return (
     <SalonModal
+      size="wide"
       title={`Comanda #${id}`}
       description="Detalhes da reserva e confirmação do sinal."
       busy={busy}

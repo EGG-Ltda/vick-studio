@@ -1,0 +1,118 @@
+/* A single scroll container; large screens gain columns rather than taller forms. */
+.salon-modal.salon-modal {
+  box-sizing: border-box;
+  width: min(960px, calc(100vw - 48px));
+  max-width: none;
+  max-height: calc(100dvh - 48px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scroll-padding-block: 160px 88px;
+}
+.salon-modal.salon-modal--compact { width: min(600px, calc(100vw - 48px)); }
+.salon-modal.salon-modal--wide { width: min(1200px, calc(100vw - 48px)); }
+.salon-modal .salon-modal-panel { padding: clamp(20px, 3vw, 32px); }
+.salon-modal .salon-modal-header {
+  position: sticky;
+  top: calc(-1 * clamp(20px, 3vw, 32px));
+  z-index: 3;
+  padding-top: 16px;
+  background: #fef6f9;
+}
+.salon-modal .salon-modal-header > div { min-width: 0; }
+.salon-modal .salon-modal-header :is(h2, p) { overflow-wrap: anywhere; }
+.salon-modal .modal-close { min-width: 44px; min-height: 44px; flex-basis: 44px; }
+.salon-modal :is(form, fieldset, section, label, .salon-selection) { min-width: 0; }
+.salon-modal :is(input, select, textarea) { box-sizing: border-box; }
+.salon-modal textarea { max-width: 100%; }
+.salon-modal .modal-actions {
+  position: sticky;
+  bottom: calc(-1 * clamp(20px, 3vw, 32px));
+  z-index: 2;
+  padding-block: 16px;
+  background: #fef6f9;
+}
+.salon-modal .modal-actions button { min-height: 44px; }
+.salon-modal .booking-form label:has(input:is([type='checkbox'], [type='radio'])) {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
+}
+.salon-modal input:is([type='checkbox'], [type='radio']) { flex: 0 0 auto; }
+.order-management-grid { min-width: 0; }
+.order-management-grid > .order-consumptions { min-width: 0; }
+
+@media (min-width: 768px) {
+  .salon-modal:not(.salon-modal--compact) :is(form.booking-form, form.user-form),
+  .salon-modal:not(.salon-modal--compact) :is(form.booking-form, form.user-form) > fieldset:not(.employee-color-picker),
+  .salon-modal:not(.salon-modal--compact) .salon-modal-panel > .booking-form {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: 20px 24px;
+  }
+  .salon-modal :is(form.booking-form, form.user-form) > *,
+  .salon-modal :is(form.booking-form, form.user-form) > fieldset > *,
+  .salon-modal .salon-modal-panel > .booking-form > * { grid-column: 1 / -1; }
+  .salon-modal:not(.salon-modal--compact) :is(form.booking-form, form.user-form) > label,
+  .salon-modal:not(.salon-modal--compact) :is(form.booking-form, form.user-form) > fieldset > label,
+  .salon-modal:not(.salon-modal--compact) .salon-modal-panel > .booking-form > label { grid-column: auto; }
+  .salon-modal :is(form.booking-form, form.user-form) label { margin-bottom: 0; }
+  .salon-modal :is(form.booking-form, form.user-form) label:has(textarea),
+  .salon-modal :is(form.booking-form, form.user-form) label:has(input:is([type='checkbox'], [type='radio'])),
+  .salon-modal :is(form.booking-form, form.user-form) label:only-of-type { grid-column: 1 / -1; }
+  .salon-modal .employee-options-group:not(.availability-hours),
+  .salon-modal .booking-treatments {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+  }
+  .salon-modal .employee-options-group > legend { grid-column: 1 / -1; }
+  .salon-modal form.booking-form .employee-options-group > label.booking-choice { grid-column: auto; }
+  .salon-modal .inventory-form-grid { grid-column: 1 / -1; }
+  .salon-modal .dependency-booking { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .salon-modal .dependency-booking > * { grid-column: 1 / -1; }
+  .salon-modal .dependency-booking > .dependency-step { grid-column: auto; margin: 0; }
+  .salon-modal form.product-form > fieldset > .product-description { grid-column: 1; }
+  .salon-modal form.product-form > fieldset > .inventory-supplier-picker { grid-column: 2; grid-row: 2 / span 2; }
+  .salon-modal form.product-form > fieldset > .inventory-form-grid { grid-column: 1; }
+}
+@media (min-width: 1024px) {
+  .salon-modal .availability-hours { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+  .salon-modal .availability-hours > :is(legend, p) { grid-column: 1 / -1; }
+  .salon-modal .availability-hours .availability-day { margin: 0; }
+  .salon-modal .availability-time-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .salon-modal form.access-view > fieldset > .access-group,
+  .salon-modal form.booking-form > fieldset > .social-procedure { grid-column: auto; }
+  .salon-modal .order-management-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; align-items: start; }
+  .salon-modal .order-management-grid > .order-money-summary { grid-column: 1 / -1; }
+  .salon-modal .order-money-summary { grid-auto-flow: column; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 10px 20px; }
+  .salon-modal .order-money-summary > span { grid-row: 1; }
+  .salon-modal .order-money-summary > strong { grid-row: 2; text-align: left; font-size: 22px; }
+  .salon-modal .order-management-grid > .order-section { margin: 0; padding-top: 0; }
+  .salon-modal .order-management-grid > :is(.order-consumptions, .order-section) {
+    padding: 20px;
+    border: 1px solid var(--salon-line);
+    border-radius: 12px;
+  }
+  .salon-modal:not(.salon-modal--compact) .order-management-grid :is(form.booking-form, form.booking-form > fieldset) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 16px;
+  }
+}
+@media (max-width: 767px) {
+  .salon-modal.salon-modal { width: calc(100vw - 24px); max-height: calc(100dvh - 24px); border-radius: 16px; }
+  .salon-modal .salon-modal-panel { padding: 20px; }
+  .salon-modal .salon-modal-header { top: -20px; }
+  .salon-modal .modal-actions { bottom: -20px; }
+  .salon-modal .schedule-form { grid-template-columns: minmax(0, 1fr); }
+  .salon-modal .inventory-form-grid { grid-template-columns: minmax(0, 1fr); }
+  .salon-modal .booking-treatments { grid-template-columns: minmax(0, 1fr); }
+}
+/* Keep room for the fields in landscape or when the software keyboard is open. */
+@media (max-height: 600px) {
+  .salon-modal .salon-modal-header,
+  .salon-modal .modal-actions { position: static; }
+  .salon-modal.salon-modal { scroll-padding-block: 20px; }
+}
